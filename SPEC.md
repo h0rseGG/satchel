@@ -519,3 +519,4 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | M2: dates formatted by hand ("26 Sep 21:40", year added when it isn't this year) because ICU versions disagree on "Sep"/"Sept" between Node and Firefox |
 | 2026-10-01 | M2: the entity picker offers "New stub: X" only when nothing matches, the same rule as the capture box (4.2) |
 | 2026-10-01 | M2: saves compare records ignoring `updated_at`, so re-saving unchanged data is a no-op and doesn't count as a change. Profile edits stamp `profile_times` per changed section |
+| 2026-10-01 | v2.3 went live broken: the `.gitignore` line `screens/` (for screenshot output) also ignored `js/ui/screens/`, so those files were never pushed, while every local test passed. Fixed in v2.4: the rule is anchored (`/screens/`), a unit test fails if any app file is git-ignored, and `tools/check-live.mjs` runs after every push |

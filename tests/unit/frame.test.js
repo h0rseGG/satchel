@@ -28,3 +28,11 @@ test('manifest is valid and its icons exist', () => {
   assert.ok(m.icons.some((i) => i.purpose === 'maskable'));
   for (const i of m.icons) assert.ok(existsSync(new URL(i.src, root)), i.src);
 });
+
+// The live site only has what's committed: an over-broad .gitignore line once hid
+// js/ui/screens/ while every local test passed (2026-10-01).
+test('no app file is git-ignored', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const ignored = execFileSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard', 'index.html', 'sw.js', 'manifest.webmanifest', 'js', 'css', 'vendor', 'icons', 'demo'], { cwd: new URL('../../', import.meta.url).pathname, encoding: 'utf8' }).trim();
+  assert.equal(ignored, '');
+});

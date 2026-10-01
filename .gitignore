@@ -6,4 +6,4 @@ tests/e2e/fresh-check-*.txt
 *.kit
 !tests/fixtures/*.kit
 !demo/*.kit
-screens/
+/screens/
