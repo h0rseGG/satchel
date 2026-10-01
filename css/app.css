@@ -250,6 +250,8 @@ html, body {
   border-radius: var(--radius);
   background: var(--bg-alt);
 }
+.badge--button { font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+.badge--button:hover { border-color: var(--text); }
 .badge--ok { background: var(--ok); }
 .badge--warn { background: var(--warn); }
 .badge--err { background: var(--err); }

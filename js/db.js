@@ -71,10 +71,14 @@ export async function createBundle(pcName) {
 }
 
 // Save a changed record and count it towards "changes since backup/sync".
+// The first unsaved change also records when it happened, which ages the
+// backup badge (js/backup.js).
 export async function save(table, record) {
   await db.transaction('rw', db[table], db.meta, async () => {
     await db[table].put(record);
-    await setMeta('changes_since_backup', (await getMeta('changes_since_backup', 0)) + 1);
+    const changes = await getMeta('changes_since_backup', 0);
+    if (!changes) await setMeta('first_change_at', now());
+    await setMeta('changes_since_backup', changes + 1);
     await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + 1);
   });
   return record;
@@ -163,6 +167,7 @@ export async function unpackNew(data) {
     await setMeta('created_at', now());
     await setMeta('last_backup_at', data.exported_at ?? now());
     await setMeta('changes_since_backup', 0);
+    await setMeta('first_change_at', null);
     await setMeta('changes_since_sync', 0);
   });
 }
@@ -227,6 +232,16 @@ export async function startOver() {
 export async function markBackedUp() {
   await setMeta('last_backup_at', now());
   await setMeta('changes_since_backup', 0);
+  await setMeta('first_change_at', null);
+}
+
+// Everything the backup badge needs, in one read.
+export async function backupMeta() {
+  return {
+    last_backup_at: await getMeta('last_backup_at'),
+    changes_since_backup: await getMeta('changes_since_backup', 0),
+    first_change_at: await getMeta('first_change_at'),
+  };
 }
 
 // Ask the browser not to evict our data. Firefox shows a prompt on desktop

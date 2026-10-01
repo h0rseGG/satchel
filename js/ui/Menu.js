@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { html } from './html.js';
-import { packCurrentKit, markBackedUp, startOver } from '../db.js';
-import { downloadBytes } from './download.js';
+import { startOver } from '../db.js';
+import { packAndDownload } from './pack.js';
 import { useUnpack } from './useUnpack.js';
 import { ConfirmDelete } from './ConfirmDelete.js';
 
@@ -20,16 +20,9 @@ export function Menu({ onMessage }) {
     return () => document.removeEventListener('pointerdown', close);
   }, [open]);
 
-  async function pack() {
+  function pack() {
     setOpen(false);
-    try {
-      const { bytes, filename } = await packCurrentKit();
-      downloadBytes(bytes, filename);
-      await markBackedUp();
-      onMessage({ kind: 'ok', text: `Kit packed: ${filename}` });
-    } catch (err) {
-      onMessage({ kind: 'err', text: `Couldn't pack kit: ${err.message}` });
-    }
+    packAndDownload(onMessage);
   }
 
   return html`

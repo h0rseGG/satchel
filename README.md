@@ -1,26 +1,26 @@
 # Satchel
 
-A player-side D&D character companion. Type notes during a session, @mention people and places, and get instant recall. Tidy it all up later, or never.
+A notebook for your D&D character. Type notes during a session, @mention people and places, and find them again fast. Tidy up later, or don't.
 
-- **No stats or mechanics.** D&D Beyond handles those.
-- **Local-first.** Your data lives in your browser. There are no accounts and no server.
-- **Portable.** Pack your kit (a single `.kit` file) and unpack it on another device.
+- No stats or mechanics. D&D Beyond does that.
+- Your data lives in your browser. No accounts, no server.
+- Pack your kit into a single `.kit` file and unpack it on another device.
 
 **Use it:** https://h0rsegg.github.io/satchel/
 
-> Your data stays in the browser you use it in. Pack your kit regularly as a backup: clearing site data in your browser deletes it.
+> Clearing your browser's site data deletes your data. Pack your kit regularly as a backup.
 
 ## Status
-Early development. See [SPEC.md](SPEC.md) for the full design, decisions and roadmap.
+Early development. The design and roadmap are in [SPEC.md](SPEC.md).
 
 ## Run locally
-Needs Python (any recent version). From this folder:
+You need Python (any recent version). From this folder:
 
 ```
 python -m http.server 8000
 ```
 
-Then open http://localhost:8000 in Firefox. Opening `index.html` directly from disk will not work, because the app needs a secure context (`localhost` or HTTPS).
+Then open http://localhost:8000 in Firefox. Opening `index.html` straight from disk won't work, because the app needs a secure context (`localhost` or HTTPS).
 
 ## Project layout
 | Path | What |
@@ -32,4 +32,4 @@ Then open http://localhost:8000 in Firefox. Opening `index.html` directly from d
 | `tests/` | Unit tests (`node --test`) and browser tests (Playwright) |
 
 ## Licence
-No licence: all rights reserved. You're welcome to use the hosted app.
+No licence: all rights reserved. Using the hosted app is fine.

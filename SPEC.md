@@ -438,6 +438,7 @@ No open questions remain.
 | 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
 | 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
 | 2026-10-01 | Replace pulled forward from week 2, plus **New character** (menu). Both: red warning with counts, type the character's name to confirm, a backup kit downloads first; Replace is one transaction (old data kept if loading fails) |
+| 2026-10-01 | Backup badge: neutral for changes under 24 h (spec left this unstated); colour ages from the first unsaved change (`first_change_at`); tapping the badge packs a kit |
 | 2026-10-01 | "Changes since backup" = edits made on this device not yet in any kit. Merge leaves the counters alone (merged-in records came from a kit) |
 | 2026-10-01 | Pixel test: Android file picker selects `.kit` files for Unpack |
 | 2026-10-01 | Pixel test: Pack kit downloads as `.kit` (not renamed to `.kit.zip`) |

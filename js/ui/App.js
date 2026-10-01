@@ -76,7 +76,7 @@ function Main() {
     <header class="topbar">
       <span class="topbar__title">${pc ? pc.name : 'Satchel'}</span>
       <span class="topbar__build muted" title="Build">${BUILD}</span>
-      <${BackupBadge} />
+      <${BackupBadge} onMessage=${setMessage} />
       <${Menu} onMessage=${setMessage} />
     </header>
     ${message && html`

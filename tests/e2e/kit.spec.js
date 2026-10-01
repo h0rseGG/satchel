@@ -62,6 +62,36 @@ test('backup badge goes from "Not backed up" to "Backed up", then counts changes
   await expect(page.locator('.topbar .badge')).toHaveText('1 change since backup');
 });
 
+test('tapping the badge packs a kit', async ({ page }) => {
+  await start(page);
+  await say(page, 'a note');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('.topbar .badge').click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/\.kit$/);
+  await expect(page.locator('.topbar .badge')).toHaveText('Backed up');
+});
+
+test('badge colour follows the age of the oldest unsaved change', async ({ page }) => {
+  const badge = page.locator('.topbar .badge');
+  await start(page);
+  await expect(badge).toHaveClass(/badge--err/);   // never backed up
+  await packKit(page);
+  await expect(badge).toHaveClass(/badge--ok/);
+  await say(page, 'fresh change');
+  await expect(badge).toHaveClass(/badge--neutral/);
+
+  const age = (hours) => page.evaluate((h) => window.__satchel.db.meta.put({
+    key: 'first_change_at', value: new Date(Date.now() - h * 3600 * 1000).toISOString(),
+  }), hours);
+  await age(25);
+  await expect(badge).toHaveClass(/badge--warn/);
+  await age(24 * 8);
+  await expect(badge).toHaveClass(/badge--err/);
+  await expect(badge).toHaveText('1 change since backup');
+});
+
 test('menu closes when tapping elsewhere', async ({ page }) => {
   await start(page);
   await page.getByRole('button', { name: 'Menu' }).click();
