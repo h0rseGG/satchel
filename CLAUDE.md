@@ -40,4 +40,4 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). Next: M4 World.
+- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). M4 done (World: types, fields, type lists, entity page, merge, delete). Next: M5 Notes and Inbox.

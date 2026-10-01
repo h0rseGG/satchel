@@ -4,6 +4,8 @@ import { watchProblems, noSidewaysScroll } from './helpers.js';
 test.beforeEach(async ({ page }) => {
   await page.goto('/#/dev/gallery');
   await expect(page.locator('.page-title')).toHaveText('Component gallery');
+  // A reload mid-download logs the cancelled font fetch as an error.
+  await page.evaluate(() => document.fonts.ready);
 });
 
 test('renders every component with no errors or CSP violations', async ({ page }) => {

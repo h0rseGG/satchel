@@ -75,7 +75,7 @@ function RecallCard({ id, cap, canLink, onLink, focusBox }) {
       </div>
       ${typing && html`
         <div class="recall-types" role="group" aria-label=${S.recall.setType(e.name)}>
-          ${cap.types.filter((t) => t.id !== 'type-character').map((t) => html`<button type="button" key=${t.id} class="btn btn-secondary" ...${tap(() => setType(t))}>${t.label}</button>`)}
+          ${cap.types.map((t) => html`<button type="button" key=${t.id} class="btn btn-secondary" ...${tap(() => setType(t))}>${t.label}</button>`)}
         </div>`}
       ${e.summary && html`<p class="card-line">${e.summary}</p>`}
       ${showFirst && html`<p class="card-line card-small"><span class="muted">${S.recall.firstMention}</span> <${NoteText} text=${card.firstMention.text} byId=${cap.byId} plain /></p>`}

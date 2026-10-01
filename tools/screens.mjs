@@ -32,7 +32,30 @@ const type = (text) => async (page) => {
   await box.pressSequentially(text);
   await page.waitForTimeout(300);
 };
+const seedWorld = async () => {
+  const d = window.__satchel.data;
+  if (await d.getMeta('bundle')) return;
+  await d.createCharacter('Wren Ashdown');
+  const rook = await d.createEntity({ name: 'Captain Rook Harlow', type_id: 'type-npc', summary: 'Owes Mira a favour.' });
+  await d.createEntity({ name: 'Lord Aldric Thorne', type_id: 'type-npc', summary: 'Owns the mill. Lying through his teeth.', tags: ['noble', 'fuck this guy', 'liar'] });
+  await d.createEntity({ name: 'Mira Vane', type_id: 'type-npc', aliases: ['The Fox'], tags: ['fence'] });
+  await d.createEntity({ name: 'Millbrook', type_id: 'type-location', summary: 'Rainy mill town.' });
+  const ship = await d.createType({ label: 'Ship', plural: 'Ships' });
+  await d.addField(ship.id, { label: 'Captain', kind: 'link', link_type: 'type-npc' });
+  await d.addField(ship.id, { label: 'Crew', kind: 'number' });
+  await d.addField(ship.id, { label: 'Home port', kind: 'text' });
+  const types = await window.__satchel.db.types.get(ship.id);
+  const f = Object.fromEntries(types.fields.map((x) => [x.label, x.id]));
+  const gull = await d.createEntity({ name: 'The Gull’s Wake', type_id: ship.id, summary: 'Sails with the cold moon.', fields: { [f.Captain]: rook.id, [f.Crew]: '14', [f['Home port']]: 'Saltmarsh' } });
+  await d.addNote('the boat at the jetty is @The_Gull’s_Wake. capt @Rook');
+  await d.addNote('met a kid @Pip who sells info. and @Vex is the boss?');
+  localStorage.setItem('gull', gull.id);
+};
 const SCREENS = [
+  { name: 'world', hash: '#/world', setup: seedWorld, action: (page) => page.locator('.type-row', { hasText: 'Ship / Ships' }).getByRole('button', { name: 'Edit' }).click(), height: 1300 },
+  { name: 'type-list', hash: '#/world/type-npc', setup: seedWorld },
+  { name: 'stubs', hash: '#/world/stubs', setup: seedWorld },
+  { name: 'entity', hash: '#/', setup: seedWorld, action: async (page) => { await page.goto(`http://localhost:8124/#/entity/${await page.evaluate(() => localStorage.getItem('gull'))}`); await page.waitForTimeout(400); }, height: 1300 },
   { name: 'session-feed', hash: '#/', setup: seedSession },
   { name: 'session-suggest', hash: '#/', setup: seedSession, action: type('owes @gr') },
   { name: 'session-recall', hash: '#/', setup: seedSession, action: type('grimbold and lord aldric') },

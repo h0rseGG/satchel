@@ -30,3 +30,14 @@ export function time(iso) {
   const d = new Date(iso);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+// Type labels are title case on their own ("Location", "NPC") and lower case inside
+// sentences ("3 locations"), except acronyms (SPEC 5.3 rule 6).
+export function lower(label) {
+  return /^[A-Z0-9]{2,}s?$/.test(label) ? label : label.toLowerCase();
+}
+
+// "3 NPCs", "1 location", using a type's own singular and plural.
+export function typeCount(n, type) {
+  return `${n} ${lower(n === 1 ? type.label : type.plural)}`;
+}

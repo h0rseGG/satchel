@@ -138,3 +138,32 @@ test('blobsNeeded lists live files that came from the incoming side', () => {
   const { blobsNeeded } = mergeBundles(bundle({ files: [f('mine', 1), { ...f('back', 1), deleted: true }] }), bundle({ files: [f('new', 2), f('mine', 1), { ...f('dead', 2), deleted: true }, f('back', 3)] }));
   assert.deepEqual(blobsNeeded.sort(), ['back', 'new']);
 });
+
+test('merge into: name becomes an alias, tags join, gaps filled, references follow, only changed records returned', async () => {
+  const { mergeEntityInto } = await import('../../js/core/merge.js');
+  const into = e('g', 'Grimbold Ironhand', 1, { tags: ['debts'], fields: { 'f-a': '' } });
+  const from = e('s', 'Grimbol', 2, { stub: true, type_id: null, tags: ['Debts', 'smith'], summary: 'typo', fields: { 'f-a': 'x', 'f-b': 'y' } });
+  const other = e('o', 'Other', 1);
+  const records = {
+    pc_entity_id: 'pc',
+    entities: [into, from, other],
+    notes: [note('n1', 'paid @[Grimbol](s)', 2, { mentions: ['s'] }), note('n2', 'unrelated', 2)],
+    relationships: [makeRecord('relationships', { from_id: 's', to_id: 'g', type: 'ally' }, { id: 'r1', now: t(2) }), makeRecord('relationships', { from_id: 's', to_id: 'o', type: 'owes' }, { id: 'r2', now: t(2) })],
+    files: [],
+  };
+  const changed = mergeEntityInto(records, 's', 'g', t(9));
+  const get = (table, id) => changed.find((c) => c.table === table && c.record.id === id)?.record;
+  const g = get('entities', 'g');
+  assert.deepEqual(g.aliases, ['Grimbol']);
+  assert.deepEqual(g.tags, ['debts', 'smith']);
+  assert.equal(g.summary, 'typo');
+  assert.deepEqual(g.fields, { 'f-a': 'x', 'f-b': 'y' });
+  assert.equal(g.type_id, 'type-npc');
+  assert.deepEqual([get('entities', 's').deleted, get('entities', 's').merged_into], [true, 'g']);
+  assert.equal(get('notes', 'n1').text, 'paid @[Grimbol](g)');
+  assert.equal(get('notes', 'n2'), undefined, 'untouched notes are not rewritten');
+  assert.equal(get('relationships', 'r1').deleted, true, 'a self-relationship is removed');
+  assert.equal(get('relationships', 'r2').from_id, 'g');
+  assert.equal(get('entities', 'o'), undefined);
+  assert.throws(() => mergeEntityInto({ ...records, pc_entity_id: 's' }, 's', 'g', t(9)));
+});

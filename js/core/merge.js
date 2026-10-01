@@ -140,3 +140,49 @@ export function redirectMerged(bundle) {
   bundle.pc_entity_id = to(bundle.pc_entity_id);
   return bundle;
 }
+
+// "Merge into…" (SPEC 5.2): `from` folds into `into`. from's name and aliases become
+// aliases of into, tags join, empty text and field values are filled from `from`, and
+// every reference follows (same redirect as kit merges). records: the bundle tables.
+// Returns the records that changed, for one transaction.
+export function mergeEntityInto(records, fromId, intoId, now) {
+  const from = records.entities.find((e) => e.id === fromId);
+  const into = records.entities.find((e) => e.id === intoId);
+  if (!from || !into || from.deleted || into.deleted || fromId === intoId) throw new Error('Nothing to merge');
+  if (records.pc_entity_id === fromId) throw new Error('The player character can’t be merged away');
+
+  const k = key(into.name);
+  const aliases = [...(into.aliases || [])];
+  for (const n of [from.name, ...(from.aliases || [])]) {
+    if (key(n) && key(n) !== k && !aliases.some((a) => key(a) === key(n))) aliases.push(n);
+  }
+  const tags = [...(into.tags || [])];
+  for (const t of from.tags || []) if (!tags.some((x) => key(x) === key(t))) tags.push(t);
+  const fields = { ...(from.fields || {}), ...Object.fromEntries(Object.entries(into.fields || {}).filter(([, v]) => v !== '' && v != null)) };
+
+  const nextInto = {
+    ...into, aliases, tags, fields,
+    summary: into.summary || from.summary || '',
+    body: [into.body, from.body].filter(Boolean).join('\n\n'),
+    portrait_file_id: into.portrait_file_id ?? from.portrait_file_id ?? null,
+    type_id: into.type_id ?? from.type_id ?? null,
+    stub: into.stub && from.stub,
+    updated_at: now,
+  };
+  if (nextInto.type_id) nextInto.stub = false;
+  const nextFrom = { ...from, deleted: true, merged_into: intoId, updated_at: now };
+
+  const bundle = {
+    pc_entity_id: records.pc_entity_id,
+    entities: records.entities.map((e) => (e.id === intoId ? nextInto : e.id === fromId ? nextFrom : e)),
+    notes: records.notes, relationships: records.relationships, files: records.files,
+  };
+  redirectMerged(bundle);
+  const before = new Map(['entities', 'notes', 'relationships', 'files'].flatMap((t) => records[t].map((r) => [`${t}:${r.id}`, r])));
+  const changed = [];
+  for (const t of ['entities', 'notes', 'relationships', 'files']) {
+    for (const r of bundle[t]) if (before.get(`${t}:${r.id}`) !== r) changed.push({ table: t, record: r });
+  }
+  // Relationships that now point from an entity to itself mean nothing: remove them.
+  return changed.map((c) => (c.table === 'relationships' && c.record.from_id === c.record.to_id ? { ...c, record: { ...c.record, deleted: true, updated_at: now } } : c));
+}

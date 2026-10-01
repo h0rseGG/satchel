@@ -33,7 +33,7 @@ export function noteDoc(note, byId) {
 export function entityDoc(entity, typesById = new Map()) {
   const type = typesById.get(entity.type_id);
   const fieldText = (type?.fields || [])
-    .filter((f) => f.kind !== 'link')
+    .filter((f) => !f.removed && f.kind !== 'link')
     .map((f) => entity.fields?.[f.id])
     .filter((v) => v != null && v !== '');
   const profile = entity.profile ? PROFILE_SECTIONS.map((s) => entity.profile[s]).filter(Boolean) : [];

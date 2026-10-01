@@ -1,5 +1,6 @@
 // Entity types: built-ins and custom, all in one table (SPEC 3.2). Pure.
 import { makeRecord, isLive, newId } from './model.js';
+import { key } from './text.js';
 
 export const FIELD_KINDS = ['text', 'long_text', 'number', 'date', 'link', 'url'];
 
@@ -33,20 +34,36 @@ export function isPerson(entity, typesById) {
   return !!typesById.get(entity.type_id)?.person;
 }
 
+// Re-adding a removed field (same label and kind) brings it back with its old id,
+// so the values still stored on entities show again (SPEC 3.2).
 export function addField(type, { label, kind, link_type = null }, { now, id = `f-${newId()}` } = {}) {
   if (!FIELD_KINDS.includes(kind)) throw new Error(`Unknown field kind: ${kind}`);
-  const field = { id, label: label.trim(), kind };
-  if (kind === 'link' && link_type) field.link_type = link_type;
+  const old = type.fields.find((f) => f.removed && f.kind === kind && key(f.label) === key(label));
+  if (old) {
+    return { ...type, fields: type.fields.map((f) => (f === old ? withLink({ ...f, label: label.trim(), removed: undefined }, kind, link_type) : f)).map(clean), updated_at: now ?? type.updated_at };
+  }
+  const field = withLink({ id, label: label.trim(), kind }, kind, link_type);
   return { ...type, fields: [...type.fields, field], updated_at: now ?? type.updated_at };
 }
+
+const withLink = (f, kind, linkType) => {
+  const out = { ...f };
+  delete out.link_type;
+  if (kind === 'link' && linkType) out.link_type = linkType;
+  return out;
+};
+const clean = (f) => Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined));
+
+export const activeFields = (type) => (type?.fields || []).filter((f) => !f.removed);
 
 export function renameField(type, fieldId, label, { now } = {}) {
   return { ...type, fields: type.fields.map((f) => (f.id === fieldId ? { ...f, label: label.trim() } : f)), updated_at: now ?? type.updated_at };
 }
 
-// Values stay on the entities, so re-adding a field with the same id restores them.
+// Values stay on the entities and the field stays on the type, marked removed,
+// so re-adding it restores them.
 export function removeField(type, fieldId, { now } = {}) {
-  return { ...type, fields: type.fields.filter((f) => f.id !== fieldId), updated_at: now ?? type.updated_at };
+  return { ...type, fields: type.fields.map((f) => (f.id === fieldId ? { ...f, removed: true } : f)), updated_at: now ?? type.updated_at };
 }
 
 export function liveUsers(typeId, entities) {

@@ -197,3 +197,15 @@ a.tag:hover { text-decoration: underline; }
 .recall-hits { list-style: none; margin: 0; padding: 4px 12px; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); font-size: var(--fs-14); }
 .recall-hit { padding: 5px 0; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
 .recall-hit:first-child { border-top: 0; }
+
+/* Checkbox row */
+.check { display: flex; gap: var(--sp-8); align-items: flex-start; margin: 0 0 var(--sp-12); font-size: var(--fs-14); }
+.check input { margin-top: 3px; accent-color: var(--ink); }
+
+/* LinkField */
+.link-field .row-wrap { min-height: 36px; }
+.url-field { display: flex; gap: var(--sp-8); align-items: flex-end; }
+.url-field > .field { flex: 1; }
+.url-field > .btn { margin-bottom: var(--sp-12); }
+.list-row-meta > .select-field { margin: 0; }
+.list-row-meta .select-input { font-size: var(--fs-14); padding: 4px 8px; }

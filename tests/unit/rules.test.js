@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { badge, recordChanges, recordBackup, emptyBackupMeta, shouldNudge } from '../../js/core/backup.js';
 import { shouldAutoEnd, startSession, endSession, noteMode } from '../../js/core/session.js';
 import { classifyUpload, isValidUtf8, fitWithin, MAX_BYTES, extFor } from '../../js/core/files-rules.js';
-import { builtinTypes, makeType, addField, renameField, removeField, canDeleteType, fieldValueError, isPerson } from '../../js/core/types.js';
+import { builtinTypes, makeType, addField, renameField, removeField, canDeleteType, fieldValueError, isPerson, activeFields } from '../../js/core/types.js';
 import { makeRecord, normalise, isDndBeyondUrl, newerOf, resolveMerged } from '../../js/core/model.js';
 
 const H = 3600 * 1000;
@@ -78,8 +78,12 @@ test('custom types and fields: add, rename, remove keeps values', () => {
   assert.equal(deity.updated_at, at(2));
   const god = makeRecord('entities', { name: 'Auril', type_id: 'type-deity', fields: { 'f-domain': 'winter' } });
   deity = removeField(deity, 'f-domain');
-  assert.equal(deity.fields.length, 0);
+  assert.equal(activeFields(deity).length, 0);
   assert.equal(god.fields['f-domain'], 'winter', 'value stays on the entity');
+  deity = addField(deity, { label: 'domains', kind: 'text' }, { id: 'f-new' });
+  assert.deepEqual(activeFields(deity), [{ id: 'f-domain', label: 'domains', kind: 'text' }], 're-adding restores the old id, so the value shows again');
+  deity = addField(deity, { label: 'Domains', kind: 'number' }, { id: 'f-num' });
+  assert.equal(activeFields(deity).length, 2, 'a different kind is a new field');
   assert.throws(() => addField(deity, { label: 'x', kind: 'colour' }));
   const ship = addField(makeType({ label: 'Ship' }), { label: 'Captain', kind: 'link', link_type: 'type-npc' });
   assert.equal(ship.fields[0].link_type, 'type-npc');
