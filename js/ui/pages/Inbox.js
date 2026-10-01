@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'preact/hooks';
 import { html } from '../html.js';
 import { useLive } from '../useLive.js';
-import { db, promoteNote, triageAll, triageKeep, untriage } from '../../db.js';
-import { live } from '../../model.js';
+import { db, promoteNote, promoteNoteToRelationship, triageAll, triageKeep, untriage } from '../../db.js';
+import { RELATIONSHIP_TYPES, directedByDefault, live } from '../../model.js';
 import { plain } from '../../mentions.js';
 import { href } from '../router.js';
 import { NoteItem } from '../NoteItem.js';
@@ -64,7 +64,9 @@ export function Inbox({ pcId, onMessage }) {
             <${InboxNote} key=${n.id} note=${n} names=${names} entities=${entities} pcId=${pcId} onMessage=${onMessage}
               onKeep=${() => run(() => triageKeep(n.id))}
               onToEntity=${(e) => run(() => promoteNote(n.id, { entityId: e.id }, textOf(n)), `Added to ${e.name}’s description.`)}
-              onToCharacter=${(section, label) => run(() => promoteNote(n.id, { entityId: pcId, section }, textOf(n)), `Added to your ${label}.`)} />`)}
+              onToCharacter=${(section, label) => run(() => promoteNote(n.id, { entityId: pcId, section }, textOf(n)), `Added to your ${label}.`)}
+              onToRelationship=${(rel) => run(() => promoteNoteToRelationship(n.id, rel, textOf(n)),
+                `Relationship added: ${names.get(rel.from_id)} ${rel.type} ${names.get(rel.to_id)}.`)} />`)}
           </ul>`
         : html`<p class="muted">All sorted. New notes land here.</p>`)}
 
@@ -89,13 +91,17 @@ export function Inbox({ pcId, onMessage }) {
   `;
 }
 
-function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharacter, onMessage }) {
+function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharacter, onToRelationship, onMessage }) {
+  const [relForm, setRelForm] = useState(false);
   const mentioned = note.mentions
     .filter((id) => id !== pcId)
     .map((id) => entities.find((e) => e.id === id))
     .filter(Boolean);
   return html`
-    <${NoteItem} note=${note} names=${names} onMessage=${onMessage}>
+    <${NoteItem} note=${note} names=${names} onMessage=${onMessage}
+      extra=${relForm && html`<${RelationshipFromNote} names=${names} pcId=${pcId} mentioned=${mentioned}
+        onCancel=${() => setRelForm(false)}
+        onAdd=${(rel) => { setRelForm(false); onToRelationship(rel); }} />`}>
       <button type="button" class="btn" onClick=${onKeep}>Keep as log</button>
       ${mentioned.map((e) => html`
         <button type="button" key=${e.id} class="btn" onClick=${() => onToEntity(e)}>Add to ${e.name}</button>`)}
@@ -109,6 +115,38 @@ function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharac
         <option value="">Add to my character…</option>
         ${SECTIONS.map(([key, label]) => html`<option value=${key}>${label}</option>`)}
       </select>
+      ${mentioned.length > 0 && !relForm && html`
+        <button type="button" class="btn" onClick=${() => setRelForm(true)}>Add as relationship…</button>`}
     </${NoteItem}>
+  `;
+}
+
+// Small form under a note: from / type / to, from your character and the
+// entities the note mentions. Direction follows the type (as on entity pages).
+function RelationshipFromNote({ names, pcId, mentioned, onAdd, onCancel }) {
+  const people = [pcId, ...mentioned.map((e) => e.id)].filter((id, i, a) => id && a.indexOf(id) === i);
+  const [from, setFrom] = useState(pcId);
+  const [to, setTo] = useState(mentioned[0]?.id);
+  const [type, setType] = useState('');
+  const pick = (value, set, label) => html`
+    <select class="input" aria-label=${label} value=${value} onChange=${(e) => set(e.currentTarget.value)}>
+      ${people.map((id) => html`<option value=${id}>${names.get(id)}</option>`)}
+    </select>`;
+  const submit = (e) => {
+    e.preventDefault();
+    if (!type.trim()) return;
+    if (from === to) return;
+    onAdd({ from_id: from, to_id: to, type: type.trim(), directed: directedByDefault(type) });
+  };
+  return html`
+    <form class="rels__form inbox__relform" onSubmit=${submit} aria-label="Add as relationship">
+      ${pick(from, setFrom, 'From')}
+      <input class="input" aria-label="Relationship type" placeholder="Type, e.g. owes" list="inbox-rel-types"
+        value=${type} onInput=${(e) => setType(e.currentTarget.value)} />
+      <datalist id="inbox-rel-types">${RELATIONSHIP_TYPES.map(([t]) => html`<option value=${t} />`)}</datalist>
+      ${pick(to, setTo, 'To')}
+      <button type="submit" class="btn btn--primary" disabled=${!type.trim() || from === to}>Add</button>
+      <button type="button" class="btn" onClick=${onCancel}>Cancel</button>
+    </form>
   `;
 }

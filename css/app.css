@@ -287,7 +287,7 @@ html, body {
 }
 .counts a:hover { border-color: var(--text); }
 .page__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; margin-bottom: 12px; }
-.page__title { margin: 0; font-size: 20px; }
+.page__title { margin: 0; font-size: 20px; overflow-wrap: anywhere; }
 .crumb { font-size: 13px; }
 
 /* Character page and in-session overview */
@@ -355,6 +355,7 @@ a.btn { display: inline-block; text-decoration: none; color: var(--text); }
 .inbox__actions { flex-wrap: wrap; gap: 6px; }
 .inbox__select { width: auto; min-width: 200px; }
 .inbox__added { font-size: 13px; align-self: center; }
+.inbox__relform { margin-top: 8px; padding: 8px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); }
 .note__edit { width: 100%; margin: 4px 0; font: inherit; line-height: 1.5; resize: vertical; }
 
 /* Lists and entity pages */

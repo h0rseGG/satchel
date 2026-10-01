@@ -171,6 +171,22 @@ export async function addRelationship({ selfId, otherName, type, directed, outgo
   });
 }
 
+// Inbox: turn a note into a relationship between two existing entities.
+// The note's text becomes the relationship's notes, the relationship records
+// the note it came from, and the note is marked sorted.
+export async function promoteNoteToRelationship(noteId, { from_id, to_id, type, directed }, text) {
+  return db.transaction('rw', db.notes, db.relationships, db.meta, async () => {
+    const n = await db.notes.get(noteId);
+    if (!n || n.deleted) throw new Error('That note no longer exists.');
+    const r = await save('relationships', makeRelationship({ from_id, to_id, type, directed, notes: text, source_note_ids: [noteId] }));
+    await save('notes', touch(n, {
+      triaged_at: now(),
+      promoted_to: [...new Set([...(n.promoted_to ?? []), r.id])],
+    }));
+    return r;
+  });
+}
+
 export async function deleteRelationship(id) {
   return db.transaction('rw', db.relationships, db.meta, async () => {
     const r = await db.relationships.get(id);

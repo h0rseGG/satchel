@@ -10,7 +10,8 @@ import { formatShort } from './format.js';
 // Edit and Delete. Editing shows @names in typed form (@Lord_Aldric) and
 // links them again on save; the first version is kept (SPEC D13).
 // `children`: extra action buttons (e.g. the Inbox's).
-export function NoteItem({ note, names, onMessage, children }) {
+// `extra`: optional content shown under the actions (e.g. an inline form).
+export function NoteItem({ note, names, onMessage, children, extra = null }) {
   const [editing, setEditing] = useState(null); // { text, picked }
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -48,7 +49,8 @@ export function NoteItem({ note, names, onMessage, children }) {
             ${children}
             <button type="button" class="btn" onClick=${() => setEditing(toTypedForEdit(note.text, names))}>Edit</button>
             <button type="button" class="btn" onClick=${() => setConfirmDelete(true)}>Delete…</button>
-          </div>`}
+          </div>
+          ${extra}`}
       ${confirmDelete && html`<${Confirm} title="Delete this note?" action="Delete" danger
         onCancel=${() => setConfirmDelete(false)}
         onConfirm=${async () => { setConfirmDelete(false); await deleteNote(note.id); onMessage({ kind: 'ok', text: 'Note deleted.' }); }}>

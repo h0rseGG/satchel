@@ -48,6 +48,6 @@ Owner: Jake (electrician; Python-first, new to web). Personal project, not Cable
 
 ## Status (2026-10-01)
 - Week one: done. Week 2: sync (GitHub, merge-based) done. Out-of-session design (SPEC §7) steps 1–5 done.
-- Also done: All notes page (#/log) with note edit/delete; relationships (entity/character pages, recall cards).
-- Deferred: graph view (needs a library choice from Jake); promoting a note to a relationship; per-field merge for the character profile; private-window warning banner.
+- Also done: All notes page (#/log) with note edit/delete; relationships (entity/character pages, recall cards, Inbox "Add as relationship").
+- Deferred: graph view (needs a library choice from Jake); per-field merge for the character profile; private-window warning (Firefox gives no reliable way to detect it).
 - Unverified on the Pixel: photo upload orientation; feel of the new pages on the phone.

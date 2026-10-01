@@ -105,6 +105,36 @@ test('sorted notes can go back to the inbox', async ({ page }) => {
   await expect(notesInList(page)).toHaveText(['oops']);
 });
 
+test('add a note as a relationship: Kael owes Grimbold, note sorted', async ({ page }) => {
+  await start(page);
+  await note(page, 'we owe @Grimbold 20 gp');
+  await page.goto('/#/inbox');
+  await page.getByRole('button', { name: 'Add as relationship…' }).click();
+  const form = page.getByRole('form', { name: 'Add as relationship' });
+  await expect(form.getByLabel('From')).toHaveValue(await page.evaluate(async () => (await window.__satchel.db.meta.get('pc_entity_id')).value));
+  await expect(form.getByRole('button', { name: 'Add' })).toBeDisabled();
+  await form.getByLabel('Relationship type').fill('owes');
+  await form.getByRole('button', { name: 'Add' }).click();
+  await expect(page.getByRole('status')).toContainText('Relationship added: Kael owes Grimbold');
+  await expect(notesInList(page)).toHaveCount(0);
+
+  const [r] = await page.evaluate(() => window.__satchel.db.relationships.toArray());
+  expect(r.directed).toBe(true);
+  expect(r.notes).toMatch(/: we owe Grimbold 20 gp$/);
+  const n = await page.evaluate(() => window.__satchel.db.notes.orderBy('created_at').last());
+  expect(r.source_note_ids).toEqual([n.id]);
+  expect(n.promoted_to).toEqual([r.id]);
+  await page.goto('/#/character');
+  await expect(page.getByRole('region', { name: 'Relationships' }).locator('.rels__row')).toHaveText([/Kael owes Grimbold/]);
+});
+
+test('"Add as relationship" only appears when the note mentions someone', async ({ page }) => {
+  await start(page);
+  await note(page, 'nothing to link');
+  await page.goto('/#/inbox');
+  await expect(page.getByRole('button', { name: 'Add as relationship…' })).toHaveCount(0);
+});
+
 test('inbox mentions link to entity pages', async ({ page }) => {
   await start(page);
   await note(page, 'met @Grimbold');
