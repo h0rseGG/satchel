@@ -1,6 +1,6 @@
 # Satchel v2: specification
 
-Status: **DRAFT for Jake's approval.** Written 2026-10-01 from everything learned building v1.
+Status: **APPROVED 2026-10-01** (including the field-journal style). Written from everything learned building v1. Open questions in section 14 take the recommended answers unless Jake says otherwise.
 This document is **self-contained**: a fresh Claude session on a new machine should be able to build Satchel v2 from this file and `CLAUDE.md` (in the same folder) alone, with no access to v1 or its history.
 
 Legend: **[NV]** = not verified; check before relying on it (milestone M0 does this). **(v1)** = proven in v1, keep as is.
@@ -490,4 +490,5 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | Navigation: hub (as v1) cleaned up, with breadcrumbs, Home always visible, and a session button in the top bar |
 | 2026-10-01 | Confirmations only for destructive actions; everything else edits in place |
 | 2026-10-01 | Jake mostly reviews behaviour; code stays clean and conventional, without teaching material |
+| 2026-10-01 | SPEC v2 and the style preview approved by Jake. Section 14 defaults accepted: no v1 kit import, built-in types renamable (label only), field kinds as listed, Home shows the last 5 notes |
 | 2026-10-01 | **Visual style: "field journal"** (section 5.4) replaces v1's plain palette: aged paper, sepia ink, ruled lines, red margin, green marks; green darkened to #4F6B47 for AA contrast. Headings in a bundled old-book serif (IM Fell English, fallback EB Garamond); body in system fonts. Wording themed only at signature moments (Pack/Unpack kit, empty states, toasts); all strings in `js/ui/strings.js` |
