@@ -10,6 +10,11 @@ A notebook for your D&D character. Type notes during a session, @mention people 
 
 > Clearing your browser's site data deletes your data. Pack your kit regularly as a backup.
 
+## Try it with a demo character
+On the first screen, tap **Try the demo character**. You get Wren Ashdown, an exiled ranger a month into a campaign: notes from four sessions, a dozen NPCs and places, relationships, a map and a handout, plus a few things left untidy so you can try the Inbox and merging.
+
+Use a private window if you already have a character, because unpacking a different one replaces it. You can also download the kit itself: [demo/wren.kit](https://h0rsegg.github.io/satchel/demo/wren.kit). To rebuild it, run `node tests/tools/make-demo-kit.mjs`.
+
 ## Status
 Early development. The design and roadmap are in [SPEC.md](SPEC.md).
 
