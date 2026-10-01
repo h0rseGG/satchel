@@ -2,10 +2,12 @@
 // record shapes live in model.js, which is unit tested without a browser.
 
 import Dexie from 'dexie';
-import { live, makeEntity, makeNote, newId, now, setType, touch } from './model.js';
+import {
+  ENTITY_TYPES, cleanName, cleanTags, live, makeEntity, makeNote, newId, now, setType, tombstone, touch,
+} from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
-import { TABLES, mergeData } from './merge.js';
+import { TABLES, mergeData, mergeEntityInto } from './merge.js';
 
 export const db = new Dexie('satchel');
 
@@ -87,6 +89,76 @@ export async function save(table, record) {
     await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + 1);
   });
   return record;
+}
+
+// Save several changed records in one go, counting each as a change.
+async function saveMany(table, records) {
+  if (!records.length) return;
+  await db.transaction('rw', db[table], db.meta, async () => {
+    await db[table].bulkPut(records);
+    const changes = await getMeta('changes_since_backup', 0);
+    if (!changes) await setMeta('first_change_at', now());
+    await setMeta('changes_since_backup', changes + records.length);
+    await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + records.length);
+  });
+}
+
+// ---------- Entities (out-of-session pages) ----------
+
+export async function createEntity({ name, type }) {
+  return save('entities', makeEntity({ name, type, stub: type === 'unknown' }));
+}
+
+// Edit an entity's fields. No-op if nothing actually changed, so autosave
+// on blur doesn't create phantom changes.
+export async function updateEntity(id, changes) {
+  return db.transaction('rw', db.entities, db.meta, async () => {
+    const e = await db.entities.get(id);
+    if (!e || e.deleted) throw new Error('That entity no longer exists.');
+    const next = { ...changes };
+    if ('name' in next) {
+      next.name = cleanName(next.name);
+      if (!next.name) throw new Error('A name can’t be empty.');
+    }
+    if ('tags' in next) next.tags = cleanTags(next.tags);
+    if ('aliases' in next) next.aliases = cleanTags(next.aliases);
+    if ('type' in next) {
+      if (!ENTITY_TYPES.includes(next.type) || next.type === 'unknown') throw new Error(`Can't set type to ${next.type}`);
+      next.stub = false;
+    }
+    const same = Object.entries(next).every(([k, v]) => JSON.stringify(e[k]) === JSON.stringify(v));
+    if (same) return e;
+    return save('entities', touch(e, next));
+  });
+}
+
+// Delete (tombstone) an entity. Notes keep its name as plain text.
+export async function deleteEntity(id) {
+  const e = await db.entities.get(id);
+  if (!e) return;
+  if (id === (await getMeta('pc_entity_id'))) throw new Error('Your own character can’t be deleted here.');
+  await save('entities', tombstone(e));
+}
+
+// Merge one entity into another (SPEC section 7, merge.js mergeEntityInto).
+export async function mergeEntities(loserId, survivorId) {
+  if ([loserId, survivorId].includes(await getMeta('pc_entity_id'))) {
+    throw new Error('Your own character can’t be merged.');
+  }
+  return db.transaction('rw', db.entities, db.notes, db.relationships, db.meta, async () => {
+    const before = {
+      entities: await db.entities.toArray(),
+      notes: await db.notes.toArray(),
+      relationships: await db.relationships.toArray(),
+    };
+    const tables = { ...before };
+    const survivor = mergeEntityInto(tables, loserId, survivorId);
+    for (const t of ['entities', 'notes', 'relationships']) {
+      const old = new Map(before[t].map((r) => [r.id, r]));
+      await saveMany(t, tables[t].filter((r) => old.get(r.id) !== r));
+    }
+    return survivor;
+  });
 }
 
 // Quick type from a stub's recall card: sets the type, no longer a stub.

@@ -9,7 +9,7 @@
 // 3. Anything pointing at a merged-away entity (note mentions,
 //    relationships) is redirected to the survivor.
 
-import { nameKey, now } from './model.js';
+import { cleanTags, nameKey, now } from './model.js';
 
 export const TABLES = ['entities', 'notes', 'sessions', 'relationships', 'images'];
 
@@ -84,6 +84,43 @@ export function combineDuplicateStubs(tables, at = now()) {
   return replace.size;
 }
 
+// Manual "merge entities" (out-of-session entity page): fold `loserId` into
+// `survivorId`. The loser's name and aliases become aliases (so typing the
+// old name still finds the survivor), tags are combined, an empty summary is
+// filled from the loser, descriptions are joined, and every mention or
+// relationship is redirected. The loser becomes a tombstone with merged_into,
+// so other devices redirect too when they sync. Mutates `tables` (replacing
+// records, never editing them).
+export function mergeEntityInto(tables, loserId, survivorId, at = now()) {
+  if (loserId === survivorId) throw new Error('Pick a different entity to merge into.');
+  const loser = tables.entities.find((e) => e.id === loserId && !e.deleted);
+  const survivor = tables.entities.find((e) => e.id === survivorId && !e.deleted);
+  if (!loser || !survivor) throw new Error('Both entities must exist.');
+
+  const aliases = [];
+  const seen = new Set([nameKey(survivor.name)]);
+  for (const a of [...(survivor.aliases ?? []), loser.name, ...(loser.aliases ?? [])]) {
+    const k = nameKey(a);
+    if (k && !seen.has(k)) { seen.add(k); aliases.push(a); }
+  }
+  const merged = {
+    ...survivor,
+    aliases,
+    tags: cleanTags([...(survivor.tags ?? []), ...(loser.tags ?? [])]),
+    summary: survivor.summary || loser.summary,
+    body: [survivor.body, loser.body].filter(Boolean).join('\n\n'),
+    image_ids: [...new Set([...(survivor.image_ids ?? []), ...(loser.image_ids ?? [])])],
+    // A stub merged into... keeps the real type if either side has one.
+    type: survivor.stub && !loser.stub ? loser.type : survivor.type,
+    stub: Boolean(survivor.stub && loser.stub),
+    updated_at: at,
+  };
+  const tomb = { ...loser, deleted: true, merged_into: survivor.id, updated_at: at };
+  tables.entities = tables.entities.map((e) => (e.id === survivor.id ? merged : e.id === loser.id ? tomb : e));
+  redirectMerged(tables, at);
+  return merged;
+}
+
 // Follow merged_into chains: a -> b -> c resolves a to c.
 export function redirectMap(entities) {
   const next = new Map(entities.filter((e) => e.merged_into).map((e) => [e.id, e.merged_into]));
@@ -117,4 +154,11 @@ export function redirectMerged(tables, at = now()) {
     if (!map.has(r.from_id) && !map.has(r.to_id)) return r;
     return { ...r, from_id: to(r.from_id), to_id: to(r.to_id), updated_at: at };
   });
+
+  // Files attached to a merged-away entity move to the survivor.
+  if (tables.files) {
+    tables.files = tables.files.map((f) => (f.entity_id && map.has(f.entity_id)
+      ? { ...f, entity_id: to(f.entity_id), updated_at: at }
+      : f));
+  }
 }

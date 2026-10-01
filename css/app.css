@@ -276,6 +276,64 @@ html, body {
 .page__title { margin: 0; font-size: 20px; }
 .crumb { font-size: 13px; }
 
+/* Lists and entity pages */
+.list__tools { margin-bottom: 10px; }
+.list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+.list__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  width: 100%;
+  padding: 10px 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.list__row:hover { background: var(--bg-alt); }
+.list__summary { flex-basis: 100%; font-size: 14px; }
+.pick { max-height: 50dvh; overflow-y: auto; margin-top: 8px; }
+.entity__grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 24px; }
+@media (max-width: 760px) { .entity__grid { grid-template-columns: minmax(0, 1fr); } }
+.entity__actions { margin-top: 16px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; margin-bottom: 4px; font-size: 14px; font-weight: 600; }
+.field__input { width: 100%; }
+.field__area { resize: vertical; min-height: 80px; line-height: 1.5; }
+.field__hint { margin: 4px 0 0; font-size: 13px; }
+.field__error { display: block; margin-top: 4px; }
+select.field__input { height: 38px; }
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 2px 2px 8px;
+  font-size: 14px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.chip__x { padding: 0 6px; font: inherit; color: var(--text); background: none; border: 0; cursor: pointer; }
+.chips__input { flex: 1; min-width: 120px; border: 0; padding: 6px; }
+.chips__input:focus { outline: none; }
+.chips:focus-within { outline: 2px solid var(--text); outline-offset: -1px; }
+a.mention { color: var(--text); text-decoration: none; }
+a.mention:hover { border-color: var(--text); }
+
 /* Forms */
 .firstrun h1 { font-size: 20px; margin: 0 0 8px; }
 .firstrun form { margin: 16px 0; }

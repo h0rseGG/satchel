@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeData, redirectMap } from '../../js/merge.js';
+import { mergeData, mergeEntityInto, redirectMap } from '../../js/merge.js';
 import { makeEntity, makeNote, makeRelationship, touch, tombstone } from '../../js/model.js';
 import { token } from '../../js/mentions.js';
 
@@ -159,6 +159,50 @@ test('relationships are rewired to the survivor', () => {
   const { tables } = mergeData(pc, phone, AT);
   assert.equal(tables.relationships[0].to_id, phoneStub.id);
   assert.equal(tables.relationships[0].updated_at, AT);
+});
+
+test('mergeEntityInto: names become aliases, tags/summary/body combine, notes redirect', () => {
+  const real = at(makeEntity({ name: 'Grimbold', type: 'npc', tags: ['dwarf'], aliases: ['Grim'] }), T1);
+  const typo = at(makeEntity({ name: 'Grimbolt', tags: ['Dwarf', 'smith'], summary: 'sells axes', body: 'Has a forge.' }), T2);
+  const note = at(makeNote({ text: `met ${token(typo)}`, mentions: [typo.id] }), T2);
+  const tables = side({ entities: [real, typo], notes: [note] });
+  const merged = mergeEntityInto(tables, typo.id, real.id, AT);
+  assert.deepEqual(merged.aliases, ['Grim', 'Grimbolt']);
+  assert.deepEqual(merged.tags, ['dwarf', 'smith']);
+  assert.equal(merged.summary, 'sells axes');
+  assert.equal(merged.body, 'Has a forge.');
+  assert.equal(merged.type, 'npc');
+  assert.equal(merged.updated_at, AT);
+  const tomb = tables.entities.find((e) => e.id === typo.id);
+  assert.equal(tomb.deleted, true);
+  assert.equal(tomb.merged_into, real.id);
+  assert.deepEqual(tables.notes[0].mentions, [real.id]);
+  assert.ok(tables.notes[0].text.includes(`(${real.id})`));
+});
+
+test('mergeEntityInto: a stub survivor takes the real type of what merges in', () => {
+  const stub = at(makeEntity({ name: 'Mira' }), T1);
+  const npc = at(makeEntity({ name: 'Mira Vane', type: 'npc', summary: '' }), T2);
+  const tables = side({ entities: [stub, npc] });
+  const merged = mergeEntityInto(tables, npc.id, stub.id, AT);
+  assert.equal(merged.type, 'npc');
+  assert.equal(merged.stub, false);
+  assert.deepEqual(merged.aliases, ['Mira Vane']);
+});
+
+test('mergeEntityInto: refuses merging into itself or into something missing', () => {
+  const a = makeEntity({ name: 'A', type: 'npc' });
+  assert.throws(() => mergeEntityInto(side({ entities: [a] }), a.id, a.id, AT));
+  assert.throws(() => mergeEntityInto(side({ entities: [a] }), a.id, 'nope', AT));
+});
+
+test('mergeEntityInto: attached files move to the survivor', () => {
+  const a = at(makeEntity({ name: 'A', type: 'npc' }), T1);
+  const b = at(makeEntity({ name: 'B', type: 'npc' }), T1);
+  const file = { id: 'f1', entity_id: b.id, updated_at: T1, created_at: T1, deleted: false };
+  const tables = { ...side({ entities: [a, b] }), files: [file] };
+  mergeEntityInto(tables, b.id, a.id, AT);
+  assert.equal(tables.files[0].entity_id, a.id);
 });
 
 test('redirectMap follows chains', () => {
