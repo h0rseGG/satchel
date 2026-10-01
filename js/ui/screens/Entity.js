@@ -17,6 +17,7 @@ import { NoteText } from '../components/NoteText.js';
 import { EntityFields } from './EntityFields.js';
 import { Portrait } from '../components/Portrait.js';
 import { Relationships } from '../components/Relationships.js';
+import { FilesPanel } from '../components/FilesPanel.js';
 import { NotBuilt } from './NotBuilt.js';
 import { confirmSheet } from '../app/confirm.js';
 import { toast, reportError } from '../app/toasts.js';
@@ -89,6 +90,7 @@ export function Entity({ id, pcId }) {
     <//>
 
     <${Relationships} entity=${entity} entities=${live} typeLabel=${typeLabel} />
+    <${FilesPanel} entity=${entity} />
 
     <${Panel} title=${S.entity.notes} titleId="entity-notes">
       ${notes.length === 0 ? html`<p class="muted">${S.entity.noNotes}</p>` : html`

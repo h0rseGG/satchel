@@ -250,3 +250,10 @@ a.tag:hover { text-decoration: underline; }
 .connections-node.is-center text { font-weight: 600; }
 a.connections-node:hover rect, a.connections-node:focus rect { stroke: var(--red); stroke-width: 2; }
 .connections figcaption { text-align: center; font-size: var(--fs-13); }
+
+/* FileGrid */
+.file-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile, 120px), 1fr)); gap: var(--sp-12); }
+.file-tile-link { display: flex; flex-direction: column; gap: var(--sp-4); text-decoration: none; color: var(--ink); }
+.thumb.thumb-fluid { width: 100%; aspect-ratio: 1; }
+.file-tile-name { font-size: var(--fs-13); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-tile-link:hover .file-tile-name { text-decoration: underline; }

@@ -143,3 +143,11 @@
 .home-character-body > a { text-decoration: none; }
 .home-name { text-decoration: none; font-family: var(--serif); }
 .home-concept { margin: 2px 0 var(--sp-8); }
+
+/* File viewer */
+.file-meta { margin: 0; font-size: var(--fs-14); }
+.file-view { margin: var(--sp-16) 0 0; }
+.file-view-img { display: block; max-width: 100%; max-height: 70vh; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper-alt); }
+.file-view-text { white-space: pre-wrap; overflow-wrap: anywhere; font: var(--fs-14)/1.5 ui-monospace, "Cascadia Mono", Menlo, monospace; background: var(--paper-alt); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-12); margin: 0; max-height: 70vh; overflow: auto; }
+.file-view figcaption { margin-top: var(--sp-8); color: var(--ink-muted); font-size: var(--fs-14); }
+.file-actions { margin-top: var(--sp-12); }

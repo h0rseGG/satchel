@@ -10,6 +10,7 @@ import { Portrait } from '../components/Portrait.js';
 import { DndBeyondButton } from '../components/DndBeyondButton.js';
 import { reportError } from '../app/toasts.js';
 import { Relationships } from '../components/Relationships.js';
+import { FilesPanel } from '../components/FilesPanel.js';
 import { allEntities } from '../../data/entities.js';
 import { allTypes } from '../../data/types.js';
 
@@ -42,5 +43,6 @@ export function Character() {
     <${Panel} title=${S.character.profile} titleId="char-profile">
       ${PROFILE_SECTIONS.filter((s) => s !== 'concept').map((s) => html`<${Field} key=${s} label=${S.overview.sections[s]} value=${pc.profile?.[s] ?? ''} multiline rows=${s === 'notes' || s === 'backstory' ? 6 : 3} onSave=${section(s)} />`)}
     <//>
-    <${Relationships} entity=${pc} entities=${entities.filter((e) => !e.deleted)} typeLabel=${typeLabel} />`;
+    <${Relationships} entity=${pc} entities=${entities.filter((e) => !e.deleted)} typeLabel=${typeLabel} />
+    <${FilesPanel} entity=${pc} />`;
 }

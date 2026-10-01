@@ -67,7 +67,20 @@ const seedRels = async () => {
   for (const [o, type] of others) await d.createRelationship({ from_id: ald.id, to_id: o.id, type });
   localStorage.setItem('ald', ald.id);
 };
+const withFiles = async (page) => {
+  await page.goto(`http://localhost:${PORT}/#/files`);
+  await page.locator('.add-files input[type=file]').setInputFiles([
+    { name: 'barrow-map.png', mimeType: 'image/png', buffer: png(900, 600, [216, 205, 182]) },
+    { name: 'ledger.txt', mimeType: 'text/plain', buffer: Buffer.from('A.T. — 20gp — new moon\nA.T. — 35gp — new moon\n<b>not bold</b>') },
+    { name: 'wren.png', mimeType: 'image/png', buffer: png(400, 400, [79, 107, 71]) },
+    { name: 'Song of the Drowned Lantern.md', mimeType: 'text/markdown', buffer: Buffer.from('# Song of the Drowned Lantern\n\nThe lamp went down with the miller\'s boat,\nthe lamp went down with the light;') },
+  ]);
+  await page.waitForTimeout(800);
+};
 const SCREENS = [
+  { name: 'files', hash: '#/', setup: seedSession, arg: { out: true }, action: withFiles },
+  { name: 'file-image', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withFiles(page); await page.locator('.file-tile-link', { hasText: 'barrow-map' }).click(); await page.waitForTimeout(400); } },
+  { name: 'file-text', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withFiles(page); await page.locator('.file-tile-link', { hasText: 'ledger' }).click(); await page.waitForTimeout(400); } },
   { name: 'relationships', hash: '#/', setup: seedRels, height: 1900, action: async (page) => { await page.goto(`http://localhost:${PORT}/#/entity/${await page.evaluate(() => localStorage.getItem('ald'))}`); await page.waitForTimeout(500); await page.locator('.connections').scrollIntoViewIfNeeded(); } },
   { name: 'character', hash: '#/', setup: seedSession, arg: { out: true }, action: withPortrait, height: 1400 },
   { name: 'home-portrait', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withPortrait(page); await page.goto(`http://localhost:${PORT}/#/`); await page.waitForTimeout(400); } },

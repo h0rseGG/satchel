@@ -3,13 +3,14 @@
 // Re-encoding through a canvas also drops photo metadata (location, camera).
 import { db } from './db.js';
 import { saveMany } from './store.js';
-import { makeRecord, isoNow } from '../core/model.js';
+import { makeRecord, isoNow, tombstone } from '../core/model.js';
+import { save } from './store.js';
 import { classifyUpload, isValidUtf8, fitWithin, WEBP_QUALITY, extFor, stripExt } from '../core/files-rules.js';
 
 // The stored bytes as a Blob with the file's type, or null.
 export async function getBlob(fileId) {
   const [file, row] = await Promise.all([db().files.get(fileId), db().blobs.get(fileId)]);
-  if (!file || !row) return null;
+  if (!file || file.deleted || !row) return null;
   return row.data instanceof Blob ? row.data : new Blob([row.data], { type: file.mime });
 }
 
@@ -66,4 +67,35 @@ export async function addFile(file, { entityId = null, now = isoNow() } = {}) {
 
 export async function getFileRecord(id) {
   return db().files.get(id);
+}
+
+const newestFirst = (a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0);
+
+export async function allFiles(limit = Infinity) {
+  return (await db().files.filter((f) => !f.deleted).toArray()).sort(newestFirst).slice(0, limit);
+}
+
+export async function filesOf(entityId) {
+  return (await db().files.where('entity_id').equals(entityId).filter((f) => !f.deleted).toArray()).sort(newestFirst);
+}
+
+// patch: { name, caption, entity_id }
+export async function updateFile(id, patch, { now = isoNow() } = {}) {
+  const f = await db().files.get(id);
+  await save('files', { ...f, ...patch, updated_at: now }, { now });
+}
+
+// Tombstone the record, drop the bytes, and clear any picture that used it.
+export async function deleteFile(id, { now = isoNow() } = {}) {
+  const d = db();
+  await d.transaction('rw', ['files', 'blobs', 'entities', 'types', 'notes', 'relationships', 'meta'], async () => {
+    const f = await d.files.get(id);
+    if (!f || f.deleted) return;
+    const users = await d.entities.filter((e) => e.portrait_file_id === id).toArray();
+    await saveMany([
+      { table: 'files', record: tombstone(f, now) },
+      ...users.map((e) => ({ table: 'entities', record: { ...e, portrait_file_id: null, updated_at: now } })),
+    ], { now });
+    await d.blobs.delete(id);
+  });
 }

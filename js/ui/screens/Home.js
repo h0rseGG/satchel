@@ -8,6 +8,8 @@ import { allTypes } from '../../data/types.js';
 import { href } from '../app/router.js';
 import { Portrait } from '../components/Portrait.js';
 import { DndBeyondButton } from '../components/DndBeyondButton.js';
+import { FileGrid } from '../components/FileGrid.js';
+import { allFiles } from '../../data/files.js';
 import { Panel } from '../components/Panel.js';
 import { RuledList, ListRow } from '../components/ListRow.js';
 import { NoteText } from '../components/NoteText.js';
@@ -20,6 +22,7 @@ export function Home({ pc, cap }) {
   const types = useLive(allTypes, [], []);
   const used = types.filter((t) => counts[t.id]);
   const inbox = useLive(inboxCount, [], 0);
+  const files = useLive(() => allFiles(6), [], []);
   return html`
     <h1 class="page-title">${pc.name}</h1>
     <${Panel} title=${S.character.title} titleId="home-character" class="home-character" action=${html`<a class="btn btn-quiet" href=${href('character')}>${S.character.page}</a>`}>
@@ -46,5 +49,8 @@ export function Home({ pc, cap }) {
         <${RuledList} label=${S.home.recent}>
           ${notes.map((n) => html`<${ListRow} key=${n.id} title=${cap ? html`<${NoteText} text=${n.text} byId=${cap.byId} />` : ''} meta=${when(n.created_at)} />`)}
         <//>`}
+    <//>
+    <${Panel} title=${S.files.recent} titleId="home-files" action=${html`<a class="btn btn-quiet" href=${href('files')}>${S.home.seeAll}</a>`}>
+      ${files.length === 0 ? html`<p class="muted">${S.files.empty}</p>` : html`<${FileGrid} files=${files} size=${88} label=${S.files.recent} />`}
     <//>`;
 }
