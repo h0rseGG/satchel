@@ -1,0 +1,15 @@
+{
+  "name": "satchel",
+  "version": "2.0.0-dev",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling only. The app itself has no build step and no npm dependencies.",
+  "scripts": {
+    "test": "node --test \"tests/unit/**/*.test.js\"",
+    "e2e": "playwright test",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

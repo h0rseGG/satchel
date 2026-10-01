@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Only the app's own files may run. The import map is inline, so it's allowed by hash:
+       after editing it, run `node tools/csp-hash.mjs` (a unit test fails if the hash is stale). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-G83lnS95SPdWgwN/V9zak4NerhyKDpU1cs52cMkwUEk='; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Satchel</title>
+  <meta name="description" content="Player notes for your D&D character: capture fast at the table, tidy up later.">
+  <meta name="theme-color" content="#EDE5D2">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <!-- Relative paths everywhere: GitHub Pages serves this from /satchel/, not / -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "preact": "./vendor/preact.mjs",
+      "preact/hooks": "./vendor/preact-hooks.mjs",
+      "htm": "./vendor/htm.mjs",
+      "dexie": "./vendor/dexie.mjs",
+      "minisearch": "./vendor/minisearch.mjs",
+      "fflate": "./vendor/fflate.mjs"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <noscript><p>Satchel needs JavaScript.</p></noscript>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

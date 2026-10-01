@@ -80,7 +80,7 @@ All records share `id` (UUID v4), `created_at` and `updated_at` (ISO UTC; displa
 - The PC entity carries:
   - **`profile`:** `concept, backstory, personality, ideals, bonds, flaws, goals, appearance, notes`, all plain text.
   - **`profile_times`:** `{ section: ISO }`, the last edit time per section, so merges keep edits made to different sections on two devices (v1).
-  - **`dndbeyond_url`:** optional, must start with `https://www.dndbeyond.com/` **[NV: confirm URL shape]**. Shown as an "Open in D&D Beyond" button on the dashboard, the character page and the in-session overview (new tab).
+  - **`dndbeyond_url`:** optional, must start with `https://www.dndbeyond.com/` (character pages are `/characters/<id>`) or `https://ddb.ac/` (D&D Beyond's official short share links, `ddb.ac/characters/<id>/<key>`). Checked at M0. Shown as an "Open in D&D Beyond" button on the dashboard, the character page and the in-session overview (new tab).
   - **`portrait_file_id`** (any entity can have one).
 
 ### 3.2 Entity types (new: built-in + custom)
@@ -450,7 +450,7 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | M7 | **Relationships:** sentences, inline add, connections diagram (inline SVG, ≤12 nodes), on recall cards | |
 | M8 | **Files:** upload rules, viewer, attach, pictures | |
 | M9 | **Backup and kits:** export, import New/Merge/Replace, badge, nudge, persist, first run (incl. demo), Help, Settings | Two-device specs pass; demo kit spec passes |
-| M10 | **Hardening and release:** CSP, speed check at 5000 notes, error toasts for unexpected failures, offline, accessibility pass, README, version 1.0.0 | All quality bars in section 10 met |
+| M10 | **Hardening and release:** CSP, speed check at 5000 notes, error toasts for unexpected failures, offline, accessibility pass, README, release version | All quality bars in section 10 met |
 
 ---
 
@@ -494,3 +494,12 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | Build machine is Ubuntu: python3, Node LTS via nvm, `gh auth login` for GitHub; Windows/PowerShell notes dropped |
 | 2026-10-01 | SPEC v2 and the style preview approved by Jake. Section 14 defaults accepted: no v1 kit import, built-in types renamable (label only), field kinds as listed, Home shows the last 5 notes |
 | 2026-10-01 | **Visual style: "field journal"** (section 5.4) replaces v1's plain palette: aged paper, sepia ink, ruled lines, red margin, green marks; green darkened to #4F6B47 for AA contrast. Headings in a bundled old-book serif (IM Fell English, fallback EB Garamond); body in system fonts. Wording themed only at signature moments (Pack/Unpack kit, empty states, toasts); all strings in `js/ui/strings.js` |
+| 2026-10-01 | M0: library versions checked on npm: latest are still preact 11.0.0, htm 3.1.1, dexie 4.4.6, minisearch 7.2.0, fflate 0.8.3. Vendored ESM builds with their licences in `vendor/licences/`; source-map comments stripped (the maps aren't vendored) |
+| 2026-10-01 | M0: font IM Fell English + IM Fell English SC (small caps, for panel headings, as in the style preview). Licence confirmed SIL OFL 1.1 (Igino Marini), in `vendor/fonts/OFL.txt`. Google Fonts' latin-subset woff2: 59 KB and 57 KB (under 100 KB). Legible at 20 px in the M0 screenshots (desktop and phone) |
+| 2026-10-01 | M0: D&D Beyond links accept `https://www.dndbeyond.com/` and `https://ddb.ac/` (the site's own share links use `ddb.ac`) |
+| 2026-10-01 | M0: CSP is a `<meta>` tag in `index.html`; the inline import map is allowed by its sha256 hash. `tools/csp-hash.mjs` rewrites the hash and a unit test fails if it's stale. Verified in Playwright Firefox 155: the app boots with no violations and an injected inline script is blocked |
+| 2026-10-01 | M0: entry module `js/main.js`. Service worker cache `satchel-v2`; activation deletes every other cache, which clears v1's on upgraded devices |
+| 2026-10-01 | M0: versioning is `2.N` (Jake: not date-based). `VERSION` in `js/version.js` goes up by 1 on every push, starting at 2.1; the menu shows "Satchel v2.1". No milestone number in it, so there's no confusing "v2.10.3" near release |
+| 2026-10-01 | M0: icons drawn as SVG in `tools/make-icons.mjs` and rendered to PNG with Playwright Firefox (no image tools on the Ubuntu machine). `icons/icon.svg` doubles as the favicon; maskable icon keeps the drawing in the middle 78% |
+| 2026-10-01 | M0: the v2 IndexedDB database will be named `satchel-v2` (built in M2), so v1 data on Jake's devices is left untouched and v2 can start at db version 1 |
+| 2026-10-01 | M0: noted for M2: the red margin should run the full page height (it currently stops where the content ends); handle it with the `visualViewport` app height |

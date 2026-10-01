@@ -23,7 +23,7 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 - GitHub sign-in: `gh auth login` (GitHub CLI) or an SSH key. Interactive prompts can't run inside Claude Code's shell, so Jake does the first sign-in in a normal terminal.
 - Commit identity is repo-local: `h0rse` / `189693150+h0rseGG@users.noreply.github.com`. Never use a work email.
 - Commit messages: a heredoc or `git commit -F <file>`; end with the attribution line the harness provides.
-- Bump `BUILD` in `js/version.js` on every push (date.counter); it shows in the menu.
+- Bump `VERSION` in `js/version.js` on every push (`2.N`: 2.1, 2.2, ...); it shows in the menu as "Satchel v2.N".
 - Manual checks: Playwright covers Firefox on Linux. At each milestone Jake also opens the live site in Firefox on Windows and on his Pixel (the real targets).
 - v1 was built on Windows/PowerShell; its PowerShell workarounds don't apply here.
 
@@ -38,4 +38,4 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: not started. Begin at SPEC milestone M0.
+- v2: M0 done (v2.1 live). Next: M1 core logic.

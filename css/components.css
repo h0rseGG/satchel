@@ -1,0 +1,71 @@
+/* Component styles. Every rule is scoped to its component's class so
+   same-specificity rules later in the file can't override another component (v1 lesson 12). */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper) var(--grain);
+  color: var(--ink);
+  font: var(--fs-16)/1.45 var(--font);
+}
+
+:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
+
+.num { font-family: var(--font); font-weight: 600; } /* old-style serif figures read 11 as II */
+.muted { color: var(--ink-muted); }
+
+/* Button */
+.btn {
+  font: var(--fs-14) var(--font);
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn.btn-primary { background: var(--ink); color: var(--paper); }
+.btn.btn-quiet { border-color: transparent; padding: 4px 8px; }
+.btn.btn-quiet:hover { text-decoration: underline; }
+.btn.btn-danger { border-color: var(--red); color: var(--red); }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: var(--sp-8);
+  padding: var(--sp-8) var(--sp-16);
+  background: var(--paper-alt);
+  border-bottom: 1px solid var(--rule);
+}
+.topbar-home {
+  font: 22px var(--serif);
+  color: var(--ink);
+  text-decoration: none;
+  margin-right: auto;
+  min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.topbar > .btn { flex: none; }
+
+/* Menu */
+.menu {
+  position: absolute; right: var(--sp-16); top: calc(100% + var(--sp-4));
+  min-width: 200px;
+  background: var(--paper-alt);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: var(--sp-8);
+}
+.menu-version { font-size: var(--fs-12); color: var(--ink-muted); padding: var(--sp-4) var(--sp-8) 0; }
+
+/* Panel */
+.panel {
+  background: var(--paper-alt);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--sp-12) var(--sp-16);
+}
+.panel > :last-child { margin-bottom: 0; }
+.panel-title { font: var(--fs-20) var(--serif-sc); letter-spacing: .02em; margin: 0 0 6px; }
