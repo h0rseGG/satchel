@@ -203,6 +203,7 @@ People say "Grimbold", not "Grimbold Ironhand".
   - a **session button** ("Start session" / "● In session");
   - the **backup badge**;
   - **Menu**.
+  - **Phone (≤600 px):** breadcrumbs move to their own thin line under the bar; the session button shortens to "Session"; the badge drops "since backup" ("3 changes"); the name ends in "…". The bar must never wrap (it wrapped to three lines in the style preview before this rule).
 - **Menu** (short): Export kit, Import kit, How it works, Settings, New character. The build number goes at the bottom.
 - **Messages:** toasts float under the top bar without moving the page (v1 fix). Tap to dismiss; they auto-hide after 8 s.
 - **Page addresses:** hash routes (`#/world/npc`), so the back button works.
@@ -239,26 +240,69 @@ People say "Grimbold", not "Grimbold Ironhand".
 5. **Buttons:** primary (one per area), secondary, quiet (small, transparent), danger. The main actions come first; less common ones go in a quieter row.
 6. **Labels:** types as title case (NPC, Location); lower case inside sentences. Counts with singular and plural ("1 note", "2 entities").
 
-### 5.4 Visual system
-- **Palette only:**
+### 5.4 Visual system: "field journal"
+The look is an adventurer's field journal: ink on aged paper, ruled lines, a red margin, and sparing marks in red and green. It fits the satchel/kit idea without costing readability at the table. (This replaces v1's plain technical look.)
 
-  | Variable | Value |
-  |---|---|
-  | `--bg` | #F5F5F0 |
-  | `--bg-alt` | #E6E6E1 |
-  | `--border` | #D9D9D3 |
-  | `--text` | #4A4A4A |
-  | `--muted` | #8A8A8A |
-  | `--ok` | #B8D8C0 |
-  | `--warn` | #E6CFA1 |
-  | `--err` | #D4B4AF |
+**Palette.** Only these colours; define them as CSS variables in `css/tokens.css`. Contrast is against `--paper`, computed with the WCAG formula (my calculation; re-check with a contrast tool at M2 **[NV]**). AA needs 4.5:1 for normal text.
 
-  - Status colours are backgrounds, never text.
-  - `--muted` on `--bg` is about 3.2:1 contrast, so use it only for small labels.
-  - No dark mode.
-- **Shapes and type:** corner radius 3 px, no pill buttons, system font stack.
-- **Spacing scale:** 4/8/12/16/24 px. **Type scale:** 12/13/14/16/20 px.
-- Define components first (M2): Button, Field, ChipsField, Select, EntityPicker, ListRow, Panel, Card, Toast, Sheet, InlineForm, Thumb.
+| Variable | Value | Use | Contrast |
+|---|---|---|---|
+| `--paper` | #F6F1E4 | Page background | |
+| `--paper-alt` | #EDE5D2 | Panels, cards, top bar | |
+| `--rule` | #D8CDB6 | Borders, ruled lines, dividers | |
+| `--ink` | #3B3026 | Body text, primary buttons (ink fill, paper text) | ~11.4:1 |
+| `--ink-muted` | #7A6A57 | Secondary text, timestamps, hints | ~4.6:1 (passes AA, unlike v1's grey) |
+| `--red` | #9C4A3A | Margin line, danger, wax-seal accents, focus ring | ~5.4:1 |
+| `--green` | #4F6B47 | "Done/backed up" marks | ~5.2:1 (darkened from #5E7A55, which was ~4.3:1) |
+| `--wash-ok` | #DCE5D3 | Success background | |
+| `--wash-warn` | #EED9AE | Warning background | |
+| `--wash-err` | #E9C9BF | Error background | |
+| `--highlight` | #E2D3B0 | Mention chips (with a 1 px `--ink-muted` underline), selected rows. #EADFC4 was too close to `--paper-alt` inside panels (seen in the style preview) | |
+
+- Washes are backgrounds with `--ink` text on top; never wash colours as text.
+- No dark mode for 1.0.
+
+**Type**
+- **Headings:** page titles, panel headings, the app name and the first-run title use **IM Fell English** (old-book serif, SIL Open Font Licence), **bundled** in `vendor/fonts/` as woff2 so it works offline. Include the licence file. Fallback: Georgia, serif. **[NV: confirm licence, file size (<100 KB per weight) and legibility at 20 px at M0; alternative: EB Garamond.]**
+- **Body, notes, inputs, buttons:** the system font stack, kept crisp for fast reading and typing on the phone.
+- **Numbers are never set in the serif.** Its old-style figures make "11" read as "II". Counts, dates and times inside headings use the system font (a `.num` span).
+- **Scale:** 12/13/14/16/20/26 px. Headings 20 px (panels, in small caps) and 26 px (page titles).
+
+**Shapes and detail**
+- Corner radius 3 px; no pill buttons (kept from v1).
+- **Ruled lines:** lists and the notes feed use a 1 px `--rule` line under each row, like a ruled page.
+- **Red margin:** on desktop (≥760 px), a 1 px `--red` vertical line runs down the left of the page content, like a notebook margin. Not on the phone (it costs width).
+- **Paper grain:** an optional, very subtle noise texture on `--paper`, made with an inline SVG data URI in CSS (no image files). It must not lower text contrast. Easy to turn off in `tokens.css`.
+- **Buttons:**
+  - primary = `--ink` fill with paper text (like a stamp);
+  - secondary = ink outline;
+  - quiet = text only, underlined on hover;
+  - danger = `--red` outline, or `--red` fill inside the confirm sheet.
+- **Mentions** show as a `--highlight` chip; **tags** as small `--ink-muted` text with a leading `#`.
+- **Focus:** a 2 px `--red` outline.
+- **Icons:** few, simple, line style in `--ink`, inline SVG. No emoji in the UI chrome.
+- **App icon:** the satchel drawn in ink on paper with a red wax-seal clasp (redo `tools/make-icons.mjs` with this palette). Manifest `background_color` #F6F1E4, `theme_color` #EDE5D2.
+
+**Wording: light touch.** Labels stay plain where clarity matters (Inbox, Notes, World, Files, Search, Start session, the badge texts). The theme appears at signature moments:
+
+| Where | Text |
+|---|---|
+| Export / import | **Pack kit** / **Unpack kit** (v1) |
+| Export toast | "Kit packed: kael-2026-10-01-2130.kit" |
+| Merge toast | "Kit unpacked into your satchel: 3 added, 1 updated." |
+| Empty notes | "Your satchel is light. Type below and press Enter." |
+| Empty inbox | "Nothing loose. Every page is filed." |
+| Empty files | "No maps or scraps yet." |
+| First run | "A satchel for one adventurer. Everything stays in this browser." |
+| End-of-session nudge | "Session over. Pack your kit before you go?" |
+
+Keep a single `js/ui/strings.js` with all user-facing text, so wording can be tuned in one place.
+
+**Spacing scale:** 4/8/12/16/24 px.
+
+Define components first (M2): Button, Field, ChipsField, Select, EntityPicker, ListRow, Panel, Card, Toast, Sheet, InlineForm, Thumb. M2's component gallery page doubles as the visual-style review: screenshot it at both widths before building screens.
+
+**Reference:** `style-preview.html` (next to this spec) is a static mock of the palette, type, top bar (desktop and phone), panels, notes, a recall card, buttons and badges. Open it in Firefox; it's the visual target for M2.
 
 ---
 
@@ -446,3 +490,4 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | Navigation: hub (as v1) cleaned up, with breadcrumbs, Home always visible, and a session button in the top bar |
 | 2026-10-01 | Confirmations only for destructive actions; everything else edits in place |
 | 2026-10-01 | Jake mostly reviews behaviour; code stays clean and conventional, without teaching material |
+| 2026-10-01 | **Visual style: "field journal"** (section 5.4) replaces v1's plain palette: aged paper, sepia ink, ruled lines, red margin, green marks; green darkened to #4F6B47 for AA contrast. Headings in a bundled old-book serif (IM Fell English, fallback EB Garamond); body in system fonts. Wording themed only at signature moments (Pack/Unpack kit, empty states, toasts); all strings in `js/ui/strings.js` |
