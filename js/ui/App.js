@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { html } from './html.js';
 import { useLive } from './useLive.js';
 import { db, getMeta, addNote } from '../db.js';
@@ -9,6 +9,8 @@ import { FirstRun } from './FirstRun.js';
 import { Feed } from './Feed.js';
 import { Results } from './Results.js';
 import { CaptureBox } from './CaptureBox.js';
+import { Menu } from './Menu.js';
+import { BackupBadge } from './BackupBadge.js';
 import { BUILD } from '../version.js';
 
 const FEED_LIMIT = 200;
@@ -26,6 +28,14 @@ function Main() {
   const entities = useLive(async () => live(await db.entities.toArray()), [], []);
   const notes = useLive(async () => live(await db.notes.orderBy('created_at').toArray()), [], []);
   const sessions = useLive(async () => live(await db.sessions.toArray()), [], []);
+
+  // Short status message under the top bar (e.g. "Kit packed"), auto-hides.
+  const [message, setMessage] = useState(null);
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 8000);
+    return () => clearTimeout(t);
+  }, [message]);
 
   // What's in the box, and the highlighted @suggestion (for its recall card).
   const [draft, setDraft] = useState('');
@@ -66,8 +76,12 @@ function Main() {
     <header class="topbar">
       <span class="topbar__title">${pc ? pc.name : 'Satchel'}</span>
       <span class="topbar__build muted" title="Build">${BUILD}</span>
-      <span class="badge badge--err">Not backed up</span>
+      <${BackupBadge} />
+      <${Menu} onMessage=${setMessage} />
     </header>
+    ${message && html`
+      <p class=${`message badge badge--${message.kind}`} role="status" onClick=${() => setMessage(null)}>${message.text}</p>
+    `}
     ${showResults
       ? html`<${Results} cards=${cards} hits=${hits} notes=${notes} notesById=${notesById}
           entitiesById=${entitiesById} names=${names} sessionNumbers=${sessionNumbers}

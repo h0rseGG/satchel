@@ -1,6 +1,6 @@
 # Keep LF line endings everywhere (test fixtures and vendored files must stay byte-identical)
 * text=auto eol=lf
-*.satchel binary
+*.kit binary
 *.webp binary
 *.png binary
 *.jpg binary

@@ -92,7 +92,7 @@ Checked against MDN, Mozilla release notes and Bugzilla, GitHub docs and the npm
 | Private window IndexedDB | Works since Firefox 115, wiped when the private window closes | Show a warning banner in private mode if detectable |
 | Desktop install | "Web Apps" (Taskbar Tabs) on Windows since Firefox 143, on by default | Ship a valid manifest; Windows users can pin it |
 | Android install | Menu → Install / Add to Home screen works | Ship a valid manifest |
-| `accept=".satchel"` on Android | Picker may grey out unknown extensions **[NV]** | **Changed:** no `accept` filter; check the file contents in JS |
+| `accept=".kit"` on Android | Picker may grey out unknown extensions **[NV]** | **Changed:** no `accept` filter; check the file contents in JS |
 | Web Share with files (Android) | Not supported in Firefox | **Changed:** export is download-only |
 | GitHub API cross-origin | Allowed, including the `Authorization` header | Sync as planned |
 | GitHub file limits | Contents API: full support ≤1 MB; Git Data blobs up to 100 MB | **Decided:** sync stores separate files, committed atomically via the Git Data API |
@@ -106,7 +106,7 @@ Checked against MDN, Mozilla release notes and Bugzilla, GitHub docs and the npm
   - `storage.persist()`
   - WebP `toBlob`
   - private-window IndexedDB
-  - `accept=".satchel"` on Android
+  - `accept=".kit"` on Android
   - Web Share with files on Android
   - Taskbar Tabs
 - GitHub API:
@@ -165,12 +165,14 @@ The player character is the entity named by `pc_entity_id` in `character.json`.
 ### Local-only (never exported)
 `last_backup_at`, `changes_since_backup`, current mode, whether persistent storage was granted, `device_name`, and sync settings (`repo`, `token`, `last_synced_at`, `last_synced_sha`, `changes_since_sync`).
 
-## 5. The .satchel file
+## 5. The kit file (.kit)
 
-A zip with the custom extension `.satchel`. Filename: `<pc-name>-YYYY-MM-DD-HHmm.satchel`.
+**Vocabulary:** the backup file is a **kit**. Export = **Pack kit**. Import = **Unpack kit** (New / Merge / Replace). You pack your kit into your satchel, or unpack it.
+
+A zip with the custom extension `.kit`. Filename: `<pc-name>-YYYY-MM-DD-HHmm.kit`.
 
 ```
-kael-2026-10-01-2130.satchel
+kael-2026-10-01-2130.kit
 ├── character.json
 ├── notes.jsonl        one note per line, tombstones included
 └── images/<image-id>.webp
@@ -219,7 +221,7 @@ kael-2026-10-01-2130.satchel
 4. If GitHub refuses because the online copy changed in between (409, 422 or a non-fast-forward error), go back to step 1. Give up after 3 tries and show an error.
 5. Record `last_synced_at` / `last_synced_sha`, reset `changes_since_sync`, write a commit message like `Sync from Pixel, 2026-10-04 21:40`.
 
-**Storage in the repo:** the same contents as a `.satchel` file, unzipped: `character.json`, `notes.jsonl`, `images/<id>.webp`. Each sync is one atomic commit via the Git Data API (blobs → tree → commit → fast-forward ref update). Images upload only when new. History stays readable.
+**Storage in the repo:** the same contents as a `.kit` file, unzipped: `character.json`, `notes.jsonl`, `images/<id>.webp`. Each sync is one atomic commit via the Git Data API (blobs → tree → commit → fast-forward ref update). Images upload only when new. History stays readable.
 
 **Status shown in the top bar:**
 - "N changes not synced" (this device).
@@ -305,7 +307,7 @@ kael-2026-10-01-2130.satchel
 2. Type a note, press Enter, and see it saved with a timestamp.
 3. Use `@` mentions with autocomplete; unknown names create stubs.
 4. See live search and recall cards as you type.
-5. Export a `.satchel` file, and see the backup badge update.
+5. Export a `.kit` file, and see the backup badge update.
 6. Import in New mode (empty app).
 7. Merge an export from the other device.
 8. Reload or close the browser and still have your data. Persistent storage is requested.
@@ -339,7 +341,7 @@ satchel/
   css/app.css
   js/ app.js db.js model.js mentions.js search.js bundle.js merge.js sync.js images.js ui/
   vendor/   (pinned preact, htm, dexie, minisearch, fflate)
-  tests/unit/  tests/e2e/  tests/fixtures/*.satchel
+  tests/unit/  tests/e2e/  tests/fixtures/*.kit
 ```
 
 ## 10. Test plan
@@ -380,7 +382,7 @@ satchel/
   - Online copy has a newer `schema_version` → refuse.
   - The token is never included in exports or commit contents.
   - Unit test the pull → merge → push logic against a fake GitHub API.
-- **Bad files:** corrupt zip, a bad line in `notes.jsonl`, a `../` path in the zip, a non-zip renamed to `.satchel`.
+- **Bad files:** corrupt zip, a bad line in `notes.jsonl`, a `../` path in the zip, a non-zip renamed to `.kit`.
 - **Large images (week 3):**
   - 20 MB phone photo
   - 12 000 px panorama
@@ -399,7 +401,7 @@ satchel/
 - The keyboard's Enter key saves.
 - Tapping an autocomplete suggestion works.
 - The export lands in Downloads.
-- The file picker lets you select a `.satchel` file (no `accept` filter) **[NV]**.
+- The file picker lets you select a `.kit` file (no `accept` filter) **[NV]**.
 - Note what `persist()` does on Android: prompt, silent grant or refusal **[NV]**.
 - Menu → Install puts Satchel on the home screen.
 
@@ -431,4 +433,5 @@ No open questions remain.
 | 2026-10-01 | Step 1 done: libraries pinned; no `accept` filter on import; export is download-only; sync uses separate files + Git Data API commits |
 | 2026-10-01 | Local db v2 upgrade links `@names` in notes saved before mentions existed |
 | 2026-10-01 | Recall cards: player character excluded (would match nearly every note); highlighted @suggestion gets a card |
+| 2026-10-01 | Backup file renamed `.satchel` → `.kit`; export = "Pack kit", import = "Unpack kit". The `format: "satchel"` marker inside is unchanged |
 | 2026-10-01 | Search typo allowance: ≤3 letters exact, 4 letters 1 edit, 5+ letters 2 edits (swapped letters = 2) |

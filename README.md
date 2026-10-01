@@ -4,11 +4,11 @@ A player-side D&D character companion. Type notes during a session, @mention peo
 
 - **No stats or mechanics.** D&D Beyond handles those.
 - **Local-first.** Your data lives in your browser. There are no accounts and no server.
-- **Portable.** Export and import a single `.satchel` file.
+- **Portable.** Pack your kit (a single `.kit` file) and unpack it on another device.
 
 **Use it:** https://h0rsegg.github.io/satchel/
 
-> Your data stays in the browser you use it in. Export a backup regularly: clearing site data in your browser deletes it.
+> Your data stays in the browser you use it in. Pack your kit regularly as a backup: clearing site data in your browser deletes it.
 
 ## Status
 Early development. See [SPEC.md](SPEC.md) for the full design, decisions and roadmap.

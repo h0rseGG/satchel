@@ -1,5 +1,6 @@
 node_modules/
 test-results/
 playwright-report/
-*.satchel
-!tests/fixtures/*.satchel
+# Kits are personal character data: never commit them (test fixtures excepted)
+*.kit
+!tests/fixtures/*.kit

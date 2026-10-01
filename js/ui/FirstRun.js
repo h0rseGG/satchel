@@ -29,7 +29,7 @@ export function FirstRun() {
         </div>
         ${error && html`<p class="badge badge--err">${error}</p>`}
       </form>
-      <p class="muted">Have a backup? Restoring from a .satchel file comes in a later build.</p>
+      <p class="muted">Have a kit? Unpacking a .kit file comes in a later build.</p>
     </main>
   `;
 }

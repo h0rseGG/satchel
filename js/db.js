@@ -4,13 +4,14 @@
 import Dexie from 'dexie';
 import { live, makeEntity, makeNote, newId, now, touch } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
+import { kitFilename, packKit } from './kit.js';
 
 export const db = new Dexie('satchel');
 
 // Only fields we query on are listed (the first one is the primary key).
 // IndexedDB can't index booleans or nulls, so `deleted` and `triaged_at`
 // are filtered in JS instead. Changing this list needs a new db.version().
-// This is the local browser database version, not the .satchel schema_version.
+// This is the local browser database version, not the kit file's schema_version.
 export const STORES = {
   entities: 'id, type, updated_at',
   notes: 'id, created_at, session_id, *mentions',
@@ -101,6 +102,33 @@ export async function addNote({ text, mode = 'out', session_id = null, picked = 
     requestPersist().catch((err) => console.warn('persist() failed', err));
   }
   return note;
+}
+
+// Pack everything into a kit. Returns { bytes, filename }.
+// Reads in one transaction so the kit is a consistent snapshot.
+export async function packCurrentKit() {
+  const snap = await db.transaction('r', [db.entities, db.notes, db.sessions, db.relationships, db.images, db.blobs, db.meta], async () => ({
+    bundle_id: await getMeta('bundle_id'),
+    pc_entity_id: await getMeta('pc_entity_id'),
+    entities: await db.entities.toArray(),
+    notes: await db.notes.toArray(),
+    sessions: await db.sessions.toArray(),
+    relationships: await db.relationships.toArray(),
+    images: await db.images.toArray(),
+    blobs: await db.blobs.toArray(),
+  }));
+  // Image bytes (week 3): blobs rows are { id, data: Blob }.
+  const imageFiles = new Map();
+  for (const b of snap.blobs) imageFiles.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
+  const pc = snap.entities.find((e) => e.id === snap.pc_entity_id);
+  return { bytes: packKit({ ...snap, imageFiles }), filename: kitFilename(pc?.name) };
+}
+
+// Called after a kit download starts. "Backed up" means the file was
+// downloaded, not that it's stored safely (SPEC section 6).
+export async function markBackedUp() {
+  await setMeta('last_backup_at', now());
+  await setMeta('changes_since_backup', 0);
 }
 
 // Ask the browser not to evict our data. Firefox shows a prompt on desktop

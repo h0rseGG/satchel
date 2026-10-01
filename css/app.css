@@ -37,6 +37,7 @@ html, body {
 
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--gap);
   padding: var(--gap) 12px;
@@ -143,6 +144,36 @@ html, body {
 .card .mention { background: var(--bg); }
 .hits { list-style: none; margin: 0; padding: 0; }
 .hit { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+
+/* Menu and status message */
+.menu { position: relative; }
+.menu__list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 10;
+  min-width: 240px;
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.menu__item:hover:not(:disabled) { background: var(--bg-alt); }
+.menu__item:disabled { color: var(--muted); cursor: default; }
+.message { margin: 8px 12px 0; padding: 6px 10px; overflow-wrap: anywhere; }
 
 /* Forms */
 .firstrun h1 { font-size: 20px; margin: 0 0 8px; }
