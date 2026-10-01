@@ -32,13 +32,15 @@ test('service worker registers and the app opens offline with its data', async (
 });
 
 test('online, a changed file on the server is served fresh, not from cache', async ({ page }) => {
-  // A throwaway file the server serves from the repo folder.
-  const path = 'tests/e2e/fresh-check.txt';
+  // A throwaway file the server serves from the repo folder. Unique name,
+  // so parallel runs of this test don't delete each other's file.
+  const name = `fresh-check-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`;
+  const path = `tests/e2e/${name}`;
   try {
     await writeFile(path, 'version one');
     await page.goto('/');
     await swReady(page, page.getByLabel('Character name'));
-    const read = () => page.evaluate(() => fetch('./tests/e2e/fresh-check.txt').then((r) => r.text()));
+    const read = () => page.evaluate((n) => fetch(`./tests/e2e/${n}`).then((r) => r.text()), name);
     expect(await read()).toBe('version one');
     // Make sure the file's modified time moves on (1 s resolution).
     await new Promise((r) => setTimeout(r, 1100));

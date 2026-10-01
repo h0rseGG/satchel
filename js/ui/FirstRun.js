@@ -1,11 +1,14 @@
 import { useState } from 'preact/hooks';
 import { html } from './html.js';
 import { createBundle } from '../db.js';
+import { useUnpack } from './useUnpack.js';
 
-// Shown when the app has no data: name your character to start.
+// Shown when the app has no data: name a new character, or unpack a kit.
 export function FirstRun() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState(null);
+  const unpack = useUnpack(setMessage);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -29,7 +32,9 @@ export function FirstRun() {
         </div>
         ${error && html`<p class="badge badge--err">${error}</p>`}
       </form>
-      <p class="muted">Have a kit? Unpacking a .kit file comes in a later build.</p>
+      <p>Already have a character? <button type="button" class="btn" onClick=${unpack.choose}>Unpack a kit</button></p>
+      ${message && html`<p class=${`badge badge--${message.kind}`} role="status">${message.text}</p>`}
+      ${unpack.view}
     </main>
   `;
 }

@@ -435,4 +435,6 @@ No open questions remain.
 | 2026-10-01 | Recall cards: player character excluded (would match nearly every note); highlighted @suggestion gets a card |
 | 2026-10-01 | Backup file renamed `.satchel` → `.kit`; export = "Pack kit", import = "Unpack kit". The `format: "satchel"` marker inside is unchanged |
 | 2026-10-01 | Service worker pulled forward from stretch: network-first (revalidate every load, cache as offline fallback), same-origin GETs only. Fixes Firefox Android running stale builds |
+| 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
+| 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
 | 2026-10-01 | Search typo allowance: ≤3 letters exact, 4 letters 1 edit, 5+ letters 2 edits (swapped letters = 2) |

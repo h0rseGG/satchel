@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { html } from './html.js';
 import { packCurrentKit, markBackedUp } from '../db.js';
 import { downloadBytes } from './download.js';
+import { useUnpack } from './useUnpack.js';
 
-// Top-bar menu: Pack kit (export) now; Unpack kit (import) in build step 8.
+// Top-bar menu: Pack kit (export) and Unpack kit (import).
 export function Menu({ onMessage }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const unpack = useUnpack(onMessage);
 
   // Close when tapping anywhere else.
   useEffect(() => {
@@ -36,9 +38,11 @@ export function Menu({ onMessage }) {
       ${open && html`
         <ul class="menu__list" role="menu">
           <li role="none"><button type="button" role="menuitem" class="menu__item" onClick=${pack}>Pack kit (download backup)</button></li>
-          <li role="none"><button type="button" role="menuitem" class="menu__item" disabled>Unpack kit (next build)</button></li>
+          <li role="none"><button type="button" role="menuitem" class="menu__item"
+            onClick=${() => { setOpen(false); unpack.choose(); }}>Unpack kit (merge a kit in)</button></li>
         </ul>
       `}
+      ${unpack.view}
     </div>
   `;
 }

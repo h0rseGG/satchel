@@ -4,7 +4,8 @@
 import Dexie from 'dexie';
 import { live, makeEntity, makeNote, newId, now, touch } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
-import { kitFilename, packKit } from './kit.js';
+import { KitError, kitFilename, packKit } from './kit.js';
+import { TABLES, mergeData } from './merge.js';
 
 export const db = new Dexie('satchel');
 
@@ -122,6 +123,71 @@ export async function packCurrentKit() {
   for (const b of snap.blobs) imageFiles.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
   const pc = snap.entities.find((e) => e.id === snap.pc_entity_id);
   return { bytes: packKit({ ...snap, imageFiles }), filename: kitFilename(pc?.name) };
+}
+
+// ---------- Unpack kit ----------
+
+const DATA_TABLES = () => [db.entities, db.notes, db.sessions, db.relationships, db.images, db.blobs, db.meta];
+
+async function readLocal() {
+  const out = {};
+  for (const t of TABLES) out[t] = await db[t].toArray();
+  return out;
+}
+
+async function putImageFiles(imageFiles) {
+  for (const [id, bytes] of imageFiles) {
+    await db.blobs.put({ id, data: new Blob([bytes], { type: 'image/webp' }) });
+  }
+}
+
+// What unpacking this kit would do, for the confirm screen.
+// mode: 'new' (app empty), 'merge' (same character), or 'different'.
+export async function planUnpack(data) {
+  const bundleId = await getMeta('bundle_id');
+  if (!bundleId) return { mode: 'new' };
+  if (bundleId !== data.bundle_id) return { mode: 'different' };
+  const { report } = mergeData(await readLocal(), data);
+  return { mode: 'merge', report };
+}
+
+// New: load a kit into an empty app. The kit is a backup of exactly this
+// data, so the badge starts from the kit's exported_at.
+export async function unpackNew(data) {
+  await db.transaction('rw', DATA_TABLES(), async () => {
+    if (await getMeta('bundle_id')) throw new KitError('This device already has a character. Use Merge instead.');
+    for (const t of TABLES) await db[t].bulkPut(data[t]);
+    await putImageFiles(data.imageFiles);
+    await setMeta('bundle_id', data.bundle_id);
+    await setMeta('pc_entity_id', data.pc_entity_id);
+    await setMeta('created_at', now());
+    await setMeta('last_backup_at', data.exported_at ?? now());
+    await setMeta('changes_since_backup', 0);
+    await setMeta('changes_since_sync', 0);
+  });
+}
+
+// Merge: union with what's here (SPEC D9). Re-reads local data inside the
+// transaction, so anything typed since the confirm screen is included.
+export async function unpackMerge(data) {
+  return db.transaction('rw', DATA_TABLES(), async () => {
+    if ((await getMeta('bundle_id')) !== data.bundle_id) {
+      throw new KitError('This kit is a different character, so it can’t be merged.');
+    }
+    const { writes, report } = mergeData(await readLocal(), data);
+    let written = 0;
+    for (const t of TABLES) {
+      await db[t].bulkPut(writes[t]);
+      written += writes[t].length;
+    }
+    const have = new Set(await db.blobs.toCollection().primaryKeys());
+    await putImageFiles([...data.imageFiles].filter(([id]) => !have.has(id)));
+    if (written) {
+      await setMeta('changes_since_backup', (await getMeta('changes_since_backup', 0)) + written);
+      await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + written);
+    }
+    return report;
+  });
 }
 
 // Called after a kit download starts. "Backed up" means the file was
