@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findTyped, tokenise, storedIds, parts, plain, activeQuery, typedForm, matchByName, suggest, token,
-  resolveMentions, linkPlainName, toTypedForEdit,
+  resolveMentions, linkPlainName, toTypedForEdit, shortNames,
 } from '../../js/mentions.js';
 import { makeEntity, touch } from '../../js/model.js';
 
@@ -154,6 +154,42 @@ test('toTypedForEdit leaves tokens of deleted entities untouched', () => {
   const { text } = toTypedForEdit(stored, new Map());
   assert.equal(text, stored);
   assert.deepEqual(resolveMentions(text, []).created, [], 'no stub recreated');
+});
+
+test('shortNames: unique 4+ letter words of people’s names', () => {
+  const grim = makeEntity({ name: 'Grimbold Ironhand', type: 'npc' });
+  const tam = makeEntity({ name: 'Old Tam', type: 'npc' });
+  const mill = makeEntity({ name: 'Old Mill', type: 'location' });
+  const sis1 = makeEntity({ name: 'Sister Caldra', type: 'npc' });
+  const sis2 = makeEntity({ name: 'Sister Moira', type: 'npc' });
+  const mira = makeEntity({ name: 'Mira Vane', type: 'npc' });
+  const miraTown = makeEntity({ name: 'Mira', type: 'location' });   // a real "Mira" exists
+  const wren = makeEntity({ name: 'Wren Ashdown', type: 'character' });
+  const lyra = makeEntity({ name: 'Lyra Ashdown', type: 'npc' });
+  const order = makeEntity({ name: 'Order of the Pale Lantern', type: 'faction' });
+  const map = shortNames([grim, tam, mill, sis1, sis2, mira, miraTown, wren, lyra, order]);
+  assert.deepEqual(map.get(grim.id), ['Grimbold', 'Ironhand']);
+  assert.deepEqual(map.get(sis1.id), ['Caldra'], 'title shared by two sisters is not used');
+  assert.deepEqual(map.get(sis2.id), ['Moira']);
+  assert.deepEqual(map.get(mira.id), ['Vane'], '"Mira" is another entity’s name');
+  assert.deepEqual(map.get(wren.id), ['Wren'], 'shared surname not used');
+  assert.deepEqual(map.get(lyra.id), ['Lyra']);
+  assert.equal(map.has(tam.id), false, 'Tam is too short, Old is shared');
+  assert.equal(map.has(order.id), false, 'not a person');
+});
+
+test('@FirstName links to the one entity it can mean instead of making a stub', () => {
+  const grim = makeEntity({ name: 'Grimbold Ironhand', type: 'npc' });
+  const r = resolveMentions('paid @grimbold today', [grim]);
+  assert.deepEqual(r.created, []);
+  assert.deepEqual(r.mentions, [grim.id]);
+  assert.equal(r.text, `paid ${token(grim)} today`);
+});
+
+test('linkPlainName with a short name links the full entity', () => {
+  const grim = makeEntity({ name: 'Grimbold Ironhand', type: 'npc' });
+  assert.equal(linkPlainName('ask grimbold', grim, ['Grimbold']).text, 'ask @Grimbold_Ironhand');
+  assert.equal(linkPlainName('ask grimbold', grim), null);
 });
 
 test('suggest: prefix matches before substring matches, limited', () => {

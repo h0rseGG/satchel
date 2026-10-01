@@ -73,6 +73,12 @@ test('exactMatches: whole words only, aliases, typed form, newest first', () => 
   assert.deepEqual(exactMatches('Grimbold then Al', all), [al, grim]);
 });
 
+test('exactMatches: a unique first name brings up the card when given', () => {
+  const g = makeEntity({ name: 'Grimbold Ironhand', type: 'npc' });
+  assert.deepEqual(exactMatches('ask grimbold', [g]), []);
+  assert.deepEqual(exactMatches('ask grimbold', [g], { shortNames: new Map([[g.id, ['Grimbold', 'Ironhand']]]) }), [g]);
+});
+
 test('exactMatches: excludes given ids and caps at limit', () => {
   const pc = makeEntity({ name: 'Kael', type: 'character' });
   assert.deepEqual(exactMatches('Kael and Grimbold', [pc, grim], { excludeIds: [pc.id] }), [grim]);

@@ -108,12 +108,14 @@ export function matchByName(entities, name) {
 export function resolveMentions(text, entities, picked = {}) {
   const byId = new Map(entities.map((e) => [e.id, e]));
   const pool = [...entities];
+  // Unique first names ("@Grimbold" for Grimbold Ironhand) before making a stub.
+  const byShort = new Map([...shortNames(entities)].flatMap(([id, words]) => words.map((w) => [nameKey(w), byId.get(id)])));
   const resolved = new Map();
   const created = [];
   for (const m of findTyped(text)) {
     const key = nameKey(m.name);
     if (resolved.has(key)) continue;
-    let ent = byId.get(picked[key]) ?? matchByName(pool, m.name);
+    let ent = byId.get(picked[key]) ?? matchByName(pool, m.name) ?? byShort.get(key);
     if (!ent) {
       ent = makeEntity({ name: m.name });
       pool.push(ent);
@@ -129,12 +131,43 @@ function escapeRe(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// The short names people use at the table: "Grimbold" for Grimbold Ironhand,
+// "Caldra" for Sister Caldra, "Aldric" for Lord Aldric Thorne. For people
+// only (NPCs, characters, and stubs, which are usually people), any word of
+// a two-plus-word name counts if it's 4+ letters and belongs to no other
+// entity (not part of another name, not another's name or alias). So
+// "Ashdown" (Wren and Lyra) never matches. Places, factions and items get
+// aliases instead: their words ("Order", "Watch") are everyday words.
+// Returns Map of entity id -> [words].
+const PEOPLE = new Set(['npc', 'character', 'unknown']);
+export function shortNames(entities) {
+  const owners = new Map();   // word key -> entity, or null if shared
+  const claim = (k, e) => owners.set(k, owners.has(k) && owners.get(k) !== e ? null : e);
+  const full = new Map();     // full name/alias key -> entity
+  for (const e of entities) {
+    for (const n of [e.name, ...(e.aliases ?? [])]) full.set(nameKey(n), e);
+    for (const w of cleanName(e.name).split(' ')) claim(nameKey(w), e);
+  }
+  const out = new Map();
+  for (const e of entities) {
+    const words = cleanName(e.name).split(' ');
+    if (!PEOPLE.has(e.type) || words.length < 2) continue;
+    const mine = words.filter((w) => {
+      const k = nameKey(w);
+      return w.length >= 4 && owners.get(k) === e && (!full.has(k) || full.get(k) === e);
+    });
+    if (mine.length) out.set(e.id, mine);
+  }
+  return out;
+}
+
 // Turn the last plain (un-@'d) occurrence of an entity's name or alias in
 // the box into its typed mention: "found the sunblade" -> "found the @Sunblade".
+// `extra`: other names to look for (e.g. its short first name).
 // Returns { text, start, removed, inserted } or null if there's nothing to link.
-export function linkPlainName(text, entity) {
+export function linkPlainName(text, entity, extra = []) {
   let best = null;
-  for (const n of [entity.name, ...entity.aliases]) {
+  for (const n of [entity.name, ...entity.aliases, ...extra]) {
     const clean = cleanName(n);
     if (!clean) continue;
     const pattern = clean.split(' ').map(escapeRe).join('\\s+');

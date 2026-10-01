@@ -3,7 +3,7 @@ import { html } from './html.js';
 import { useLive } from './useLive.js';
 import { db, addNote, setEntityType } from '../db.js';
 import { live } from '../model.js';
-import { linkPlainName } from '../mentions.js';
+import { linkPlainName, shortNames } from '../mentions.js';
 import { buildIndex, exactMatches, looksLikeQuery, search, searchQuery } from '../search.js';
 import { Feed } from './Feed.js';
 import { Results } from './Results.js';
@@ -15,7 +15,9 @@ const MAX_CARDS = 3;
 // The in-session screen (front layer): feed or live results, one box.
 export function CaptureScreen({ pcId, onMessage }) {
   const entities = useLive(async () => live(await db.entities.toArray()), [], []);
-  const notes = useLive(async () => live(await db.notes.orderBy('created_at').toArray()), [], []);
+  // undefined while loading, so the feed doesn't flash "No notes yet".
+  const loadedNotes = useLive(async () => live(await db.notes.orderBy('created_at').toArray()), [], undefined);
+  const notes = loadedNotes ?? [];
   const relationships = useLive(async () => live(await db.relationships.toArray()), [], []);
 
   // What's in the box, and the highlighted @suggestion (for its recall card).
@@ -26,12 +28,13 @@ export function CaptureScreen({ pcId, onMessage }) {
   const entitiesById = useMemo(() => new Map(entities.map((e) => [e.id, e])), [entities]);
   const notesById = useMemo(() => new Map(notes.map((n) => [n.id, n])), [notes]);
   const index = useMemo(() => buildIndex(notes, entities), [notes, entities]);
+  const shorts = useMemo(() => shortNames(entities), [entities]);
 
   // Recall cards: highlighted suggestion first, then names found in the text.
   // The player character is left out; it would match nearly every note.
   const cardIds = [...new Set([
     previewId,
-    ...exactMatches(draft, entities, { excludeIds: [pcId] }).map((e) => e.id),
+    ...exactMatches(draft, entities, { excludeIds: [pcId], shortNames: shorts }).map((e) => e.id),
   ])].filter((id) => id && id !== pcId && entitiesById.has(id)).slice(0, MAX_CARDS);
   const cards = cardIds.map((id) => entitiesById.get(id));
 
@@ -48,17 +51,20 @@ export function CaptureScreen({ pcId, onMessage }) {
   const [linkRequest, setLinkRequest] = useState(null);
   const linkState = (e) => {
     if (e.id === previewId) return null;
-    return linkPlainName(draft, e) ? 'linkable' : 'linked';
+    return linkPlainName(draft, e, shorts.get(e.id) ?? []) ? 'linkable' : 'linked';
   };
 
   return html`
     ${showResults
       ? html`<${Results} cards=${cards} hits=${hits} notes=${notes} notesById=${notesById}
           entitiesById=${entitiesById} names=${names} relationships=${relationships}
-          linkState=${linkState} onLink=${(entity) => setLinkRequest({ entity })}
+          linkState=${linkState}
+          onLink=${(entity) => setLinkRequest({ entity, extra: shorts.get(entity.id) ?? [] })}
           onSetType=${(entity, type) => setEntityType(entity.id, type).catch((err) =>
             onMessage({ kind: 'err', text: `Couldn't set type: ${err.message}` }))} />`
-      : html`<${Feed} notes=${notes.slice(-FEED_LIMIT)} names=${names} />`}
+      : loadedNotes === undefined
+        ? html`<main class="results"></main>`
+        : html`<${Feed} notes=${notes.slice(-FEED_LIMIT)} names=${names} />`}
     <${CaptureBox}
       entities=${entities}
       onSave=${(text, picked) => addNote({ text, picked })}

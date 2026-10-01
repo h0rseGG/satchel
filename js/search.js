@@ -63,13 +63,14 @@ function escapeRe(s) {
 // Entities whose name or alias appears as a whole word in the draft
 // (also matches the typed @Lord_Aldric form). Most recently typed first.
 // excludeIds: e.g. the player character, which would match nearly every note.
-export function exactMatches(draft, entities, { excludeIds = [], limit = 3 } = {}) {
+// shortNames: Map of entity id -> [short names that also count] (mentions.js).
+export function exactMatches(draft, entities, { excludeIds = [], limit = 3, shortNames = null } = {}) {
   const text = nameKey(draft.replace(/_/g, ' '));
   const found = [];
   for (const e of entities) {
     if (e.deleted || excludeIds.includes(e.id)) continue;
     let last = -1;
-    for (const key of [e.name, ...e.aliases].map(nameKey)) {
+    for (const key of [e.name, ...e.aliases, ...(shortNames?.get(e.id) ?? [])].map(nameKey)) {
       if (!key) continue;
       const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(key)}(?![\\p{L}\\p{N}])`, 'gu');
       for (const m of text.matchAll(re)) last = Math.max(last, m.index);

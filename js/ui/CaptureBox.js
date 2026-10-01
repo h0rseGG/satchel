@@ -49,7 +49,7 @@ export function CaptureBox({
   useEffect(() => {
     if (!linkRequest) return;
     const { entity } = linkRequest;
-    const r = linkPlainName(text, entity);
+    const r = linkPlainName(text, entity, linkRequest.extra ?? []);
     if (!r) return;
     let next = r.text;
     // Name was at the very end: add a space so the @suggestion list stays shut.
