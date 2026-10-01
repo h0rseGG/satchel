@@ -14,20 +14,23 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 - Authorised: push to `origin main` after each finished, **tested** step (it updates the live site).
 - Testing uses the demo character only until he says the app is finished. Still treat data safety as if it were real.
 
-## Environment (Windows 11, PowerShell 5.1)
-- Tools: Git, Node LTS, Python. If a freshly installed tool isn't found, reload PATH in the command:
-  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User');`
-- The `!` shell in Claude Code can't do interactive git sign-in: do the first `git push` from a normal terminal (Git Credential Manager opens the browser).
+## Environment (Ubuntu build machine; the app targets Firefox on Windows and Android)
+- Tools:
+  - `git`;
+  - Node **LTS via nvm** (Ubuntu's apt `nodejs` is often too old);
+  - `python3`, already installed.
+  - Playwright Firefox: `npx playwright install --with-deps firefox` (needs sudo once for system libraries).
+- GitHub sign-in: `gh auth login` (GitHub CLI) or an SSH key. Interactive prompts can't run inside Claude Code's shell, so Jake does the first sign-in in a normal terminal.
 - Commit identity is repo-local: `h0rse` / `189693150+h0rseGG@users.noreply.github.com`. Never use a work email.
-- Commit messages: write to a scratchpad file, `git commit -F <file>` (PS 5.1 mangles quotes). End with the attribution line the harness provides.
-- Don't write repo files with `Set-Content`/`Out-File` (BOM). Use the Edit/Write tools or a node script file.
-- Gate scripts: ASCII-only patterns (PS 5.1 misreads `ℹ` in BOM-less scripts).
+- Commit messages: a heredoc or `git commit -F <file>`; end with the attribution line the harness provides.
 - Bump `BUILD` in `js/version.js` on every push (date.counter); it shows in the menu.
+- Manual checks: Playwright covers Firefox on Linux. At each milestone Jake also opens the live site in Firefox on Windows and on his Pixel (the real targets).
+- v1 was built on Windows/PowerShell; its PowerShell workarounds don't apply here.
 
 ## Run and test
-- Serve: `python -m http.server 8000` → http://localhost:8000 (Firefox). Tests use port 8123.
+- Serve: `python3 -m http.server 8000` → http://localhost:8000 (Firefox). Tests use port 8123 (the Playwright config starts `python3 -m http.server 8123`).
 - Unit: `npm test`. Browser: `npx playwright test` (Firefox, 4 workers; 8 overloads this PC).
-- **Before every push:** unit + `npx playwright test --repeat-each=2`, and **commit/push in the same command only if all pass**.
+- **Before every push:** unit + `npx playwright test --repeat-each=2`, and **commit/push in the same command only if all pass**, e.g. `npm test && npx playwright test --repeat-each=2 && git commit -F msg.txt && git push` (`&&` stops at the first failure). Never chain the push after tests with `;`.
 - Flaky test = lead: read `test-results/**/error-context.md`.
 - UI milestones: run `tools/screens.mjs`, read the screenshots back, fix visual problems before calling it done.
 - Tests may read the database through `window.__satchel.db` (exposed on localhost only).

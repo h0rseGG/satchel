@@ -54,7 +54,8 @@ Jake and friends. Firefox on Windows 11 and Android (Pixel). Nothing to install:
 | Images | Native canvas → WebP (JPEG fallback) (v1) | No dependency; strips photo metadata |
 | Unit tests | `node --test` (v1) | Built in |
 | Browser tests | **Playwright, Firefox engine**, 4 workers (v1) | 8 workers overloaded the PC |
-| Dev server | `python -m http.server` (v1) | Jake is Python-first |
+| Dev server | `python3 -m http.server` (v1) | Jake is Python-first; preinstalled on Ubuntu |
+| Build machine | Ubuntu (Node LTS via nvm, git, python3, Playwright Firefox with `--with-deps`) | Targets stay Firefox on Windows and Android; check those by hand at each milestone |
 
 **Library versions:** vendor pinned ESM builds into `vendor/` and use an import map in `index.html`. Check the current versions at M0 **[NV]**. v1 used preact 11.0.0, htm 3.1.1, dexie 4.4.6, minisearch 7.2.0 and fflate 0.8.3. Preact 11 notes: numbers in `style` don't get `px` added, and `useRef` needs a starting value.
 
@@ -429,7 +430,7 @@ tests/unit/ tests/e2e/ tests/fixtures/
 - **Gate every commit:**
   - unit + full browser suite with `--repeat-each=2`;
   - commit/push **only** if everything passes, checked in the same command;
-  - match test output with ASCII-only patterns (PowerShell 5.1 misreads `ℹ`).
+  - chain with `&&` so a failing test stops the push (v1 pushed a regression when tests and push ran unconditionally).
 - **Flaky tests are leads.** Read `test-results/**/error-context.md`. v1 found two real bugs this way.
 
 ---
@@ -467,7 +468,7 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 11. **Field-order differences break byte comparisons:** write canonical JSON.
 12. **Same-specificity CSS later in the file wins:** quiet buttons and select widths broke this way. Use component-scoped classes.
 13. **htm drops whitespace that contains a newline:** keep text with `${}` on one line (it caused "device:2 notes").
-14. **Windows / PowerShell 5.1:** no `Set-Content` for repo files (adds a BOM); commit messages via a file; ASCII-only patterns in gate scripts; reload PATH in each command.
+14. **Gate pushes on tests in the same command.** v1 build .31 went live with a regression because the push didn't wait for the test result. (v1 also needed PowerShell workarounds; on Ubuntu `&&` does the job.)
 15. **GitHub Pages caches files for 10 minutes:** the network-first service worker plus a visible build number made testing on the phone sane.
 
 ---
@@ -490,5 +491,6 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | Navigation: hub (as v1) cleaned up, with breadcrumbs, Home always visible, and a session button in the top bar |
 | 2026-10-01 | Confirmations only for destructive actions; everything else edits in place |
 | 2026-10-01 | Jake mostly reviews behaviour; code stays clean and conventional, without teaching material |
+| 2026-10-01 | Build machine is Ubuntu: python3, Node LTS via nvm, `gh auth login` for GitHub; Windows/PowerShell notes dropped |
 | 2026-10-01 | SPEC v2 and the style preview approved by Jake. Section 14 defaults accepted: no v1 kit import, built-in types renamable (label only), field kinds as listed, Home shows the last 5 notes |
 | 2026-10-01 | **Visual style: "field journal"** (section 5.4) replaces v1's plain palette: aged paper, sepia ink, ruled lines, red margin, green marks; green darkened to #4F6B47 for AA contrast. Headings in a bundled old-book serif (IM Fell English, fallback EB Garamond); body in system fonts. Wording themed only at signature moments (Pack/Unpack kit, empty states, toasts); all strings in `js/ui/strings.js` |
