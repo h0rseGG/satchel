@@ -1,12 +1,71 @@
-/* Page layout and screen-level styles. */
+/* The frame (top bar, crumbs, page) and screen-level layout. */
 
-.page { max-width: 980px; margin: 0 auto; padding: var(--sp-24) var(--sp-16) var(--sp-24) 40px; position: relative; }
-/* The red notebook margin: desktop only, it costs width on the phone. */
+/* The app is exactly the visual viewport tall (set from JS), so the phone keyboard shrinks it. */
+.app { display: flex; flex-direction: column; height: var(--app-h, 100vh); }
+.app-body { position: relative; flex: 1; min-height: 0; }
+.page-scroll { height: 100%; overflow-y: auto; overflow-x: hidden; }
+
+/* Top bar: one line, never wraps (SPEC 5.1). */
+.topbar {
+  flex: none;
+  display: flex; align-items: center; gap: var(--sp-8);
+  padding: var(--sp-8) var(--sp-16);
+  background: var(--paper-alt);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.topbar-home {
+  font: 22px/1.2 var(--serif);
+  color: var(--ink);
+  text-decoration: none;
+  min-width: 0; flex: 0 1 auto;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.topbar-crumbs { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-13); color: var(--ink-muted); margin-left: var(--sp-8); }
+.topbar-crumbs a, .crumbline a { color: var(--ink-muted); }
+.topbar > .btn, .topbar > .badge, .topbar > .menu-wrap { flex: none; }
+.session-btn.is-on { border-color: var(--red); }
+.short { display: none; }
+.crumbline { display: none; flex: none; padding: 4px var(--sp-16); font-size: var(--fs-13); color: var(--ink-muted); border-bottom: 1px solid var(--rule); background: var(--paper-alt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media (max-width: 600px) {
+  .topbar { padding: 6px 12px; gap: 6px; }
+  .topbar-home { font-size: 20px; flex: 1 1 auto; }
+  .topbar-crumbs { display: none; }
+  .crumbline { display: block; }
+  .long { display: none; }
+  .short { display: inline; }
+  .topbar .btn { padding: 6px 10px; }
+}
+
+/* Menu */
+.menu-wrap { position: relative; }
+.menu {
+  position: absolute; right: 0; top: calc(100% + var(--sp-4)); z-index: 30;
+  min-width: 200px;
+  background: var(--paper-alt);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: var(--sp-4) 0;
+  display: flex; flex-direction: column;
+}
+.menu-item { font: var(--fs-14) var(--font); color: var(--ink); text-align: left; background: none; border: 0; padding: 8px var(--sp-16); cursor: pointer; }
+.menu-item:hover { background: var(--highlight); }
+.menu-version { font-size: var(--fs-12); color: var(--ink-muted); padding: var(--sp-8) var(--sp-16) var(--sp-4); border-top: 1px solid var(--rule); margin-top: var(--sp-4); }
+
+/* Page with the red notebook margin: desktop only, it costs width on the phone. */
+.page { max-width: 980px; min-height: 100%; margin: 0 auto; padding: var(--sp-24) var(--sp-16) var(--sp-24) 40px; position: relative; }
 .page::before { content: ""; position: absolute; left: 24px; top: 0; bottom: 0; width: 1px; background: var(--red); opacity: .55; }
 @media (max-width: 759px) {
   .page { padding-left: var(--sp-16); }
   .page::before { display: none; }
 }
-
-.page-title { font: var(--fs-26) var(--serif); margin: 0 0 var(--sp-4); }
 .page > * + * { margin-top: var(--sp-16); }
+.page-title { font: var(--fs-26)/1.2 var(--serif); margin: 0 0 var(--sp-4); }
+
+/* First run */
+.first-run { max-width: 420px; margin: 8vh auto 0; }
+.first-run-form { margin-top: var(--sp-24); }
+
+/* Gallery (dev only) */
+.gallery-gap { margin-top: var(--sp-12); }

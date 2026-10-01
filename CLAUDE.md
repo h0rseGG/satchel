@@ -38,5 +38,5 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: M0 and M1 done (core logic, demo kit). Next: M2 data layer and components.
+- v2: M0–M2 done (frame, core logic, demo kit, data layer, components, router, top bar). Next: M3 session screen.
 - Open question for Jake: mentions show the entity's current name, which reads oddly for aliases and short names ("capt Captain Rook Harlow"). Proposed: show the typed label while it's still one of the entity's names, else the current name.

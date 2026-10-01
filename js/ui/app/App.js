@@ -1,43 +1,66 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { html } from '../html.js';
 import { S } from '../strings.js';
-import { VERSION } from '../../version.js';
+import { useLive } from '../useLive.js';
+import { useRoute, crumbs as makeCrumbs } from './router.js';
+import { Toasts } from './Toasts.js';
+import { ConfirmHost } from './ConfirmHost.js';
+import { TopBar } from './TopBar.js';
+import { frameState, getEntity, getFile } from '../../data/frame.js';
+import { setSession } from '../../data/session.js';
+import { reportError } from './toasts.js';
+import { isDev } from '../dev.js';
+import { FirstRun } from '../screens/FirstRun.js';
+import { Home } from '../screens/Home.js';
+import { NotBuilt } from '../screens/NotBuilt.js';
+import { Gallery } from '../screens/Gallery.js';
 
-// M0 frame: top bar, menu with the build number, and a placeholder page.
-export function App() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
+// The app follows the visual viewport, so a phone keyboard shrinks the app
+// instead of covering the bottom of it (SPEC 5.1).
+function useViewportHeight() {
   useEffect(() => {
-    if (!menuOpen) return;
-    const close = (e) => { if (!menuRef.current?.contains(e.target)) setMenuOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
-    document.addEventListener('pointerdown', close);
-    document.addEventListener('keydown', onKey);
+    const vv = window.visualViewport;
+    const set = () => document.documentElement.style.setProperty('--app-h', `${vv ? vv.height : window.innerHeight}px`);
+    set();
+    vv?.addEventListener('resize', set);
+    window.addEventListener('resize', set);
     return () => {
-      document.removeEventListener('pointerdown', close);
-      document.removeEventListener('keydown', onKey);
+      vv?.removeEventListener('resize', set);
+      window.removeEventListener('resize', set);
     };
-  }, [menuOpen]);
+  }, []);
+}
+
+export function App() {
+  useViewportHeight();
+  const route = useRoute();
+  const frame = useLive(frameState, [], null);
+  const entity = useLive(() => getEntity(route.name === 'entity' ? route.params.id : null), [route.name, route.params.id], null);
+  const file = useLive(() => getFile(route.name === 'file' ? route.params.id : null), [route.name, route.params.id], null);
+
+  if (!frame) return html`<div class="app"></div>`;
+  const hasCharacter = !!frame.bundle && !!frame.pc;
+  const typeLabel = (id) => frame.types.find((t) => t.id === id)?.plural ?? null;
+  const crumbs = hasCharacter ? makeCrumbs(route, { S, typeLabel, entity: (id) => (entity?.id === id ? entity : null), file: (id) => (file?.id === id ? file : null) }) : [];
+  const toggleSession = () => setSession(frame.session?.mode !== 'in').catch(reportError);
 
   return html`
-    <header class="topbar">
-      <a class="topbar-home" href="#/">${S.appName}</a>
-      <div ref=${menuRef}>
-        <button class="btn" aria-haspopup="true" aria-expanded=${menuOpen} onClick=${() => setMenuOpen(!menuOpen)}>${S.menu}</button>
-        ${menuOpen && html`
-          <div class="menu" role="menu" aria-label=${S.menu}>
-            <div class="menu-version">${S.version(VERSION)}</div>
-          </div>`}
+    <div class="app">
+      <${TopBar} name=${frame.pc?.name} crumbs=${crumbs} session=${frame.session} backup=${frame.backup} hasCharacter=${hasCharacter} onToggleSession=${toggleSession} />
+      <div class="app-body">
+        <main class="page-scroll" id="main">
+          <div class="page">${screen(route, frame, hasCharacter, crumbs)}</div>
+        </main>
+        <${Toasts} />
       </div>
-    </header>
-    <main class="page">
-      <h1 class="page-title">${S.appName}</h1>
-      <p>${S.tagline}</p>
-      <section class="panel">
-        <h2 class="panel-title">Field journal</h2>
-        <p class="muted">${S.underConstruction}</p>
-      </section>
-    </main>
-  `;
+      <${ConfirmHost} />
+    </div>`;
+}
+
+function screen(route, frame, hasCharacter, crumbs) {
+  if (route.name === 'gallery' && isDev) return html`<${Gallery} />`;
+  if (!hasCharacter) return html`<${FirstRun} />`;
+  if (route.name === 'home') return html`<${Home} pc=${frame.pc} />`;
+  if (route.name === 'notfound' || route.name === 'gallery') return html`<${NotBuilt} title=${S.nav.notFound} />`;
+  return html`<${NotBuilt} title=${crumbs.at(-1)?.label ?? S.nav.notFound} />`;
 }

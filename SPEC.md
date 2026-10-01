@@ -244,7 +244,7 @@ People say "Grimbold", not "Grimbold Ironhand".
 ### 5.4 Visual system: "field journal"
 The look is an adventurer's field journal: ink on aged paper, ruled lines, a red margin, and sparing marks in red and green. It fits the satchel/kit idea without costing readability at the table. (This replaces v1's plain technical look.)
 
-**Palette.** Only these colours; define them as CSS variables in `css/tokens.css`. Contrast is against `--paper`, computed with the WCAG formula (my calculation; re-check with a contrast tool at M2 **[NV]**). AA needs 4.5:1 for normal text.
+**Palette.** Only these colours; define them as CSS variables in `css/tokens.css`. Contrast is against `--paper`, computed with the WCAG formula (re-checked at M2, including against `--paper-alt`). AA needs 4.5:1 for normal text.
 
 | Variable | Value | Use | Contrast |
 |---|---|---|---|
@@ -252,7 +252,7 @@ The look is an adventurer's field journal: ink on aged paper, ruled lines, a red
 | `--paper-alt` | #EDE5D2 | Panels, cards, top bar | |
 | `--rule` | #D8CDB6 | Borders, ruled lines, dividers | |
 | `--ink` | #3B3026 | Body text, primary buttons (ink fill, paper text) | ~11.4:1 |
-| `--ink-muted` | #7A6A57 | Secondary text, timestamps, hints | ~4.6:1 (passes AA, unlike v1's grey) |
+| `--ink-muted` | #736452 | Secondary text, timestamps, hints | 5.1:1 on paper, 4.6:1 on paper-alt (darkened at M2 from #7A6A57, which was 4.2:1 on panels). Never on highlight or washes |
 | `--red` | #9C4A3A | Margin line, danger, wax-seal accents, focus ring | ~5.4:1 |
 | `--green` | #4F6B47 | "Done/backed up" marks | ~5.2:1 (darkened from #5E7A55, which was ~4.3:1) |
 | `--wash-ok` | #DCE5D3 | Success background | |
@@ -513,3 +513,9 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-01 | M1: uploads: SVG refused (it can carry scripts); 10 MB means 10 MiB. Built-in types have a fixed timestamp so untouched built-ins are identical on every device |
 | 2026-10-01 | M1: kits with schema 1–2 (v1) are refused with their own message ("made by Satchel v1"). `importModes()`: empty app → New; same bundle → Merge or Replace; different → Replace |
 | 2026-10-01 | M1: demo built early (lesson 2) in `tools/demo-data.mjs`: 47 notes over four Friday sessions in September 2026 (Perth time), 23 entities, 4 stubs (Grimbol typo, Hollow King, Pip, Vex), 12 in the Inbox, an edited note, Deity and Ship types, a text file. The D&D Beyond link points at the generic characters page (not a real person's sheet). A unit test fails if `demo/wren.kit` is stale; `tests/fixtures/schema-3.kit` is a frozen copy |
+| 2026-10-01 | M2: contrast re-checked with the WCAG formula. On `--paper` the table's figures hold (ink 11.4, red 5.4, green 5.3). But muted text also sits on `--paper-alt` (panels, top bar), where #7A6A57 is 4.16:1, failing AA. `--ink-muted` darkened to **#736452** (5.07 / 4.56). Muted text never goes on `--highlight` or washes (it fails there); the active picker row and chip × use ink |
+| 2026-10-01 | M2: a name-only first run ships now (Unpack a kit and Try the demo join it in M9), so the real top bar can be checked on the phone. The component gallery is at `#/dev/gallery`, localhost only |
+| 2026-10-01 | M2: the app is exactly the visual-viewport tall and scrolls inside `.page-scroll` (not the document), so the phone keyboard shrinks the app instead of covering it; the red margin now runs the full page height |
+| 2026-10-01 | M2: dates formatted by hand ("26 Sep 21:40", year added when it isn't this year) because ICU versions disagree on "Sep"/"Sept" between Node and Firefox |
+| 2026-10-01 | M2: the entity picker offers "New stub: X" only when nothing matches, the same rule as the capture box (4.2) |
+| 2026-10-01 | M2: saves compare records ignoring `updated_at`, so re-saving unchanged data is a no-op and doesn't count as a change. Profile edits stamp `profile_times` per changed section |

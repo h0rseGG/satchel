@@ -16,7 +16,7 @@
   --paper-alt: #EDE5D2;
   --rule: #D8CDB6;
   --ink: #3B3026;
-  --ink-muted: #7A6A57;
+  --ink-muted: #736452; /* darkened from #7A6A57 (4.16:1 on --paper-alt) to pass AA on panels too */
   --red: #9C4A3A;
   --green: #4F6B47;
   --wash-ok: #DCE5D3;

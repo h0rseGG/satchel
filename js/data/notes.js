@@ -1,0 +1,54 @@
+// Notes: capture, edit, delete. Mentions are resolved here with the core rules.
+import { db } from './db.js';
+import { saveMany } from './store.js';
+import { getMeta } from './meta.js';
+import { isoNow, makeRecord, tombstone } from '../core/model.js';
+import { buildNameIndex, resolveText, toTypedForm } from '../core/mentions.js';
+import { tagKeys } from '../core/tags.js';
+import { noteMode } from '../core/session.js';
+import { allEntities } from './entities.js';
+import { typesById } from './types.js';
+
+async function nameIndex() {
+  return buildNameIndex(await allEntities(), await typesById());
+}
+
+// typed: the capture box text; picks: [{ name, id }] from autocomplete.
+export async function addNote(typed, { picks = [], now = isoNow(), mode } = {}) {
+  const text = typed.trim();
+  if (!text) return null;
+  const r = resolveText(text, await nameIndex(), { picks, now });
+  const note = makeRecord('notes', {
+    text: r.text, mentions: r.mentions, tags: tagKeys(r.text), mode: mode ?? noteMode(await getMeta('session')),
+  }, { now });
+  await saveMany([...r.stubs.map((s) => ({ table: 'entities', record: s })), { table: 'notes', record: note }], { now });
+  return note;
+}
+
+// What the edit box starts with.
+export async function editForm(id) {
+  const note = await db().notes.get(id);
+  return toTypedForm(note.text, new Map((await allEntities()).map((e) => [e.id, e])));
+}
+
+export async function editNote(id, typed, { picks = [], now = isoNow() } = {}) {
+  const note = await db().notes.get(id);
+  const r = resolveText(typed.trim(), await nameIndex(), { picks, now });
+  if (r.text === note.text) return note;
+  const next = {
+    ...note, text: r.text, mentions: r.mentions, tags: tagKeys(r.text), updated_at: now,
+    original_text: note.original_text ?? note.text,
+  };
+  await saveMany([...r.stubs.map((s) => ({ table: 'entities', record: s })), { table: 'notes', record: next }], { now });
+  return next;
+}
+
+export async function deleteNote(id, { now = isoNow() } = {}) {
+  const note = await db().notes.get(id);
+  if (note && !note.deleted) await saveMany([{ table: 'notes', record: tombstone(note, now) }], { now });
+}
+
+// Newest first.
+export async function recentNotes(limit = 5) {
+  return db().notes.orderBy('created_at').reverse().filter((n) => !n.deleted).limit(limit).toArray();
+}
