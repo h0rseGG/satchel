@@ -7,7 +7,7 @@ import { formatShort } from './format.js';
 // What the results area shows while you type. Bottom-up, best nearest the
 // box: search hits (best last), then recall cards just above the box.
 // linkState(entity) -> 'linkable' | 'linked' | null; onLink(entity) on tap.
-export function Results({ cards, hits, notesById, entitiesById, notes, names, linkState, onLink, onSetType }) {
+export function Results({ cards, hits, notesById, entitiesById, notes, names, relationships = [], linkState, onLink, onSetType }) {
   const ref = useRef(null);
 
   // Keep the bottom (cards, best hit) in view as results change.
@@ -36,7 +36,7 @@ export function Results({ cards, hits, notesById, entitiesById, notes, names, li
     <main class="results results--live" ref=${ref} aria-live="polite">
       ${hits.length > 0 && html`<ul class="hits" aria-label="Search results">${hitRows}</ul>`}
       ${[...cards].reverse().map((e) => html`
-        <${RecallCard} key=${e.id} entity=${e} notes=${notes} names=${names}
+        <${RecallCard} key=${e.id} entity=${e} notes=${notes} names=${names} relationships=${relationships}
           link=${linkState(e)} onLink=${onLink} onSetType=${onSetType} />
       `)}
       ${!cards.length && !hits.length && html`

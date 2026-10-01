@@ -16,6 +16,7 @@ const MAX_CARDS = 3;
 export function CaptureScreen({ pcId, onMessage }) {
   const entities = useLive(async () => live(await db.entities.toArray()), [], []);
   const notes = useLive(async () => live(await db.notes.orderBy('created_at').toArray()), [], []);
+  const relationships = useLive(async () => live(await db.relationships.toArray()), [], []);
 
   // What's in the box, and the highlighted @suggestion (for its recall card).
   const [draft, setDraft] = useState('');
@@ -53,7 +54,7 @@ export function CaptureScreen({ pcId, onMessage }) {
   return html`
     ${showResults
       ? html`<${Results} cards=${cards} hits=${hits} notes=${notes} notesById=${notesById}
-          entitiesById=${entitiesById} names=${names}
+          entitiesById=${entitiesById} names=${names} relationships=${relationships}
           linkState=${linkState} onLink=${(entity) => setLinkRequest({ entity })}
           onSetType=${(entity, type) => setEntityType(entity.id, type).catch((err) =>
             onMessage({ kind: 'err', text: `Couldn't set type: ${err.message}` }))} />`

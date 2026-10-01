@@ -130,6 +130,18 @@ export function makeSession({ number } = {}) {
   return { ...rec, number, started_at: rec.created_at, ended_at: null, title: '', summary: '' };
 }
 
+// Suggested relationship types and whether each has a direction
+// ("Kael owes Grimbold") or not ("Kael ↔ Mira, ally"). Any text is allowed.
+export const RELATIONSHIP_TYPES = [
+  ['ally', false], ['rival', false], ['family', false], ['enemy', false],
+  ['owes', true], ['member of', true], ['located in', true], ['works for', true],
+];
+
+export function directedByDefault(type) {
+  const hit = RELATIONSHIP_TYPES.find(([t]) => t === cleanName(type).toLowerCase());
+  return hit ? hit[1] : true;
+}
+
 export function makeRelationship({ from_id, to_id, type, directed = false, notes = '', source_note_ids = [] } = {}) {
   if (!from_id || !to_id) throw new Error('Relationship needs both ends');
   if (from_id === to_id) throw new Error('Relationship cannot point at itself');

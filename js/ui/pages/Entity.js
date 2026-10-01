@@ -9,6 +9,7 @@ import { ChipsField, Confirm, TextField } from '../fields.js';
 import { NoteText } from '../NoteText.js';
 import { formatShort } from '../format.js';
 import { AddFiles, Portrait, ThumbGrid } from '../files.js';
+import { Relationships } from '../Relationships.js';
 
 const TYPES = ENTITY_TYPES.filter((t) => t !== 'unknown');
 
@@ -67,6 +68,7 @@ export function Entity({ parts, pcId, onMessage }) {
           <${TextField} id="ent-summary" label="Summary" value=${entity.summary} onSave=${(v) => save({ summary: v })}
             hint="One line, shown on recall cards." />
           <${TextField} id="ent-body" label="Description" value=${entity.body} multiline onSave=${(v) => save({ body: v })} />
+          <${Relationships} entity=${entity} names=${names} pcId=${pcId} onMessage=${onMessage} />
           <div class="row entity__actions">
             <button type="button" class="btn" onClick=${() => setDialog('merge')}>Merge into…</button>
             <button type="button" class="btn btn--danger" onClick=${() => setDialog('delete')}>Delete…</button>

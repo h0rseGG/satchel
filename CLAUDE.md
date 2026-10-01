@@ -43,10 +43,11 @@ Owner: Jake (electrician; Python-first, new to web). Personal project, not Cable
 | `js/ui/CaptureScreen.js` | In-session front layer: feed, recall cards, capture box |
 | `js/ui/OutScreen.js` + `js/ui/pages/*` | Hash-routed back layer: Dashboard, EntityList, Entity, Character, Inbox, Files, Log |
 | `js/ui/fields.js`, `js/ui/files.js` | Autosave fields, chips, confirm dialog; file thumbs, viewer helpers, uploads |
+| `js/ui/NoteItem.js`, `js/ui/Relationships.js` | Note row with edit/delete (Log, Inbox); relationships list, add form, sentence text |
 | `sw.js` | Service worker: network-first, offline fallback |
 
 ## Status (2026-10-01)
 - Week one: done. Week 2: sync (GitHub, merge-based) done. Out-of-session design (SPEC §7) steps 1–5 done.
-- In progress / next: notes log with edit/delete; relationships editor.
-- Deferred: graph view (needs library choice); promoting a note to a relationship; per-field merge for the character profile.
+- Also done: All notes page (#/log) with note edit/delete; relationships (entity/character pages, recall cards).
+- Deferred: graph view (needs a library choice from Jake); promoting a note to a relationship; per-field merge for the character profile; private-window warning banner.
 - Unverified on the Pixel: photo upload orientation; feel of the new pages on the phone.

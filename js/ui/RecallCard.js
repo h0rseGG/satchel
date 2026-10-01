@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { html } from './html.js';
 import { NoteText } from './NoteText.js';
 import { formatShort } from './format.js';
+import { RelationshipText } from './Relationships.js';
 
 const RECENT = 3;
 // Quick types for a stub, most common first.
@@ -17,8 +18,12 @@ const press = (fn) => ({
 // notes: all live notes.
 // link: 'linkable' (name typed without @: tap to link), 'linked', or null.
 // onSetType(entity, type): quick type for stubs.
-export function RecallCard({ entity, notes, names, link = null, onLink, onSetType }) {
+export function RecallCard({ entity, notes, names, relationships = [], link = null, onLink, onSetType }) {
   const [picking, setPicking] = useState(false);
+  const rels = relationships
+    .filter((r) => (r.from_id === entity.id || r.to_id === entity.id) && names.has(r.from_id) && names.has(r.to_id))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .slice(0, RECENT);
   const mentions = notes
     .filter((n) => n.mentions.includes(entity.id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -60,6 +65,10 @@ export function RecallCard({ entity, notes, names, link = null, onLink, onSetTyp
         </div>
       `}
       <p class="card__summary">${summary}</p>
+      ${rels.length > 0 && html`
+        <ul class="card__rels">
+          ${rels.map((r) => html`<li key=${r.id}><${RelationshipText} r=${r} names=${names} plain /></li>`)}
+        </ul>`}
       ${recent.length > 0 && html`
         <ul class="card__mentions">
           ${recent.map((n) => html`

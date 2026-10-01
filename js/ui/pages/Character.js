@@ -5,6 +5,7 @@ import { live } from '../../model.js';
 import { href } from '../router.js';
 import { TextField } from '../fields.js';
 import { AddFiles, Portrait, ThumbGrid } from '../files.js';
+import { Relationships } from '../Relationships.js';
 
 // Section labels and hints, in page order (after the one-line concept).
 export const SECTIONS = [
@@ -23,6 +24,8 @@ export function Character({ pcId, onMessage }) {
   const pc = useLive(() => (pcId ? db.entities.get(pcId) : undefined), [pcId], undefined);
   const files = useLive(async () => (pcId ? live(await db.files.where('entity_id').equals(pcId).toArray())
     .sort((a, b) => b.created_at.localeCompare(a.created_at)) : []), [pcId], []);
+  const entities = useLive(async () => live(await db.entities.toArray()), [], []);
+  const names = new Map(entities.map((e) => [e.id, e.name]));
   if (!pc) return null;
   const profile = pc.profile ?? {};
 
@@ -47,6 +50,7 @@ export function Character({ pcId, onMessage }) {
           <${TextField} key=${key} id=${`pc-${key}`} label=${label} value=${profile[key]} hint=${hint} multiline
             onSave=${(v) => updateProfile(pc.id, key, v)} />
         `)}
+        <${Relationships} entity=${pc} names=${names} pcId=${pc.id} onMessage=${onMessage} />
         <div class="page__head">
           <h2 class="panel__title">Files (${files.length})</h2>
           <${AddFiles} entityId=${pc.id} onMessage=${onMessage} />

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   makeEntity, makeNote, makeSession, makeRelationship,
-  editNote, tombstone, touch, cleanName, nameKey, live, ENTITY_TYPES, setType, withEntityDefaults,
+  editNote, tombstone, touch, cleanName, nameKey, live, ENTITY_TYPES, setType, withEntityDefaults, directedByDefault,
 } from '../../js/model.js';
 
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -138,6 +138,13 @@ test('session: needs a positive integer number', () => {
   assert.equal(s.ended_at, null);
   assert.throws(() => makeSession({ number: 0 }));
   assert.throws(() => makeSession({ number: 1.5 }));
+});
+
+test('directedByDefault: known types, case-insensitive; unknown types default to one-way', () => {
+  assert.equal(directedByDefault('Ally'), false);
+  assert.equal(directedByDefault('owes'), true);
+  assert.equal(directedByDefault(' member  of '), true);
+  assert.equal(directedByDefault('sworn to protect'), true);
 });
 
 test('relationship: validates ends and type', () => {

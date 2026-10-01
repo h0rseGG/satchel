@@ -3,9 +3,10 @@
 
 import Dexie from 'dexie';
 import {
-  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, editNote, live, makeEntity, makeFile, makeNote, newId, now, setType, tombstone, touch,
+  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, editNote, live, makeEntity, makeFile, makeNote, makeRelationship,
+  newId, now, setType, tombstone, touch,
 } from './model.js';
-import { findTyped, resolveMentions } from './mentions.js';
+import { findTyped, matchByName, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
 import { TABLES, mergeData, mergeEntityInto } from './merge.js';
 
@@ -149,6 +150,31 @@ export async function updateProfile(id, section, value) {
     if ((profile[section] ?? '') === value) return e;
     profile[section] = value;
     return save('entities', touch(e, { profile }));
+  });
+}
+
+// ---------- Relationships (SPEC section 4) ----------
+
+// Add a relationship. `otherName` is matched like an @mention (name or alias,
+// case-insensitive); an unknown name becomes a stub. `outgoing`: true means
+// self -> other ("self owes other"); ignored when `directed` is false.
+export async function addRelationship({ selfId, otherName, type, directed, outgoing = true, notes = '' }) {
+  return db.transaction('rw', db.entities, db.relationships, db.meta, async () => {
+    const name = cleanName(otherName);
+    if (!name) throw new Error('Who is it with? Type a name.');
+    const ents = live(await db.entities.toArray());
+    let other = matchByName(ents, name);
+    if (!other) other = await save('entities', makeEntity({ name }));
+    if (other.id === selfId) throw new Error('A relationship needs two different entities.');
+    const [from_id, to_id] = !directed || outgoing ? [selfId, other.id] : [other.id, selfId];
+    return save('relationships', makeRelationship({ from_id, to_id, type, directed, notes }));
+  });
+}
+
+export async function deleteRelationship(id) {
+  return db.transaction('rw', db.relationships, db.meta, async () => {
+    const r = await db.relationships.get(id);
+    if (r && !r.deleted) await save('relationships', tombstone(r));
   });
 }
 

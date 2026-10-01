@@ -43,7 +43,7 @@ test('edit fields: autosave survives reload; summary appears on the recall card'
   await start(page);
   await quickNote(page, 'met @Grimbold');
   await openEntity(page, 'Grimbold');
-  await page.getByLabel('Type').selectOption('npc');
+  await page.getByLabel('Type', { exact: true }).selectOption('npc');
   await page.getByLabel('Summary').fill('dwarf smith in Brindol');
   await page.getByLabel('Description').fill('Owes us 20 gp.\nHas a forge.');
   await page.getByLabel('Description').blur();
@@ -56,7 +56,7 @@ test('edit fields: autosave survives reload; summary appears on the recall card'
   await page.reload();
   await expect(page.getByLabel('Summary')).toHaveValue('dwarf smith in Brindol');
   await expect(page.getByLabel('Description')).toHaveValue('Owes us 20 gp.\nHas a forge.');
-  await expect(page.getByLabel('Type')).toHaveValue('npc');
+  await expect(page.getByLabel('Type', { exact: true })).toHaveValue('npc');
   const g = await entityByName(page, 'Grimbold');
   expect([g.type, g.stub, g.tags, g.aliases]).toEqual(['npc', false, ['dwarf', 'smith'], ['Grim']]);
 
@@ -100,7 +100,7 @@ test('changing a stub to a type moves it to that list', async ({ page }) => {
   await start(page);
   await quickNote(page, 'visited @Brindol');
   await openEntity(page, 'Brindol');
-  await page.getByLabel('Type').selectOption('location');
+  await page.getByLabel('Type', { exact: true }).selectOption('location');
   await page.goto('/#/');
   await expect(page.getByRole('link', { name: /Locations/ })).toHaveText('Locations 1');
   await expect(page.getByRole('link', { name: /Stubs/ })).toHaveText('Stubs 0');
@@ -112,7 +112,7 @@ test('new entity from a list page', async ({ page }) => {
   await page.getByLabel('New item name').fill('Sunblade');
   await page.getByRole('button', { name: 'Add' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sunblade');
-  await expect(page.getByLabel('Type')).toHaveValue('item');
+  await expect(page.getByLabel('Type', { exact: true })).toHaveValue('item');
   await page.goBack();
   await expect(page.locator('.list__row')).toHaveText([/Sunblade/]);
 });
