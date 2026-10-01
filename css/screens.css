@@ -151,3 +151,18 @@
 .file-view-text { white-space: pre-wrap; overflow-wrap: anywhere; font: var(--fs-14)/1.5 ui-monospace, "Cascadia Mono", Menlo, monospace; background: var(--paper-alt); border: 1px solid var(--rule); border-radius: var(--radius); padding: var(--sp-12); margin: 0; max-height: 70vh; overflow: auto; }
 .file-view figcaption { margin-top: var(--sp-8); color: var(--ink-muted); font-size: var(--fs-14); }
 .file-actions { margin-top: var(--sp-12); }
+
+/* First run options */
+.first-run-or { margin: var(--sp-24) 0 var(--sp-12); text-align: center; font-style: italic; }
+.first-run-option { display: flex; flex-wrap: wrap; gap: var(--sp-4) var(--sp-12); align-items: center; margin-bottom: var(--sp-12); }
+.first-run-option .muted { font-size: var(--fs-14); }
+
+/* End-of-session nudge: floats like a toast, doesn't move the page */
+.nudge { position: absolute; top: var(--sp-8); left: 50%; transform: translateX(-50%); z-index: 41; width: min(560px, calc(100% - 32px)); display: flex; flex-wrap: wrap; gap: var(--sp-8); align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--wash-warn); border: 1px solid var(--ink); border-radius: var(--radius); box-shadow: 0 2px 6px rgb(59 48 38 / .15); }
+.nudge-actions { display: flex; gap: var(--sp-8); align-items: center; }
+
+/* Help */
+.help { max-height: 60vh; overflow-y: auto; }
+.help-head { font: var(--fs-16)/1.2 var(--serif-sc); margin: var(--sp-12) 0 var(--sp-4); }
+.help p { margin: 0; }
+.danger-zone { border-color: var(--red); }

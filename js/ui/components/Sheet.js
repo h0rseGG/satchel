@@ -2,7 +2,7 @@ import { useEffect, useRef, useId } from 'preact/hooks';
 import { html } from '../html.js';
 
 // A modal sheet: role=dialog with a name, Esc or the backdrop closes, focus moves in
-// and goes back where it was afterwards. Only used by the confirm sheet.
+// and goes back where it was afterwards. Used by the confirm sheet, Unpack kit and Help.
 export function Sheet({ title, onClose, children, actions }) {
   const id = useId();
   const box = useRef(null);

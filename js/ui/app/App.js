@@ -27,6 +27,10 @@ import { Character } from '../screens/Character.js';
 import { Files } from '../screens/Files.js';
 import { FileViewer } from '../screens/FileViewer.js';
 import { CaptureBox } from '../components/CaptureBox.js';
+import { Settings } from '../screens/Settings.js';
+import { UnpackHost, Nudge, Help } from './Hosts.js';
+import { packKit, unpackMenu } from './kitActions.js';
+import { shouldNudge } from '../../core/backup.js';
 
 // The app follows the visual viewport, so a phone keyboard shrinks the app
 // instead of covering the bottom of it (SPEC 5.1).
@@ -68,6 +72,8 @@ export function App() {
   const entity = useLive(() => getEntity(route.name === 'entity' ? route.params.id : null), [route.name, route.params.id], null);
   const file = useLive(() => getFile(route.name === 'file' ? route.params.id : null), [route.name, route.params.id], null);
   const [overview, setOverview] = useState(false);
+  const [nudge, setNudge] = useState(false);
+  const [help, setHelp] = useState(false);
   const hasCharacter = !!frame?.bundle && !!frame?.pc;
   const inSession = hasCharacter && frame.session?.mode === 'in';
   useAutoEnd(inSession);
@@ -76,7 +82,13 @@ export function App() {
   if (!frame) return html`<div class="app"></div>`;
   const typeLabel = (id) => frame.types.find((t) => t.id === id)?.plural ?? null;
   const crumbs = hasCharacter && !inSession ? makeCrumbs(route, { S, typeLabel, entity: (id) => (entity?.id === id ? entity : null), file: (id) => (file?.id === id ? file : null) }) : [];
-  const toggleSession = () => setSession(!inSession).catch(reportError);
+  // Ending a session with unsaved changes offers a kit (SPEC 6).
+  const toggleSession = () => {
+    if (inSession && shouldNudge(frame.backup)) setNudge(true);
+    else setNudge(false);
+    setSession(!inSession).catch(reportError);
+  };
+  const pack = () => { setNudge(false); packKit(); };
   // In session, your name opens the character overview instead of going Home.
   const onHome = inSession ? (e) => { e.preventDefault(); setOverview(!overview); } : null;
 
@@ -90,6 +102,7 @@ export function App() {
   else if (route.name === 'character') body = html`<${Page}><${Character} /><//>`;
   else if (route.name === 'files') body = html`<${Page}><${Files} /><//>`;
   else if (route.name === 'file') body = html`<${Page}><${FileViewer} key=${route.params.id} id=${route.params.id} /><//>`;
+  else if (route.name === 'settings') body = html`<${Page}><${Settings} /><//>`;
   else if (route.name === 'world') body = html`<${Page}><${World} /><//>`;
   else if (route.name === 'type') body = html`<${Page}><${TypeList} key=${route.params.typeId} typeId=${route.params.typeId} pcId=${frame.pc.id} /><//>`;
   else if (route.name === 'stubs') body = html`<${Page}><${TypeList} key="stubs" typeId=${null} pcId=${frame.pc.id} /><//>`;
@@ -98,11 +111,15 @@ export function App() {
 
   return html`
     <div class="app">
-      <${TopBar} name=${frame.pc?.name} crumbs=${crumbs} session=${frame.session} backup=${frame.backup} hasCharacter=${hasCharacter} onToggleSession=${toggleSession} onHome=${onHome} overviewOpen=${overview} />
+      <${TopBar} name=${frame.pc?.name} crumbs=${crumbs} session=${frame.session} backup=${frame.backup} hasCharacter=${hasCharacter} onToggleSession=${toggleSession} onHome=${onHome} overviewOpen=${overview}
+        onPack=${pack} onUnpack=${unpackMenu} onHelp=${() => setHelp(true)} />
       <div class="app-body">
         ${body}
+        ${nudge && hasCharacter && !inSession && html`<${Nudge} onPack=${pack} onClose=${() => setNudge(false)} />`}
         <${Toasts} />
       </div>
+      ${help && html`<${Help} onClose=${() => setHelp(false)} />`}
+      <${UnpackHost} myName=${frame.pc?.name} />
       <${ConfirmHost} />
     </div>`;
 }

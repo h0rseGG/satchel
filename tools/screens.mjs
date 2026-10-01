@@ -77,7 +77,12 @@ const withFiles = async (page) => {
   ]);
   await page.waitForTimeout(800);
 };
+const demo = async (page) => { await page.getByRole('button', { name: 'Try the demo character' }).click(); await page.waitForTimeout(800); };
 const SCREENS = [
+  { name: 'demo-home', hash: '#/', action: demo, height: 1300 },
+  { name: 'settings', hash: '#/settings', setup: seedSession, arg: { out: true }, height: 1100 },
+  { name: 'help', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await page.getByRole('button', { name: 'Menu' }).click(); await page.getByRole('menuitem', { name: 'How it works' }).click(); } },
+  { name: 'nudge', hash: '#/', setup: seedSession, action: async (page) => { await page.locator('.session-btn').click(); await page.waitForTimeout(300); } },
   { name: 'files', hash: '#/', setup: seedSession, arg: { out: true }, action: withFiles },
   { name: 'file-image', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withFiles(page); await page.locator('.file-tile-link', { hasText: 'barrow-map' }).click(); await page.waitForTimeout(400); } },
   { name: 'file-text', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withFiles(page); await page.locator('.file-tile-link', { hasText: 'ledger' }).click(); await page.waitForTimeout(400); } },
