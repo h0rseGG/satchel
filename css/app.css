@@ -67,7 +67,54 @@ html, body {
 :focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
 .capture__box:focus { outline: 2px solid var(--text); outline-offset: -1px; }
 
+.capture__box { max-height: 40dvh; overflow-y: auto; }
+.capture__error { margin: 0 0 var(--gap); }
+
 .muted { color: var(--muted); }
+.fatal { margin: 12px; padding: 10px; }
+
+/* Feed */
+.feed__day {
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.feed__day:first-child { margin-top: 0; }
+.note {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+}
+.note__time { flex: none; font-size: 13px; padding-top: 2px; font-variant-numeric: tabular-nums; }
+.note__text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Forms */
+.firstrun h1 { font-size: 20px; margin: 0 0 8px; }
+.firstrun form { margin: 16px 0; }
+.firstrun label { display: block; margin-bottom: 4px; }
+.row { display: flex; gap: var(--gap); }
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.btn {
+  padding: 8px 14px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--text); }
 
 .badge {
   padding: 2px 8px;

@@ -2,7 +2,7 @@
 // record shapes live in model.js, which is unit tested without a browser.
 
 import Dexie from 'dexie';
-import { makeEntity, newId, now, touch } from './model.js';
+import { makeEntity, makeNote, newId, now, touch } from './model.js';
 
 export const db = new Dexie('satchel');
 
@@ -60,6 +60,17 @@ export async function update(table, id, changes) {
   const rec = await db[table].get(id);
   if (!rec) throw new Error(`${table} ${id} not found`);
   return save(table, touch(rec, changes));
+}
+
+// Save a new note. The first note ever also asks for persistent storage,
+// so the browser's prompt appears at a moment that makes sense.
+export async function addNote({ text, mode = 'out', session_id = null }) {
+  const note = await save('notes', makeNote({ text, mode, session_id }));
+  if (!(await getMeta('persist_asked'))) {
+    await setMeta('persist_asked', true);
+    requestPersist().catch((err) => console.warn('persist() failed', err));
+  }
+  return note;
 }
 
 // Ask the browser not to evict our data. Firefox desktop shows a prompt

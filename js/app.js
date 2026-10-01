@@ -1,16 +1,33 @@
-// Skeleton entry point. Real app wiring (Preact, Dexie) arrives in build step 3.
+// Entry point: check the environment, open the database, render the app.
+import { render } from 'preact';
+import { html } from './ui/html.js';
+import { App } from './ui/App.js';
+import { db } from './db.js';
 
-const box = document.querySelector('.capture__box');
+const root = document.getElementById('app');
 
-// Keep the capture box focused on desktop. On Android the keyboard only
-// opens after a tap, so this is best effort (SPEC section 2, risk 5).
-box.focus();
-
-// Secure-context check: crypto.randomUUID and the service worker need
-// HTTPS or localhost. Opening index.html straight from disk will fail here.
-if (!window.isSecureContext) {
-  document.querySelector('.results').insertAdjacentHTML(
-    'beforeend',
-    '<p class="badge badge--err">Not a secure context. Run via python -m http.server or HTTPS.</p>'
-  );
+function fatal(message) {
+  root.innerHTML = '';
+  const p = document.createElement('p');
+  p.className = 'badge badge--err fatal';
+  p.textContent = message;
+  root.append(p);
 }
+
+async function start() {
+  // crypto.randomUUID and the service worker need HTTPS or localhost.
+  if (!window.isSecureContext) {
+    fatal('Not a secure context. Open via https:// or run "python -m http.server" and use http://localhost.');
+    return;
+  }
+  try {
+    await db.open();
+  } catch (err) {
+    fatal(`Can't open the browser database: ${err.message}`);
+    return;
+  }
+  root.innerHTML = '';
+  render(html`<${App} />`, root);
+}
+
+start();
