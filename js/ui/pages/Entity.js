@@ -4,7 +4,7 @@ import { useLive } from '../useLive.js';
 import { db, deleteEntity, mergeEntities, updateEntity } from '../../db.js';
 import { ENTITY_TYPES, live, nameKey } from '../../model.js';
 import { href, go } from '../router.js';
-import { PLURAL, SINGULAR, listKeyOf } from '../labels.js';
+import { PLURAL, TYPE_LABEL, listKeyOf, typeLabel } from '../labels.js';
 import { ChipsField, Confirm, TextField } from '../fields.js';
 import { NoteText } from '../NoteText.js';
 import { formatShort } from '../format.js';
@@ -47,7 +47,7 @@ export function Entity({ parts, pcId, onMessage }) {
       <p class="crumb"><a href=${href('/')}>Dashboard</a> / <a href=${href(`/list/${key}`)}>${PLURAL[key]}</a></p>
       <div class="page__head">
         <h1 class="page__title">${entity.name}</h1>
-        <span class="muted">${entity.stub ? 'stub' : SINGULAR[entity.type]}</span>
+        <span class="muted">${typeLabel(entity)}</span>
       </div>
 
       <div class="entity__grid">
@@ -58,7 +58,7 @@ export function Entity({ parts, pcId, onMessage }) {
             <select id="ent-type" class="input field__input" value=${entity.stub ? '' : entity.type}
               onChange=${(e) => e.currentTarget.value && save({ type: e.currentTarget.value })}>
               ${entity.stub && html`<option value="" disabled>stub (choose a type)</option>`}
-              ${TYPES.map((t) => html`<option value=${t}>${SINGULAR[t]}</option>`)}
+              ${TYPES.map((t) => html`<option value=${t}>${TYPE_LABEL[t]}</option>`)}
             </select>
           </div>
           <${ChipsField} id="ent-tags" label="Tags" values=${entity.tags} onSave=${(v) => save({ tags: v })}
@@ -147,7 +147,7 @@ function MergePicker({ entity, entities, pcId, onMerge, onCancel }) {
         <ul class="list pick">
           ${options.map((e) => html`
             <li key=${e.id}><button type="button" class="list__row pick__row" onClick=${() => setTarget(e)}>
-              <strong>${e.name}</strong> <span class="muted">${e.stub ? 'stub' : SINGULAR[e.type]}</span>
+              <strong>${e.name}</strong> <span class="muted">${typeLabel(e)}</span>
             </button></li>
           `)}
         </ul>

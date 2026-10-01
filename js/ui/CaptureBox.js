@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { html } from './html.js';
+import { typeLabel } from './labels.js';
 import { activeQuery, linkPlainName, matchByName, suggest, typedForm } from '../mentions.js';
 import { nameKey } from '../model.js';
 
@@ -145,7 +146,7 @@ export function CaptureBox({
               onPointerDown=${(e) => { e.preventDefault(); pick(ent); }}
             >
               <span>${ent.name}</span>
-              <span class="muted">${ent.stub ? 'stub' : ent.type}</span>
+              <span class="muted">${typeLabel(ent)}</span>
             </li>
           `)}
           ${isNew && html`

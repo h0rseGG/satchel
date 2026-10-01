@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { html } from './html.js';
+import { typeLabel } from './labels.js';
 import { NoteText } from './NoteText.js';
 import { RecallCard } from './RecallCard.js';
 import { formatShort } from './format.js';
@@ -20,7 +21,7 @@ export function Results({ cards, hits, notesById, entitiesById, notes, names, re
       const e = entitiesById.get(h.ref);
       return e && html`
         <li class="hit" key=${`e-${e.id}`}>
-          <strong>${e.name}</strong> <span class="muted">${e.stub ? 'stub' : e.type}</span>
+          <strong>${e.name}</strong> <span class="muted">${typeLabel(e)}</span>
           ${e.summary && html`<span> · ${e.summary}</span>`}
         </li>`;
     }
@@ -28,7 +29,7 @@ export function Results({ cards, hits, notesById, entitiesById, notes, names, re
     return n && html`
       <li class="hit" key=${`n-${n.id}`}>
         <span class="muted hit__when">${formatShort(n.created_at)}</span>
-        <${NoteText} text=${n.text} names=${names} />
+        <span class="hit__text"><${NoteText} text=${n.text} names=${names} /></span>
       </li>`;
   }).reverse();
 

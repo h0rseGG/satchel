@@ -7,6 +7,7 @@ import { ConfirmDelete } from './ConfirmDelete.js';
 import { SyncSettings } from './SyncSettings.js';
 import { useLive } from './useLive.js';
 import { syncNow, syncStatus } from '../sync.js';
+import { BUILD } from '../version.js';
 
 // Top-bar menu: session toggle, sync, Pack kit (export), Unpack kit (import),
 // New character. mode: 'in' | 'out'; onToggleSession switches it.
@@ -73,6 +74,7 @@ export function Menu({ onMessage, mode, onToggleSession }) {
           <li role="separator" class="menu__sep"></li>
           <li role="none"><button type="button" role="menuitem" class="menu__item menu__item--danger"
             onClick=${() => { setOpen(false); setConfirmNew(true); }}>New character…</button></li>
+          <li role="none" class="menu__build muted">Build ${BUILD}</li>
         </ul>
       `}
       ${unpack.view}

@@ -128,7 +128,7 @@ test('quick type on a stub card: keyboard stays in the box, card does not link',
   await expect(types.getByRole('button')).toHaveText(['npc', 'location', 'item', 'faction', 'character', 'other']);
   await types.getByRole('button', { name: 'npc' }).dispatchEvent('pointerdown');
 
-  await expect(c.locator('.card__head')).toContainText('npc');
+  await expect(c.locator('.card__head')).toContainText('NPC');
   await expect(c.getByRole('button', { name: 'stub ▾' })).toHaveCount(0);
   await expect(box(page)).toHaveValue('grimbold sells axes');
   await expect(box(page)).toBeFocused();
@@ -148,7 +148,7 @@ test('typed entities show their type, not the picker', async ({ page }) => {
   await box(page).pressSequentially('mira');
   const c = card(page, 'Mira');
   await expect(c.getByRole('button', { name: 'stub ▾' })).toHaveCount(0);
-  await expect(c.locator('.card__head')).toContainText('npc');
+  await expect(c.locator('.card__head')).toContainText('NPC');
   await expect(c.locator('.card__tags')).toHaveText('fence, owes us');
 });
 
@@ -166,7 +166,8 @@ test('search finds an entity by tag', async ({ page }) => {
 
 test('build label is shown', async ({ page }) => {
   await start(page);
-  await expect(page.locator('.topbar__build')).toHaveText(/^\d{4}-\d{2}-\d{2}\.\d+$/);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await expect(page.locator('.menu__build')).toHaveText(/^Build \d{4}-\d{2}-\d{2}\.\d+$/);
 });
 
 test('clearing the box returns to the feed', async ({ page }) => {

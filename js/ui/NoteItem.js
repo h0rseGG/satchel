@@ -10,8 +10,10 @@ import { formatShort } from './format.js';
 // Edit and Delete. Editing shows @names in typed form (@Lord_Aldric) and
 // links them again on save; the first version is kept (SPEC D13).
 // `children`: extra action buttons (e.g. the Inbox's).
-// `extra`: optional content shown under the actions (e.g. an inline form).
-export function NoteItem({ note, names, onMessage, children, extra = null }) {
+// `children`: main actions (first row). `secondary`: less common actions,
+// shown smaller next to Edit and Delete. `extra`: content under the actions
+// (e.g. an inline form).
+export function NoteItem({ note, names, onMessage, children, secondary = null, extra = null }) {
   const [editing, setEditing] = useState(null); // { text, picked }
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -45,10 +47,11 @@ export function NoteItem({ note, names, onMessage, children, extra = null }) {
           </div>`
         : html`
           <p class="inbox__text"><${NoteText} text=${note.text} names=${names} links /></p>
-          <div class="row inbox__actions">
-            ${children}
-            <button type="button" class="btn" onClick=${() => setEditing(toTypedForEdit(note.text, names))}>Edit</button>
-            <button type="button" class="btn" onClick=${() => setConfirmDelete(true)}>Delete…</button>
+          ${children && html`<div class="row inbox__actions">${children}</div>`}
+          <div class="row inbox__actions inbox__actions--quiet">
+            ${secondary}
+            <button type="button" class="btn btn--quiet" onClick=${() => setEditing(toTypedForEdit(note.text, names))}>Edit</button>
+            <button type="button" class="btn btn--quiet" onClick=${() => setConfirmDelete(true)}>Delete…</button>
           </div>
           ${extra}`}
       ${confirmDelete && html`<${Confirm} title="Delete this note?" action="Delete" danger

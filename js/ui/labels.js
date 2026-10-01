@@ -7,6 +7,14 @@ export const PLURAL = {
   character: 'Characters', other: 'Other', stub: 'Stubs',
 };
 
+// As a label (headings, dropdowns, cards).
+export const TYPE_LABEL = {
+  npc: 'NPC', location: 'Location', item: 'Item', faction: 'Faction',
+  character: 'Character', other: 'Other', unknown: 'Stub',
+};
+export const typeLabel = (e) => (e.stub ? 'Stub' : TYPE_LABEL[e.type] ?? e.type);
+
+// Inside sentences ("New location…").
 export const SINGULAR = {
   npc: 'NPC', location: 'location', item: 'item', faction: 'faction',
   character: 'character', other: 'other', unknown: 'stub',

@@ -100,7 +100,7 @@ test('files on an entity page; attach from the viewer; use as picture', async ({
   await page.goto(`${URL_BASE}#/files`);
   await page.locator('input[data-picker="Add files…"]').setInputFiles(textFile('debts.txt', '20 gp'));
   await page.locator('.thumb', { hasText: 'debts.txt' }).click();
-  await page.getByLabel('Attached to').selectOption({ label: 'Grimbold · stub' });
+  await page.getByLabel('Attached to').selectOption({ label: 'Grimbold · Stub' });
   await page.getByRole('link', { name: 'Open Grimbold →' }).click();
   await expect(page.locator('.thumb')).toHaveCount(2);
 });

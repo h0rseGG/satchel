@@ -99,24 +99,25 @@ function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharac
     .filter(Boolean);
   return html`
     <${NoteItem} note=${note} names=${names} onMessage=${onMessage}
+      secondary=${html`
+        <select class="input inbox__select" aria-label="Add to my character"
+          onChange=${(ev) => {
+            const key = ev.currentTarget.value;
+            ev.currentTarget.value = '';
+            const s = SECTIONS.find(([k]) => k === key);
+            if (s) onToCharacter(s[0], s[1].toLowerCase());
+          }}>
+          <option value="">Add to my character…</option>
+          ${SECTIONS.map(([key, label]) => html`<option value=${key}>${label}</option>`)}
+        </select>
+        ${mentioned.length > 0 && !relForm && html`
+          <button type="button" class="btn btn--quiet" onClick=${() => setRelForm(true)}>Add as relationship…</button>`}`}
       extra=${relForm && html`<${RelationshipFromNote} names=${names} pcId=${pcId} mentioned=${mentioned}
         onCancel=${() => setRelForm(false)}
         onAdd=${(rel) => { setRelForm(false); onToRelationship(rel); }} />`}>
       <button type="button" class="btn" onClick=${onKeep}>Keep as log</button>
       ${mentioned.map((e) => html`
         <button type="button" key=${e.id} class="btn" onClick=${() => onToEntity(e)}>Add to ${e.name}</button>`)}
-      <select class="input inbox__select" aria-label="Add to my character"
-        onChange=${(ev) => {
-          const key = ev.currentTarget.value;
-          ev.currentTarget.value = '';
-          const s = SECTIONS.find(([k]) => k === key);
-          if (s) onToCharacter(s[0], s[1].toLowerCase());
-        }}>
-        <option value="">Add to my character…</option>
-        ${SECTIONS.map(([key, label]) => html`<option value=${key}>${label}</option>`)}
-      </select>
-      ${mentioned.length > 0 && !relForm && html`
-        <button type="button" class="btn" onClick=${() => setRelForm(true)}>Add as relationship…</button>`}
     </${NoteItem}>
   `;
 }

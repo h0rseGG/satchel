@@ -8,7 +8,7 @@ import { href, go } from '../router.js';
 import { AddFiles, ThumbGrid, useFileText, useFileUrl } from '../files.js';
 import { Confirm, TextField } from '../fields.js';
 import { formatShort } from '../format.js';
-import { SINGULAR } from '../labels.js';
+import { typeLabel } from '../labels.js';
 
 // #/files: every file, newest first. #/files/<id>: the viewer.
 export function Files({ parts, pcId, onMessage }) {
@@ -72,7 +72,7 @@ export function FileViewer({ id, pcId, onMessage, onClose }) {
             <select id="file-owner" class="input field__input" value=${file.entity_id ?? ''}
               onChange=${(e) => run(() => updateFile(file.id, { entity_id: e.currentTarget.value || null }))}>
               <option value="">Nothing (Files page only)</option>
-              ${options.map((e) => html`<option value=${e.id}>${e.id === pcId ? `${e.name} (my character)` : `${e.name} · ${e.stub ? 'stub' : SINGULAR[e.type]}`}</option>`)}
+              ${options.map((e) => html`<option value=${e.id}>${e.id === pcId ? `${e.name} (my character)` : `${e.name} · ${typeLabel(e)}`}</option>`)}
             </select>
           </div>
           ${owner && html`<p><a href=${href(owner.id === pcId ? '/character' : `/entity/${owner.id}`)}>Open ${owner.name} →</a></p>`}

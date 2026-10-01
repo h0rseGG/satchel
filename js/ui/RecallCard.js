@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { html } from './html.js';
+import { typeLabel } from './labels.js';
 import { NoteText } from './NoteText.js';
 import { formatShort } from './format.js';
 import { RelationshipText } from './Relationships.js';
@@ -50,7 +51,7 @@ export function RecallCard({ entity, notes, names, relationships = [], link = nu
         ${entity.stub && onSetType
           ? html`<button type="button" class="card__type" tabindex="-1" aria-expanded=${picking}
               ...${press(() => setPicking(!picking))}>stub ▾</button>`
-          : html`<span class="muted">${entity.stub ? 'stub' : entity.type}</span>`}
+          : html`<span class="muted">${typeLabel(entity)}</span>`}
         ${entity.tags?.length > 0 && html`<span class="muted card__tags">${entity.tags.join(', ')}</span>`}
         <span class="muted card__count">${mentions.length} mention${mentions.length === 1 ? '' : 's'}</span>
         ${linkable && html`<button type="button" class="card__link" tabindex="-1">Tap to link</button>`}

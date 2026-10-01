@@ -14,7 +14,6 @@ import { CharacterOverview } from './pages/Character.js';
 import { Menu } from './Menu.js';
 import { BackupBadge } from './BackupBadge.js';
 import { href } from './router.js';
-import { BUILD } from '../version.js';
 
 export function App() {
   const bundleId = useLive(() => getMeta('bundle_id'), [], undefined);
@@ -86,7 +85,6 @@ function Main() {
             onClick=${() => setOverview(true)}>${name}</button>`
         : html`<a class="topbar__title topbar__home" href=${href('/')}>${name}</a>`}
       ${inSession && html`<span class="topbar__session muted">In session</span>`}
-      <span class="topbar__build muted" title="Build">${BUILD}</span>
       <${BackupBadge} onMessage=${setMessage} />
       <${Menu} onMessage=${setMessage} mode=${session.mode} onToggleSession=${toggleSession} />
     </header>

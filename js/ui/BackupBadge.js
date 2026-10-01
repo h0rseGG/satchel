@@ -20,11 +20,14 @@ export function BackupBadge({ onMessage }) {
   if (meta === undefined) return null;
   const { kind, text } = backupStatus(meta, nowMs);
   const last = meta.last_backup_at ? `Last kit packed ${formatShort(meta.last_backup_at)}. ` : '';
+  // On a narrow screen "since backup" is hidden (CSS), leaving "3 changes".
+  const SUFFIX = ' since backup';
+  const [head, tail] = text.endsWith(SUFFIX) ? [text.slice(0, -SUFFIX.length), SUFFIX] : [text, ''];
   return html`
     <button type="button" class=${`badge badge--${kind} badge--button`}
       title=${`${last}Tap to pack a kit.`} aria-label=${`${text}. Tap to pack a kit.`}
       onClick=${() => packAndDownload(onMessage)}>
-      ${text}
+      ${head}${tail && html`<span class="badge__long">${tail}</span>`}
     </button>
   `;
 }

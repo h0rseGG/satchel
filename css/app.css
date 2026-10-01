@@ -37,14 +37,28 @@ html, body {
 
 .topbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--gap);
   padding: var(--gap) 12px;
   border-bottom: 1px solid var(--border);
 }
-.topbar__title { font-weight: 600; margin-right: auto; }
-.topbar__build, .topbar__session { font-size: 12px; }
+/* One line, always: a long name shortens with "…" instead of wrapping. */
+.topbar__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: auto;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar__session { font-size: 12px; white-space: nowrap; }
+.topbar .badge, .topbar .btn { flex: none; white-space: nowrap; }
+@media (max-width: 480px) {
+  .badge__long { display: none; }   /* "3 changes since backup" -> "3 changes" */
+}
+.menu__build { padding: 6px 12px 2px; font-size: 12px; }
 
 .results {
   flex: 1;
@@ -156,7 +170,8 @@ html, body {
 .card__text { overflow-wrap: anywhere; }
 .card .mention { background: var(--bg); }
 .hits { list-style: none; margin: 0; padding: 0; }
-.hit { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.hit { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.hit__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
 /* Menu and status message */
 .menu { position: relative; }
@@ -294,6 +309,7 @@ html, body {
 .character__body { max-width: 760px; }
 .topbar__pc {
   padding: 0;
+  text-align: left;
   font: inherit;
   font-weight: 600;
   color: var(--text);
@@ -353,7 +369,9 @@ a.btn { display: inline-block; text-decoration: none; color: var(--text); }
 .inbox__meta { font-size: 13px; }
 .inbox__text { margin: 4px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .inbox__actions { flex-wrap: wrap; gap: 6px; }
-.inbox__select { width: auto; min-width: 200px; }
+.inbox__actions .inbox__select { flex: 0 1 220px; min-width: 170px; width: auto; padding: 4px 8px; font-size: 14px; }
+.inbox__actions--quiet { margin-top: 6px; }
+.btn.btn--quiet { padding: 4px 10px; font-size: 14px; background: transparent; }
 .inbox__added { font-size: 13px; align-self: center; }
 .inbox__relform { margin-top: 8px; padding: 8px; background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius); }
 .note__edit { width: 100%; margin: 4px 0; font: inherit; line-height: 1.5; resize: vertical; }
