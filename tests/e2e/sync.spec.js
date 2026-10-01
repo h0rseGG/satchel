@@ -202,6 +202,23 @@ test('repo made public after setup: sync stops', async ({ browser }) => {
   expect(JSON.stringify(await fake.snapshot())).not.toContain('secret plans');
 });
 
+test('ending a session with sync set up offers Sync now, which backs up online', async ({ browser }) => {
+  const fake = fakeGitHub();
+  const pc = await device(browser, fake);
+  await start(pc);
+  await setUp(pc, 'PC');
+  await expect(pc.getByRole('status')).toContainText('Sync set up');
+  await say(pc, 'a note at the table');   // start() left us in session
+  await menu(pc, 'End session');
+  const nudge = pc.getByRole('dialog', { name: 'Session ended' });
+  await expect(nudge).toContainText('Sync now so tonight’s notes are safe online?');
+  await nudge.getByRole('button', { name: 'Sync now' }).click();
+  await expect(pc.getByRole('status')).toContainText('Synced. Tonight’s notes are backed up online.');
+  await expect(pc.locator('.topbar .badge')).toHaveText('Backed up');
+  const bundle = await pc.evaluate(async () => (await window.__satchel.db.meta.get('bundle_id')).value);
+  expect((await fake.snapshot())[`characters/${bundle}/notes.jsonl`]).toContain('a note at the table');
+});
+
 test('the token is never in a packed kit', async ({ browser }) => {
   const fake = fakeGitHub();
   const pc = await device(browser, fake);
