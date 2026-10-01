@@ -59,10 +59,15 @@ test('note: trims text, dedupes mentions, starts un-triaged', () => {
   assert.equal(n.original_text, null);
 });
 
-test('note: rejects empty text and in-session without session', () => {
+test('note: rejects empty text and unknown modes', () => {
   assert.throws(() => makeNote({ text: '  ' }));
-  assert.throws(() => makeNote({ text: 'x', mode: 'in' }));
   assert.throws(() => makeNote({ text: 'x', mode: 'sideways' }));
+});
+
+test('note: in-session without a session record is fine', () => {
+  const n = makeNote({ text: 'x', mode: 'in' });
+  assert.equal(n.mode, 'in');
+  assert.equal(n.session_id, null);
 });
 
 test('note: out-of-session ignores a stray session_id', () => {

@@ -44,7 +44,7 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 .topbar__title { font-weight: 600; margin-right: auto; }
-.topbar__build { font-size: 12px; }
+.topbar__build, .topbar__session { font-size: 12px; }
 
 .results {
   flex: 1;

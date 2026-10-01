@@ -5,9 +5,9 @@ import { formatShort } from './format.js';
 const RECENT = 3;
 
 // Short recall card: one-line summary plus the last 3 mentions (SPEC 6).
-// notes: all live notes; sessionNumbers: Map of session id -> number.
+// notes: all live notes.
 // link: 'linkable' (name typed without @: tap to link), 'linked', or null.
-export function RecallCard({ entity, notes, names, sessionNumbers, link = null, onLink }) {
+export function RecallCard({ entity, notes, names, link = null, onLink }) {
   const mentions = notes
     .filter((n) => n.mentions.includes(entity.id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -41,9 +41,7 @@ export function RecallCard({ entity, notes, names, sessionNumbers, link = null, 
         <ul class="card__mentions">
           ${recent.map((n) => html`
             <li key=${n.id}>
-              <span class="muted card__when">
-                ${formatShort(n.created_at)}${sessionNumbers.has(n.session_id) ? ` · S${sessionNumbers.get(n.session_id)}` : ''}
-              </span>
+              <span class="muted card__when">${formatShort(n.created_at)}</span>
               <span class="card__text"><${NoteText} text=${n.text} names=${names} /></span>
             </li>
           `)}

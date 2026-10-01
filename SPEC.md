@@ -149,6 +149,8 @@ The player character is the entity named by `pc_entity_id` in `character.json`.
 - Merging entities rewrites ids in notes.
 
 ### Session
+> **Changed 2026-10-01:** session records and numbers aren't tracked for now. The device holds an In/Out mode (local meta: `mode`, `mode_since`), toggled from the menu; each note records `mode`. The table below is kept in the schema, unused.
+
 - Fields: `number` (S1, S2…), `started_at`, `ended_at`, `title?`, `summary?`.
 - Toggling to In creates a session. Toggling to Out ends it.
 - Auto-ends after 12 h with no notes; `ended_at` is set to the last note's time.
@@ -412,7 +414,11 @@ satchel/
 - ~~Q4~~ Resolved: newest edit wins; clock-skew risk accepted; the merge report shows what was overwritten.
 - ~~Q5~~ Resolved: add an `item` entity type (story items only, no stats).
 
-No open questions remain.
+- **Q6 (new)** Out-of-session interface: Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
+  - Which file types to accept: PDFs? Office files? Any file?
+  - The kit layout: a general `files/` folder alongside `images/`?
+  - Size: documents make kits bigger, and GitHub sync caps a single file at 100 MB.
+  - Should documents be compressed or size-limited?
 
 ## 12. Decision log
 | Date | Decision |
@@ -438,6 +444,7 @@ No open questions remain.
 | 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
 | 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
 | 2026-10-01 | Replace pulled forward from week 2, plus **New character** (menu). Both: red warning with counts, type the character's name to confirm, a backup kit downloads first; Replace is one transaction (old data kept if loading fails) |
+| 2026-10-01 | D2 revised: the In/Out toggle lives in the menu ("Start session" / "End session"); no session records or numbers; small "In session" label in the top bar only while in session; auto-end after 12 h idle kept; ending a session with unsaved changes nudges Pack kit. Both modes use the capture screen until the out-of-session UI is designed (Q6) |
 | 2026-10-01 | Backup badge: neutral for changes under 24 h (spec left this unstated); colour ages from the first unsaved change (`first_change_at`); tapping the badge packs a kit |
 | 2026-10-01 | "Changes since backup" = edits made on this device not yet in any kit. Merge leaves the counters alone (merged-in records came from a kit) |
 | 2026-10-01 | Pixel test: Android file picker selects `.kit` files for Unpack |

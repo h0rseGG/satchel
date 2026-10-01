@@ -5,8 +5,9 @@ import { packAndDownload } from './pack.js';
 import { useUnpack } from './useUnpack.js';
 import { ConfirmDelete } from './ConfirmDelete.js';
 
-// Top-bar menu: Pack kit (export), Unpack kit (import), New character.
-export function Menu({ onMessage }) {
+// Top-bar menu: session toggle, Pack kit (export), Unpack kit (import),
+// New character. mode: 'in' | 'out'; onToggleSession switches it.
+export function Menu({ onMessage, mode, onToggleSession }) {
   const [open, setOpen] = useState(false);
   const [confirmNew, setConfirmNew] = useState(false);
   const ref = useRef(null);
@@ -32,6 +33,9 @@ export function Menu({ onMessage }) {
       </button>
       ${open && html`
         <ul class="menu__list" role="menu">
+          <li role="none"><button type="button" role="menuitem" class="menu__item"
+            onClick=${() => { setOpen(false); onToggleSession(); }}>${mode === 'in' ? 'End session' : 'Start session'}</button></li>
+          <li role="separator" class="menu__sep"></li>
           <li role="none"><button type="button" role="menuitem" class="menu__item" onClick=${pack}>Pack kit (download backup)</button></li>
           <li role="none"><button type="button" role="menuitem" class="menu__item"
             onClick=${() => { setOpen(false); unpack.choose(); }}>Unpack kit (merge or replace)</button></li>

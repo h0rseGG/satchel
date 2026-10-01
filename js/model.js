@@ -62,7 +62,7 @@ export function makeNote({ text, mode = 'out', session_id = null, mentions = [] 
   const t = String(text ?? '').trim();
   if (!t) throw new Error('Note is empty');
   if (!NOTE_MODES.includes(mode)) throw new Error(`Unknown note mode: ${mode}`);
-  if (mode === 'in' && !session_id) throw new Error('In-session note needs a session_id');
+  // session_id is optional: session records aren't tracked for now (SPEC D2).
   return {
     ...base(),
     text: t,

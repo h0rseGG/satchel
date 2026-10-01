@@ -96,8 +96,10 @@ export async function update(table, id, changes) {
 // transaction, so a failed save leaves no orphan stubs.
 // picked: { [nameKey]: entityId } from autocomplete.
 // The first note ever also asks for persistent storage.
-export async function addNote({ text, mode = 'out', session_id = null, picked = {} }) {
+// The note takes the current In/Out mode unless one is given.
+export async function addNote({ text, mode = null, session_id = null, picked = {} }) {
   const note = await db.transaction('rw', db.entities, db.notes, db.meta, async () => {
+    mode ??= await getMeta('mode', 'out');
     const r = resolveMentions(text, live(await db.entities.toArray()), picked);
     for (const e of r.created) await save('entities', e);
     return save('notes', makeNote({ text: r.text, mode, session_id, mentions: r.mentions }));
@@ -127,6 +129,24 @@ export async function packCurrentKit() {
   for (const b of snap.blobs) imageFiles.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
   const pc = snap.entities.find((e) => e.id === snap.pc_entity_id);
   return { bytes: packKit({ ...snap, imageFiles }), filename: kitFilename(pc?.name) };
+}
+
+// ---------- In / Out of session (local to this device) ----------
+
+export async function sessionMeta() {
+  return { mode: await getMeta('mode', 'out'), mode_since: await getMeta('mode_since') };
+}
+
+export async function setMode(mode) {
+  await setMeta('mode', mode);
+  await setMeta('mode_since', now());
+}
+
+// Time of the newest in-session note, or null. Notes are scanned newest
+// first, so this stops early in normal use.
+export async function lastInNoteAt() {
+  const n = await db.notes.orderBy('created_at').reverse().filter((x) => x.mode === 'in' && !x.deleted).first();
+  return n?.created_at ?? null;
 }
 
 // ---------- Unpack kit ----------
