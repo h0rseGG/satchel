@@ -11,6 +11,13 @@ export function formatDay(iso) {
   return dayFmt.format(new Date(iso));
 }
 
+const shortFmt = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' });
+
+// "1 Oct 21:40" for compact lists.
+export function formatShort(iso) {
+  return `${shortFmt.format(new Date(iso))} ${formatTime(iso)}`;
+}
+
 // Local calendar day key, for grouping the feed by day.
 export function dayKey(iso) {
   const d = new Date(iso);

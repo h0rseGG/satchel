@@ -429,3 +429,6 @@ No open questions remain.
 | 2026-10-01 | Manual "Sync now" via private GitHub repo, merge-based, no locks; first item in week 2 (D14) |
 | 2026-10-01 | SPEC approved |
 | 2026-10-01 | Step 1 done: libraries pinned; no `accept` filter on import; export is download-only; sync uses separate files + Git Data API commits |
+| 2026-10-01 | Local db v2 upgrade links `@names` in notes saved before mentions existed |
+| 2026-10-01 | Recall cards: player character excluded (would match nearly every note); highlighted @suggestion gets a card |
+| 2026-10-01 | Search typo allowance: ≤3 letters exact, 4 letters 1 edit, 5+ letters 2 edits (swapped letters = 2) |

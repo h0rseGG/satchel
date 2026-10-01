@@ -6,7 +6,7 @@ import { nameKey } from '../model.js';
 // The one box (D1). Enter saves, Shift+Enter is a new line, Esc clears.
 // While typing an @name: Tab or tap picks a suggestion, arrows move,
 // Esc closes the list. Enter always saves (SPEC section 6).
-export function CaptureBox({ entities, onSave }) {
+export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = () => {} }) {
   const ref = useRef(null);
   const caretAfterRender = useRef(null);
   const [text, setText] = useState('');
@@ -19,6 +19,12 @@ export function CaptureBox({ entities, onSave }) {
   const q = dismissed ? null : activeQuery(text, caret);
   const options = q ? suggest(entities, q.query) : [];
   const isNew = q && q.query.trim() && !matchByName(entities, q.query);
+  const previewId = options.length ? (options[highlight] ?? options[0]).id : null;
+
+  // Tell the parent what's typed and which suggestion is highlighted,
+  // so it can show search results and recall cards.
+  useEffect(() => onDraft(text), [text]);
+  useEffect(() => onPreview(previewId), [previewId]);
 
   // Grow with the content (CSS caps the height); restore caret after a pick.
   useEffect(() => {
