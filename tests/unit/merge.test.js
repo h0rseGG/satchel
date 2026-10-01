@@ -205,6 +205,55 @@ test('mergeEntityInto: attached files move to the survivor', () => {
   assert.equal(tables.files[0].entity_id, a.id);
 });
 
+function pcWith(base, sections, times, updated) {
+  return { ...base, profile: sections, profile_times: times, updated_at: updated };
+}
+
+test('profiles: different sections edited on two devices both survive, either direction', () => {
+  const base = at(makeEntity({ name: 'Kael', type: 'character' }), T1);
+  const phone = pcWith(base, { backstory: 'Thornwood', goals: '' }, { backstory: T2 }, T2);
+  const pc = pcWith(base, { goals: 'Find Lyra' }, { goals: T3 }, T3);
+  const onPc = mergeData(side({ entities: [pc] }), side({ entities: [phone] }), AT).tables.entities[0];
+  const onPhone = mergeData(side({ entities: [phone] }), side({ entities: [pc] }), AT).tables.entities[0];
+  assert.deepEqual(onPc.profile, { backstory: 'Thornwood', goals: 'Find Lyra' });
+  assert.deepEqual(onPhone, onPc, 'both devices end up identical');
+  assert.equal(onPc.updated_at, T3);
+});
+
+test('profiles: the same section edited on both: newer edit wins', () => {
+  const base = at(makeEntity({ name: 'Kael', type: 'character' }), T1);
+  const a = pcWith(base, { flaws: 'old' }, { flaws: T2 }, T2);
+  const b = pcWith(base, { flaws: 'new' }, { flaws: T3 }, T3);
+  assert.equal(mergeData(side({ entities: [a] }), side({ entities: [b] }), AT).tables.entities[0].profile.flaws, 'new');
+  assert.equal(mergeData(side({ entities: [b] }), side({ entities: [a] }), AT).tables.entities[0].profile.flaws, 'new');
+});
+
+test('profiles: merging a result again changes nothing (devices settle)', () => {
+  const base = at(makeEntity({ name: 'Kael', type: 'character' }), T1);
+  const a = pcWith(base, { backstory: 'x' }, { backstory: T2 }, T2);
+  const b = pcWith(base, { goals: 'y' }, { goals: T3 }, T3);
+  const merged = mergeData(side({ entities: [a] }), side({ entities: [b] }), AT).tables;
+  const again = mergeData(merged, structuredClone(merged), AT);
+  assert.deepEqual(again.writes.entities, []);
+  assert.equal(again.report.unchanged, 1);
+});
+
+test('profiles: a newer name from one side is kept alongside the other side’s section', () => {
+  const base = at(makeEntity({ name: 'Kael', type: 'character' }), T1);
+  const renamed = { ...pcWith(base, {}, {}, T3), name: 'Kael Stormborn' };
+  const edited = pcWith(base, { ideals: 'Freedom' }, { ideals: T2 }, T2);
+  const m = mergeData(side({ entities: [edited] }), side({ entities: [renamed] }), AT).tables.entities[0];
+  assert.equal(m.name, 'Kael Stormborn');
+  assert.equal(m.profile.ideals, 'Freedom');
+});
+
+test('profiles without section times (older data) fall back to record time', () => {
+  const base = at(makeEntity({ name: 'Kael', type: 'character' }), T1);
+  const old = { ...base, profile: { goals: 'old' }, updated_at: T2 };
+  const newer = { ...base, profile: { goals: 'new' }, updated_at: T3 };
+  assert.equal(mergeData(side({ entities: [old] }), side({ entities: [newer] }), AT).tables.entities[0].profile.goals, 'new');
+});
+
 test('redirectMap follows chains', () => {
   const ents = [
     { id: 'a', merged_into: 'b' },

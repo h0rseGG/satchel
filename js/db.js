@@ -149,7 +149,11 @@ export async function updateProfile(id, section, value) {
     const profile = { ...(e.profile ?? {}) };
     if ((profile[section] ?? '') === value) return e;
     profile[section] = value;
-    return save('entities', touch(e, { profile }));
+    // Per-section edit time: lets merge keep edits to different sections
+    // made on two devices (merge.js mergeProfiles).
+    const at = now();
+    const profile_times = { ...(e.profile_times ?? {}), [section]: at };
+    return save('entities', touch(e, { profile, profile_times }, at));
   });
 }
 
@@ -262,7 +266,9 @@ export async function promoteNote(noteId, target, text) {
       if (!PROFILE_SECTIONS.includes(target.section)) throw new Error(`Unknown section ${target.section}`);
       const profile = { ...(e.profile ?? {}) };
       profile[target.section] = appendPara(profile[target.section], text);
-      await save('entities', touch(e, { profile }));
+      const at = now();
+      const profile_times = { ...(e.profile_times ?? {}), [target.section]: at };
+      await save('entities', touch(e, { profile, profile_times }, at));
     } else {
       await save('entities', touch(e, { body: appendPara(e.body, text) }));
     }

@@ -137,6 +137,40 @@ test('Merge does not count as unsaved changes; local edits stay counted', async 
   await expect(badge(pc)).toHaveText('1 change since backup');
 });
 
+test('Character page: different sections edited on two devices both survive a merge', async ({ browser }) => {
+  const phone = await device(browser);
+  await start(phone);
+  const pc = await device(browser);
+  await chooseKit(pc, await pack(phone));
+  await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await expect(pc.getByRole('region', { name: 'Inbox' })).toBeVisible();   // pc lands out of session
+  // The phone started in session (start()); the character page is out of session.
+  await phone.getByRole('button', { name: 'Menu' }).click();
+  await phone.getByRole('menuitem', { name: 'End session' }).click();
+  await expect(phone.getByRole('region', { name: 'Inbox' })).toBeVisible();
+
+  for (const [p, label, text] of [[phone, 'Backstory', 'Raised in the Thornwood'], [pc, 'Goals', 'Find Lyra']]) {
+    await p.goto('http://localhost:8123/#/character');
+    await p.getByLabel(label).fill(text);
+    await p.getByLabel(label).blur();
+    await expect.poll(() => p.evaluate(async (l) => {
+      const id = (await window.__satchel.db.meta.get('pc_entity_id')).value;
+      return (await window.__satchel.db.entities.get(id)).profile?.[l.toLowerCase()];
+    }, label)).toBe(text);
+  }
+
+  await chooseKit(pc, await pack(phone));
+  await pc.getByRole('button', { name: 'Merge' }).click();
+  await chooseKit(phone, await pack(pc));
+  await phone.getByRole('button', { name: 'Merge' }).click();
+
+  for (const p of [phone, pc]) {
+    await p.goto('http://localhost:8123/#/character');
+    await expect(p.getByLabel('Backstory')).toHaveValue('Raised in the Thornwood');
+    await expect(p.getByLabel('Goals')).toHaveValue('Find Lyra');
+  }
+});
+
 test('Merging the same kit twice changes nothing the second time', async ({ browser }) => {
   const phone = await device(browser);
   await start(phone);

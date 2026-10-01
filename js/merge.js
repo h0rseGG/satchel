@@ -10,6 +10,7 @@
 //    relationships) is redirected to the survivor.
 
 import { cleanTags, nameKey, now } from './model.js';
+import { canonicalJson } from './kit.js';
 
 export const TABLES = ['entities', 'notes', 'sessions', 'relationships', 'files'];
 
@@ -31,6 +32,11 @@ export function mergeData(local, incoming, at = now()) {
       if (!l) {
         byId.set(r.id, r);
         report.added++;
+      } else if (t === 'entities' && hasProfile(l, r)) {
+        // Character page: merge section by section, not whole record.
+        const m = mergeProfiles(l, r);
+        if (canonicalJson(m) === canonicalJson(l)) report.unchanged++;
+        else { byId.set(r.id, m); report.updated++; }
       } else if (r.updated_at > l.updated_at) {
         byId.set(r.id, r);
         report.updated++;
@@ -51,6 +57,34 @@ export function mergeData(local, incoming, at = now()) {
     writes[t] = tables[t].filter((r) => localById[t].get(r.id) !== r);
   }
   return { tables, writes, report };
+}
+
+const hasProfile = (a, b) => !a.deleted && !b.deleted && (a.profile || b.profile);
+
+// The same entity from two devices, both with a character profile. Every
+// field except the profile comes from the newer record (tie: `a`, local);
+// each profile section takes the side whose `profile_times` entry is newer,
+// so editing Backstory on one device and Goals on the other keeps both.
+// Deterministic and order-independent (equal times: the larger text wins),
+// so two devices merging each other's copies end up identical.
+export function mergeProfiles(a, b) {
+  const newer = b.updated_at > a.updated_at ? b : a;
+  const pa = a.profile ?? {};
+  const pb = b.profile ?? {};
+  const ta = a.profile_times ?? {};
+  const tb = b.profile_times ?? {};
+  const profile = {};
+  const times = {};
+  for (const k of new Set([...Object.keys(pa), ...Object.keys(pb)])) {
+    // Older data without per-section times: use the record's time.
+    const tA = ta[k] ?? (k in pa ? a.updated_at : '');
+    const tB = tb[k] ?? (k in pb ? b.updated_at : '');
+    const useB = tB > tA || (tB === tA && (pb[k] ?? '') > (pa[k] ?? ''));
+    profile[k] = useB ? pb[k] : pa[k];
+    times[k] = useB ? tB : tA;
+  }
+  const updated_at = a.updated_at > b.updated_at ? a.updated_at : b.updated_at;
+  return { ...newer, profile, profile_times: times, updated_at };
 }
 
 // Combine live stubs that share a name. Mutates `tables.entities` in place
