@@ -48,4 +48,12 @@ async function start() {
   render(html`<${App} />`, root);
 }
 
+// Service worker (sw.js): always load the latest build when online, the
+// last-seen build when offline. Relative path so it works under /satchel/.
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Service worker not registered', err));
+}
+
 start();
+registerServiceWorker();
