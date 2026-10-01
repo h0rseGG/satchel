@@ -272,17 +272,46 @@ kael-2026-10-01-2130.kit
 - If the app opens empty, it offers "Restore from backup".
 - Requests `navigator.storage.persist()` on first note (Firefox may show a prompt **[NV]**).
 
-## 7. Back layer (weeks 2–3+)
-- Entity list and editor (type, name, aliases, summary, body, images).
-- Note edit (keeps `original_text`) and delete (tombstone).
-- Inbox triage:
-  - Lists all notes with `triaged_at = null`, filterable by In/Out.
-  - Promote a note to an entity body or a relationship, or mark it as raw log.
-- Merge entities:
-  - Pick the survivor; the loser becomes `merged_into` with its name added to aliases.
-  - Notes are rewritten to point at the survivor.
-- Relationships editor.
-- Graph view (later; library choice deferred).
+## 7. Back layer: the out-of-session screen (designed 2026-10-01, Q6)
+
+**The mode decides the screen.**
+- **Out of session:** the dashboard below, with a quick-note box along the bottom.
+- **In session** (Menu → Start session): today's fast capture screen.
+- **Desktop first.** Every page stacks into one column on the phone.
+- **Pages have their own addresses** (e.g. `#/character`), so the browser and Android back buttons work.
+
+### Pages
+| Page | Address | Contents |
+|---|---|---|
+| **Dashboard** | `#/` | Panels: My character (portrait, concept) · Inbox (N new notes, "Sort them") · People & places (counts per type, plus stubs) · Recent files. Quick note at the bottom |
+| **My character** | `#/character` | Portrait, one-line concept, then Backstory, Personality, Ideals, Bonds, Flaws, Goals, Appearance, Notes. All optional, no stats. Saves as you type |
+| **List** | `#/list/<type>` | Entities of one type (or stubs), filter box, newest first → entity page |
+| **Entity** | `#/entity/<id>` | Name, type, tags (chips: add/remove), aliases, summary (the recall-card line), description, attached files, notes mentioning it. Actions: merge into another entity, delete |
+| **Inbox** | `#/inbox` | Un-triaged notes, oldest first. Per note: *Keep as log*, *Add to <mentioned entity>'s description*, *Add to my character* (choose section). *Mark all as log* |
+| **Files** | `#/files` | All files, images as thumbnails; open, rename, re-attach, delete |
+
+**In session:** tapping your character's name in the top bar opens a **read-only overview** of the character page (concept, personality, ideals, bonds, flaws, goals) for roleplay reference. Closing it returns to the capture box with your text intact.
+
+### Files
+- **Accepted:** images, plus `.txt` and `.md`. Max **10 MB** per file, checked after images are shrunk.
+- **Images:** shrunk to WebP on upload, at most 2560 px on the long edge. Big enough for maps; re-encoding strips GPS and other photo metadata.
+- **Text files:** stored as-is and shown as plain text. Formatted Markdown (headings, bold, lists) can come later; it needs a library and sanitising (cleaning the file's content so it can't inject code).
+- **What a file attaches to:** an entity, the character (the portrait is a file), or nothing (shows only on the Files page).
+- **Data model:** a `files` table replaces the unused `images` table. Fields: `id`, `entity_id` (null if unattached), `name` (original filename), `kind` (`image` | `text`), `mime`, `bytes`, `width`/`height` (images), `caption`, plus the common fields. File bytes stay in the `blobs` table.
+- **Kit:** `files/<id>.<ext>` replaces `images/`. This is **schema version 2**: a v1→v2 migration maps the (always empty) `images` to `files`. An older app refuses a v2 kit or online copy with "made by a newer Satchel", and the service worker updates devices on next open.
+
+### Character profile
+- Stored on the player-character entity as `profile: { concept, backstory, personality, ideals, bonds, flaws, goals, appearance, notes }` plus `portrait_file_id`.
+- **Known limit:** merge keeps whole records (newest wins). Editing *different* sections of the profile on two devices before syncing keeps only the newer device's version. Avoid doing that until per-field merge exists (logged as a risk).
+
+### Build order (week 2–3)
+1. Page addresses, dashboard skeleton, mode switches the screen, quick note.
+2. Entity list and entity page: type, tags, aliases, summary, description; delete (tombstone); merge entities.
+3. My character page, plus the in-session overview.
+4. Inbox triage.
+5. Files: images + txt/md, schema 2, portrait, Files page.
+
+**Later:** relationships editor; graph view (library choice deferred); note editing.
 
 ## 8. Visual style
 
@@ -415,7 +444,8 @@ satchel/
 - ~~Q4~~ Resolved: newest edit wins; clock-skew risk accepted; the merge report shows what was overwritten.
 - ~~Q5~~ Resolved: add an `item` entity type (story items only, no stats).
 
-- **Q6 (new)** Out-of-session interface (also where entity **tags** and type are edited): Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
+- ~~Q6~~ Resolved 2026-10-01: dashboard design in section 7 (files: images + txt/md, 10 MB). Original notes kept below.
+- **Q6 (original)** Out-of-session interface (also where entity **tags** and type are edited): Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
   - Which file types to accept: PDFs? Office files? Any file?
   - The kit layout: a general `files/` folder alongside `images/`?
   - Size: documents make kits bigger, and GitHub sync caps a single file at 100 MB.
@@ -445,6 +475,7 @@ satchel/
 | 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
 | 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
 | 2026-10-01 | Replace pulled forward from week 2, plus **New character** (menu). Both: red warning with counts, type the character's name to confirm, a backup kit downloads first; Replace is one transaction (old data kept if loading fails) |
+| 2026-10-01 | Out-of-session design (section 7): the mode decides the screen; dashboard home with full pages; desktop first; hash addresses; files = images + txt/md, 10 MB, shown as plain text; fixed roleplay sections on the character page, with a read-only overview in session; kit schema 2 (`files/` replaces `images/`) |
 | 2026-10-01 | Entities: one fixed **type** plus free **tags**. Tags are edited out of session (Q6); in session, a stub's recall card has a quick type picker ("stub ▾"). No note #tags for now. Local db v3 adds `tags: []` without touching `updated_at` |
 | 2026-10-01 | Merge: a stub also folds into the single real entity with the same name (typed on one device, stub on the other). Two or more real ones with the name: left alone (ambiguous) |
 | 2026-10-01 | Kit files are written as canonical JSON (keys sorted), so the same data always gives the same bytes and sync makes no phantom commits. Existing data commits once after this change |
