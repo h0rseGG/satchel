@@ -286,6 +286,8 @@ html, body {
   border-radius: var(--radius);
 }
 .panel--wide { grid-column: 1 / -1; }
+.dashboard__search .input { width: 100%; }
+.dashboard__notes-title { margin-top: 14px; }
 .panel__title { margin: 0 0 6px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .panel__title a { text-decoration: none; }
 .panel__title a:hover { text-decoration: underline; }

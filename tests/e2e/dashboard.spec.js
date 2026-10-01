@@ -73,6 +73,31 @@ test('a status message floats under the top bar without covering it or moving th
   await expect(page.getByRole('status')).toHaveCount(0);
 });
 
+test('search everything: entities by name, tag and typo; notes; Esc clears', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Try the demo character' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Unpack', exact: true }).click();
+  const search = page.getByLabel('Search everything');
+  const results = page.getByRole('region', { name: 'Search results' });
+
+  await search.fill('do not trust');            // a tag
+  await expect(results.locator('.list__row').first()).toContainText('Mira Vane');
+  await search.fill('grimbld');                 // typo: finds Grimbold (and the grimbolt stub)
+  await expect(results.locator('.list__row', { hasText: 'Grimbold Ironhand' })).toBeVisible();
+  await search.fill('pizza');                   // a note
+  await expect(results.locator('.hit')).toHaveCount(1);
+  await expect(results.locator('.hit')).toContainText('pizza’s here');
+  await search.fill('zzqqxx');
+  await expect(results).toContainText('Nothing found');
+
+  await search.fill('fence');
+  await results.getByRole('link', { name: /Mira Vane/ }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mira Vane');
+  await page.goBack();
+  await page.getByLabel('Search everything').press('Escape');
+  await expect(page.getByRole('region', { name: 'Inbox' })).toBeVisible();
+});
+
 test('dashboard works on a phone-width screen', async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 800 });
   await start(page);
