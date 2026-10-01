@@ -1,13 +1,24 @@
+import { useState } from 'preact/hooks';
 import { html } from './html.js';
 import { NoteText } from './NoteText.js';
 import { formatShort } from './format.js';
 
 const RECENT = 3;
+// Quick types for a stub, most common first.
+const QUICK_TYPES = ['npc', 'location', 'item', 'faction', 'character', 'other'];
+
+// Handlers on buttons inside the card: act on pointerdown and keep focus
+// (and the phone keyboard) in the box; don't trigger the card's own tap.
+const press = (fn) => ({
+  onPointerDown: (e) => { e.preventDefault(); e.stopPropagation(); fn(); },
+});
 
 // Short recall card: one-line summary plus the last 3 mentions (SPEC 6).
 // notes: all live notes.
 // link: 'linkable' (name typed without @: tap to link), 'linked', or null.
-export function RecallCard({ entity, notes, names, link = null, onLink }) {
+// onSetType(entity, type): quick type for stubs.
+export function RecallCard({ entity, notes, names, link = null, onLink, onSetType }) {
+  const [picking, setPicking] = useState(false);
   const mentions = notes
     .filter((n) => n.mentions.includes(entity.id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -31,11 +42,23 @@ export function RecallCard({ entity, notes, names, link = null, onLink }) {
     <section class=${`card${linkable ? ' card--linkable' : ''}`} aria-label=${`Recall: ${entity.name}`} ...${tap}>
       <header class="card__head">
         <strong>${entity.name}</strong>
-        <span class="muted">${entity.stub ? 'stub' : entity.type}</span>
+        ${entity.stub && onSetType
+          ? html`<button type="button" class="card__type" tabindex="-1" aria-expanded=${picking}
+              ...${press(() => setPicking(!picking))}>stub ▾</button>`
+          : html`<span class="muted">${entity.stub ? 'stub' : entity.type}</span>`}
+        ${entity.tags?.length > 0 && html`<span class="muted card__tags">${entity.tags.join(', ')}</span>`}
         <span class="muted card__count">${mentions.length} mention${mentions.length === 1 ? '' : 's'}</span>
         ${linkable && html`<button type="button" class="card__link" tabindex="-1">Tap to link</button>`}
         ${link === 'linked' && html`<span class="card__link muted">Linked</span>`}
       </header>
+      ${picking && html`
+        <div class="card__types" role="group" aria-label=${`Set type of ${entity.name}`}>
+          ${QUICK_TYPES.map((t) => html`
+            <button type="button" class="btn card__typebtn" tabindex="-1" key=${t}
+              ...${press(() => { setPicking(false); onSetType(entity, t); })}>${t}</button>
+          `)}
+        </div>
+      `}
       <p class="card__summary">${summary}</p>
       ${recent.length > 0 && html`
         <ul class="card__mentions">

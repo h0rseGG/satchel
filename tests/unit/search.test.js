@@ -39,6 +39,13 @@ test('entity matches by alias and summary; name outranks text', () => {
   assert.equal(search(idx, 'grimbold')[0].kind, 'entity');
 });
 
+test('entities are found by their tags', () => {
+  const shop = makeEntity({ name: 'Bree', type: 'npc', tags: ['shopkeeper', 'owes us'] });
+  const i = buildIndex([], [shop]);
+  assert.equal(search(i, 'shopkeeper')[0].ref, shop.id);
+  assert.equal(search(i, 'owes')[0].ref, shop.id);
+});
+
 test('deleted records are not indexed', () => {
   const gone = tombstone(makeNote({ text: 'secret tunnel' }));
   assert.deepEqual(search(buildIndex([gone], []), 'tunnel'), []);

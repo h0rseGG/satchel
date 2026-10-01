@@ -125,6 +125,7 @@ Checked against MDN, Mozilla release notes and Bugzilla, GitHub docs and the npm
 | `type` | `character \| npc \| faction \| location \| item \| other \| unknown`. Stubs start as `unknown` |
 | `name` | |
 | `aliases[]` | Merging entities adds the old name here, so typo mentions still resolve |
+| `tags[]` | Free-form tags (added 2026-10-01), e.g. `shopkeeper`, `owes us`. Trimmed, `#` dropped, deduped ignoring case. Searchable. Optional in kits: missing = `[]` |
 | `summary` | One line, for the recall card |
 | `body` | Long text: backstory/description |
 | `stub` | bool |
@@ -414,7 +415,7 @@ satchel/
 - ~~Q4~~ Resolved: newest edit wins; clock-skew risk accepted; the merge report shows what was overwritten.
 - ~~Q5~~ Resolved: add an `item` entity type (story items only, no stats).
 
-- **Q6 (new)** Out-of-session interface: Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
+- **Q6 (new)** Out-of-session interface (also where entity **tags** and type are edited): Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
   - Which file types to accept: PDFs? Office files? Any file?
   - The kit layout: a general `files/` folder alongside `images/`?
   - Size: documents make kits bigger, and GitHub sync caps a single file at 100 MB.
@@ -444,6 +445,9 @@ satchel/
 | 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
 | 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
 | 2026-10-01 | Replace pulled forward from week 2, plus **New character** (menu). Both: red warning with counts, type the character's name to confirm, a backup kit downloads first; Replace is one transaction (old data kept if loading fails) |
+| 2026-10-01 | Entities: one fixed **type** plus free **tags**. Tags are edited out of session (Q6); in session, a stub's recall card has a quick type picker ("stub ▾"). No note #tags for now. Local db v3 adds `tags: []` without touching `updated_at` |
+| 2026-10-01 | Merge: a stub also folds into the single real entity with the same name (typed on one device, stub on the other). Two or more real ones with the name: left alone (ambiguous) |
+| 2026-10-01 | Kit files are written as canonical JSON (keys sorted), so the same data always gives the same bytes and sync makes no phantom commits. Existing data commits once after this change |
 | 2026-10-01 | Week 2 starts with sync (D14), before the out-of-session UI: fully specified, removes the manual kit shuffle, and copies whatever files a kit has, so Q6 (documents) won't need sync changes. Repo layout: `characters/<bundle_id>/…` plus `sync.json` (device, time). Public repos refused at setup and on every sync. Sync stamps kits with the newest record time so an unchanged character makes no commit. A successful sync counts as a backup |
 | 2026-10-01 | D2 revised: the In/Out toggle lives in the menu ("Start session" / "End session"); no session records or numbers; small "In session" label in the top bar only while in session; auto-end after 12 h idle kept; ending a session with unsaved changes nudges Pack kit. Both modes use the capture screen until the out-of-session UI is designed (Q6) |
 | 2026-10-01 | Backup badge: neutral for changes under 24 h (spec left this unstated); colour ages from the first unsaved change (`first_change_at`); tapping the badge packs a kit |

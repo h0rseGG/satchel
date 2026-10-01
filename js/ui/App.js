@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { html } from './html.js';
 import { useLive } from './useLive.js';
-import { db, getMeta, addNote, backupMeta, lastInNoteAt, sessionMeta, setMode } from '../db.js';
+import { db, getMeta, addNote, backupMeta, lastInNoteAt, sessionMeta, setMode, setEntityType } from '../db.js';
 import { backupStatus } from '../backup.js';
 import { shouldAutoEnd } from '../session.js';
 import { EndNudge } from './EndNudge.js';
@@ -126,7 +126,9 @@ function Main() {
     ${showResults
       ? html`<${Results} cards=${cards} hits=${hits} notes=${notes} notesById=${notesById}
           entitiesById=${entitiesById} names=${names}
-          linkState=${linkState} onLink=${(entity) => setLinkRequest({ entity })} />`
+          linkState=${linkState} onLink=${(entity) => setLinkRequest({ entity })}
+          onSetType=${(entity, type) => setEntityType(entity.id, type).catch((err) =>
+            setMessage({ kind: 'err', text: `Couldn't set type: ${err.message}` }))} />`
       : html`<${Feed} notes=${notes.slice(-FEED_LIMIT)} names=${names} />`}
     <${CaptureBox}
       entities=${entities}

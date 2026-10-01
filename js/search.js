@@ -28,7 +28,7 @@ export function buildIndex(notes, entities) {
   index.addAll([
     ...entities.filter((e) => !e.deleted).map((e) => ({
       id: `e:${e.id}`, kind: 'entity', ref: e.id,
-      name: [e.name, ...e.aliases].join(' '), text: e.summary,
+      name: [e.name, ...e.aliases].join(' '), text: [e.summary, ...(e.tags ?? [])].join(' '),
     })),
     ...notes.filter((n) => !n.deleted).map((n) => ({
       id: `n:${n.id}`, kind: 'note', ref: n.id,

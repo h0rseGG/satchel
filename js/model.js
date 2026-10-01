@@ -41,7 +41,22 @@ export function nameKey(name) {
   return cleanName(name).toLowerCase();
 }
 
-export function makeEntity({ name, type = 'unknown', stub = type === 'unknown', summary = '', body = '', aliases = [] } = {}) {
+// Free-form tags: trimmed, empty ones dropped, duplicates (ignoring case)
+// removed. The first spelling of a tag is kept.
+export function cleanTags(tags) {
+  const seen = new Set();
+  const out = [];
+  for (const t of tags ?? []) {
+    const clean = cleanName(t).replace(/^#/, '');
+    const key = clean.toLowerCase();
+    if (!clean || seen.has(key)) continue;
+    seen.add(key);
+    out.push(clean);
+  }
+  return out;
+}
+
+export function makeEntity({ name, type = 'unknown', stub = type === 'unknown', summary = '', body = '', aliases = [], tags = [] } = {}) {
   const clean = cleanName(name);
   if (!clean) throw new Error('Entity needs a name');
   if (!ENTITY_TYPES.includes(type)) throw new Error(`Unknown entity type: ${type}`);
@@ -50,12 +65,24 @@ export function makeEntity({ name, type = 'unknown', stub = type === 'unknown', 
     type,
     name: clean,
     aliases: aliases.map(cleanName).filter(Boolean),
+    tags: cleanTags(tags),
     summary,
     body,
     stub,
     image_ids: [],
     merged_into: null,
   };
+}
+
+// Set an entity's type. Choosing a real type means it's no longer a stub.
+export function setType(entity, type, at = now()) {
+  if (!ENTITY_TYPES.includes(type) || type === 'unknown') throw new Error(`Can't set type to ${type}`);
+  return touch(entity, { type, stub: false }, at);
+}
+
+// Older records (before tags existed) get the fields they're missing.
+export function withEntityDefaults(e) {
+  return { aliases: [], tags: [], image_ids: [], merged_into: null, ...e };
 }
 
 export function makeNote({ text, mode = 'out', session_id = null, mentions = [] } = {}) {

@@ -55,20 +55,28 @@ export function mergeData(local, incoming, at = now()) {
 
 // Combine live stubs that share a name. Mutates `tables.entities` in place
 // (replacing records, never editing them). Returns how many were combined.
+// - Exactly one real (non-stub) entity with that name: stubs fold into it
+//   (e.g. typed as an npc on one device, still a stub on the other).
+// - No real one: stubs fold into the oldest stub.
+// - Two or more real ones: ambiguous, so stubs only fold into each other;
+//   the real ones are left for a manual merge.
 export function combineDuplicateStubs(tables, at = now()) {
   const groups = new Map();
   for (const e of tables.entities) {
-    if (e.deleted || !e.stub) continue;
+    if (e.deleted) continue;
     const key = nameKey(e.name);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(e);
   }
+  const byAge = (a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
   const replace = new Map();
   for (const group of groups.values()) {
-    if (group.length < 2) continue;
-    group.sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-    const [survivor, ...losers] = group;
-    for (const l of losers) {
+    const stubs = group.filter((e) => e.stub).sort(byAge);
+    const reals = group.filter((e) => !e.stub);
+    if (!stubs.length) continue;
+    const survivor = reals.length === 1 ? reals[0] : stubs[0];
+    for (const l of stubs) {
+      if (l === survivor) continue;
       replace.set(l.id, { ...l, deleted: true, merged_into: survivor.id, updated_at: at });
     }
   }

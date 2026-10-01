@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../../vendor/fflate.mjs';
-import { packKit, unpackKit, kitFilename, KitError, FORMAT } from '../../js/kit.js';
+import { packKit, unpackKit, kitFilename, kitFiles, KitError, FORMAT } from '../../js/kit.js';
 import { makeEntity, makeNote, makeSession, makeRelationship, tombstone, newId, SCHEMA_VERSION } from '../../js/model.js';
 
 function sample() {
@@ -40,6 +40,23 @@ test('round trip: pack then unpack gives the same data, tombstones included', ()
   assert.ok(data.notes.some((n) => n.deleted), 'tombstoned note kept');
   assert.equal(data.notes.find((n) => n.text.includes('🐉')).text, 'emoji 🐉 ok');
   assert.deepEqual(report, { skipped: [], duplicates: 0, migratedFrom: null });
+});
+
+test('same data, different field order: identical kit files (no phantom sync changes)', () => {
+  const d = sample();
+  const shuffled = structuredClone(d);
+  const reverseKeys = (o) => Object.fromEntries(Object.entries(o).reverse());
+  for (const t of ['entities', 'notes', 'sessions', 'relationships']) shuffled[t] = shuffled[t].map(reverseKeys);
+  const a = kitFiles(d, '2026-10-01T00:00:00.000Z');
+  const b = kitFiles(shuffled, '2026-10-01T00:00:00.000Z');
+  assert.deepEqual(a, b);
+});
+
+test('a record that went through unpack packs to the same bytes as the original', () => {
+  const d = sample();
+  const first = kitFiles(d, '2026-10-01T00:00:00.000Z');
+  const { data } = unpackKit(packKit(d, '2026-10-01T00:00:00.000Z'));
+  assert.deepEqual(kitFiles(data, '2026-10-01T00:00:00.000Z'), first);
 });
 
 test('kit holds only character.json and notes.jsonl when there are no images', () => {

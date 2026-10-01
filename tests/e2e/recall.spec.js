@@ -116,6 +116,52 @@ test('linking a name at the end adds a space and keeps typing smooth', async ({ 
   await expect(box(page)).toHaveValue('bowed to @Lord_Aldric today');
 });
 
+test('quick type on a stub card: keyboard stays in the box, card does not link', async ({ page }) => {
+  await start(page);
+  await say(page, 'met @Grimbold');
+  await box(page).pressSequentially('grimbold sells axes');
+  const c = card(page, 'Grimbold');
+  await c.getByRole('button', { name: 'stub ▾' }).dispatchEvent('pointerdown');
+  const types = c.getByRole('group', { name: 'Set type of Grimbold' });
+  await expect(types.getByRole('button')).toHaveText(['npc', 'location', 'item', 'faction', 'character', 'other']);
+  await types.getByRole('button', { name: 'npc' }).dispatchEvent('pointerdown');
+
+  await expect(c.locator('.card__head')).toContainText('npc');
+  await expect(c.getByRole('button', { name: 'stub ▾' })).toHaveCount(0);
+  await expect(box(page)).toHaveValue('grimbold sells axes');
+  await expect(box(page)).toBeFocused();
+  const g = await page.evaluate(async () =>
+    (await window.__satchel.db.entities.toArray()).find((e) => e.name === 'Grimbold'));
+  expect([g.type, g.stub]).toEqual(['npc', false]);
+});
+
+test('typed entities show their type, not the picker', async ({ page }) => {
+  await start(page);
+  await say(page, 'met @Mira');
+  await page.evaluate(async () => {
+    const d = window.__satchel.db;
+    const m = (await d.entities.toArray()).find((e) => e.name === 'Mira');
+    await d.entities.put({ ...m, type: 'npc', stub: false, tags: ['fence', 'owes us'] });
+  });
+  await box(page).pressSequentially('mira');
+  const c = card(page, 'Mira');
+  await expect(c.getByRole('button', { name: 'stub ▾' })).toHaveCount(0);
+  await expect(c.locator('.card__head')).toContainText('npc');
+  await expect(c.locator('.card__tags')).toHaveText('fence, owes us');
+});
+
+test('search finds an entity by tag', async ({ page }) => {
+  await start(page);
+  await say(page, 'met @Bree');
+  await page.evaluate(async () => {
+    const d = window.__satchel.db;
+    const b = (await d.entities.toArray()).find((e) => e.name === 'Bree');
+    await d.entities.put({ ...b, tags: ['shopkeeper'] });
+  });
+  await box(page).pressSequentially('shopkeeper');
+  await expect(page.locator('.hit').first()).toContainText('Bree');
+});
+
 test('build label is shown', async ({ page }) => {
   await start(page);
   await expect(page.locator('.topbar__build')).toHaveText(/^\d{4}-\d{2}-\d{2}\.\d+$/);

@@ -118,11 +118,36 @@ test('real (non-stub) entities with the same name are not combined', () => {
   assert.equal(live(tables.entities).length, 2);
 });
 
-test('a stub and a real entity with the same name are not combined', () => {
-  const real = at(makeEntity({ name: 'Mira', type: 'npc' }), T1);
-  const stub = at(makeEntity({ name: 'Mira' }), T2);
-  const { tables } = mergeData(side({ entities: [real] }), side({ entities: [stub] }), AT);
-  assert.equal(live(tables.entities).length, 2);
+test('a stub folds into the one real entity with that name, even if the stub is older', () => {
+  const stub = at(makeEntity({ name: 'mira' }), T1);
+  const real = at(makeEntity({ name: 'Mira', type: 'npc' }), T2);
+  const note = at(makeNote({ text: `saw ${token(stub)}`, mentions: [stub.id] }), T1);
+  for (const [a, b] of [[side({ entities: [real] }), side({ entities: [stub], notes: [note] })],
+    [side({ entities: [stub], notes: [note] }), side({ entities: [real] })]]) {
+    const { tables, report } = mergeData(a, b, AT);
+    assert.equal(report.stubsCombined, 1);
+    assert.deepEqual(live(tables.entities).map((e) => e.id), [real.id]);
+    assert.deepEqual(tables.notes[0].mentions, [real.id]);
+  }
+});
+
+test('typed as npc on one device, still a stub on the other: one entity after syncing both ways', () => {
+  const phoneStub = at(makeEntity({ name: 'Grimbold' }), T1);
+  const pcStub = at(makeEntity({ name: 'Grimbold' }), T2);
+  const phoneTyped = touch(phoneStub, { type: 'npc', stub: false }, T3);
+  const onPc = mergeData(side({ entities: [pcStub] }), side({ entities: [phoneTyped] }), AT).tables;
+  const onPhone = mergeData(side({ entities: [phoneTyped] }), side({ entities: [pcStub] }), AT).tables;
+  assert.deepEqual(live(onPc.entities).map((e) => [e.id, e.type]), [[phoneStub.id, 'npc']]);
+  assert.deepEqual(live(onPhone.entities).map((e) => [e.id, e.type]), [[phoneStub.id, 'npc']]);
+});
+
+test('two real entities with the same name: a stub is left alone (ambiguous)', () => {
+  const a = at(makeEntity({ name: 'Guard', type: 'npc' }), T1);
+  const b = at(makeEntity({ name: 'Guard', type: 'npc' }), T2);
+  const stub = at(makeEntity({ name: 'guard' }), T3);
+  const { tables, report } = mergeData(side({ entities: [a, b] }), side({ entities: [stub] }), AT);
+  assert.equal(report.stubsCombined, 0);
+  assert.equal(live(tables.entities).length, 3);
 });
 
 test('relationships are rewired to the survivor', () => {

@@ -133,6 +133,19 @@ html, body {
   border-radius: var(--radius);
 }
 .card__head { display: flex; flex-wrap: wrap; gap: var(--gap); align-items: baseline; }
+.card__type {
+  padding: 0 6px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px dashed var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.card__tags { font-size: 13px; }
+.card__types { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.card__typebtn { padding: 8px 12px; background: var(--bg); }   /* finger-sized */
 .card--linkable { cursor: pointer; border-color: var(--text); }
 .card__link { font: inherit; font-size: 13px; color: var(--text); cursor: pointer; padding: 0 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
 .card__count { margin-left: auto; font-size: 13px; }

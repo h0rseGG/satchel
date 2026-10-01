@@ -54,4 +54,10 @@ test('v1 -> v2: old typed @mentions get linked', async ({ page }) => {
   expect(notes[0].updated_at > notes[0].created_at).toBe(true);
   expect(notes[2].updated_at).toBe(notes[2].created_at);
   expect(notes[2].text).toBe('no mentions here');
+
+  // v3: every entity has a tags list; the PC (created before tags) wasn't
+  // marked as changed by the upgrade.
+  for (const e of ents) expect(e.tags).toEqual([]);
+  const pc = ents.find((e) => e.name === 'Kael');
+  expect(pc.updated_at).toBe('2026-09-30T10:00:00.000Z');
 });

@@ -2,7 +2,7 @@
 // record shapes live in model.js, which is unit tested without a browser.
 
 import Dexie from 'dexie';
-import { live, makeEntity, makeNote, newId, now, touch } from './model.js';
+import { live, makeEntity, makeNote, newId, now, setType, touch } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
 import { TABLES, mergeData } from './merge.js';
@@ -28,6 +28,11 @@ db.version(1).stores(STORES);
 // v2: notes saved before @mentions existed (build step 5) still hold plain
 // "@Name" text. Link them now, using the same rules as a new note.
 db.version(2).stores(STORES).upgrade(relinkTypedMentions);
+
+// v3: entities gained `tags`. Fill in an empty list; not a user edit, so
+// updated_at is left alone (no false "changes" or merge wins).
+db.version(3).stores(STORES).upgrade((tx) =>
+  tx.table('entities').toCollection().modify((e) => { if (!Array.isArray(e.tags)) e.tags = []; }));
 
 export async function relinkTypedMentions(tx) {
   const entities = tx.table('entities');
@@ -82,6 +87,13 @@ export async function save(table, record) {
     await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + 1);
   });
   return record;
+}
+
+// Quick type from a stub's recall card: sets the type, no longer a stub.
+export async function setEntityType(id, type) {
+  const e = await db.entities.get(id);
+  if (!e) throw new Error('Entity not found');
+  return save('entities', setType(e, type));
 }
 
 // Update fields on an existing record by id.
