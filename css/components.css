@@ -234,3 +234,19 @@ a.tag:hover { text-decoration: underline; }
 .portrait-img { display: block; object-fit: cover; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper-alt); }
 .portrait-empty { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--ink-muted); border-radius: var(--radius); background: var(--paper-alt); font: 40px/1 var(--serif); color: var(--ink-muted); }
 .portrait-actions { display: flex; flex-wrap: wrap; margin-left: -8px; }
+
+/* Relationships and the connections diagram */
+.rel-name { text-decoration: none; }
+.rel-name:hover { text-decoration: underline; }
+.rel-row .list-row-main { align-items: baseline; }
+.connections { margin: var(--sp-16) 0 0; }
+.connections svg { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto; font: 12px var(--font); }
+.connections-edge { stroke: var(--ink-muted); stroke-width: 1; }
+.connections-arrow { fill: var(--ink-muted); }
+.connections-label { fill: var(--ink-muted); font-size: 11px; paint-order: stroke; stroke: var(--paper-alt); stroke-width: 4px; stroke-linejoin: round; }
+.connections-node rect { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+.connections-node text { fill: var(--ink); }
+.connections-node.is-center rect { fill: var(--highlight); }
+.connections-node.is-center text { font-weight: 600; }
+a.connections-node:hover rect, a.connections-node:focus rect { stroke: var(--red); stroke-width: 2; }
+.connections figcaption { text-align: center; font-size: var(--fs-13); }

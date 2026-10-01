@@ -112,6 +112,27 @@ export const S = {
     unreadable: 'That image couldn’t be read.',
   },
 
+  rel: {
+    title: 'Relationships',
+    none: 'No relationships yet.',
+    add: 'Add relationship',
+    type: 'Relationship',
+    other: 'Other…',
+    otherLabel: 'Relationship (your words)',
+    with: 'With',
+    swap: 'Swap direction',
+    notes: 'Notes',
+    notesLabel: (s) => `Notes on: ${s}`,
+    delete: 'Delete…',
+    confirmDelete: (s) => `Delete “${s}”?`,
+    confirmDeleteBody: 'The people stay; only this relationship goes.',
+    deleted: 'Relationship deleted.',
+    added: 'Relationship added.',
+    diagram: (name, n) => `Connections diagram: ${name} and ${count(n, 'connection')}`,
+    more: (n) => `+${n} more`,
+    fromNote: 'from a note',
+  },
+
   note: {
     edit: 'Edit',
     editLabel: 'Edit note',

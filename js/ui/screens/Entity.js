@@ -16,6 +16,7 @@ import { RuledList, ListRow } from '../components/ListRow.js';
 import { NoteText } from '../components/NoteText.js';
 import { EntityFields } from './EntityFields.js';
 import { Portrait } from '../components/Portrait.js';
+import { Relationships } from '../components/Relationships.js';
 import { NotBuilt } from './NotBuilt.js';
 import { confirmSheet } from '../app/confirm.js';
 import { toast, reportError } from '../app/toasts.js';
@@ -86,6 +87,8 @@ export function Entity({ id, pcId }) {
       <${EntityFields} entity=${entity} type=${type} entities=${live} typeLabel=${typeLabel} save=${save} createStub=${createStub} />
       <${Field} label=${S.entity.body} value=${entity.body} multiline rows=${6} onSave=${(v) => save({ body: v })} />
     <//>
+
+    <${Relationships} entity=${entity} entities=${live} typeLabel=${typeLabel} />
 
     <${Panel} title=${S.entity.notes} titleId="entity-notes">
       ${notes.length === 0 ? html`<p class="muted">${S.entity.noNotes}</p>` : html`

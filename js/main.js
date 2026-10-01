@@ -5,9 +5,9 @@ import { isDev } from './ui/dev.js';
 
 if (isDev) {
   // Tests read and seed the database through this (localhost only).
-  Promise.all([import('./data/db.js'), import('./data/characters.js'), import('./data/notes.js'), import('./data/entities.js'), import('./data/store.js'), import('./data/meta.js'), import('./data/session.js'), import('./data/types.js')])
-    .then(([dbm, characters, notes, entities, store, meta, session, types]) => {
-      window.__satchel = { db: dbm.db(), data: { ...characters, ...notes, ...entities, ...store, ...meta, ...session, ...types } };
+  Promise.all([import('./data/db.js'), import('./data/characters.js'), import('./data/notes.js'), import('./data/entities.js'), import('./data/store.js'), import('./data/meta.js'), import('./data/session.js'), import('./data/types.js'), import('./data/relationships.js')])
+    .then(([dbm, characters, notes, entities, store, meta, session, types, rels]) => {
+      window.__satchel = { db: dbm.db(), data: { ...characters, ...notes, ...entities, ...store, ...meta, ...session, ...types, ...rels } };
     });
 }
 

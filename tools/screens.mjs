@@ -57,7 +57,18 @@ const withPortrait = async (page) => {
   await page.locator('.portrait input[type=file]').setInputFiles({ name: 'wren.png', mimeType: 'image/png', buffer: png(400, 400, [79, 107, 71]) });
   await page.waitForTimeout(600);
 };
+const seedRels = async () => {
+  const d = window.__satchel.data;
+  if (await d.getMeta('bundle')) return;
+  await d.createCharacter('Wren Ashdown');
+  const mk = (name, type_id = 'type-npc') => d.createEntity({ name, type_id });
+  const ald = await mk('Lord Aldric Thorne');
+  const others = [[await mk('Hollow King', null), 'works for'], [await mk('Grimbold Ironhand'), 'rival'], [await mk('Vex'), 'family'], [await mk('Thorne Mill', 'type-location'), 'owes'], [await mk('Mira Vane'), 'enemy'], [await mk('The Ashen Brotherhood of the North', 'type-faction'), 'member of']];
+  for (const [o, type] of others) await d.createRelationship({ from_id: ald.id, to_id: o.id, type });
+  localStorage.setItem('ald', ald.id);
+};
 const SCREENS = [
+  { name: 'relationships', hash: '#/', setup: seedRels, height: 1900, action: async (page) => { await page.goto(`http://localhost:${PORT}/#/entity/${await page.evaluate(() => localStorage.getItem('ald'))}`); await page.waitForTimeout(500); await page.locator('.connections').scrollIntoViewIfNeeded(); } },
   { name: 'character', hash: '#/', setup: seedSession, arg: { out: true }, action: withPortrait, height: 1400 },
   { name: 'home-portrait', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withPortrait(page); await page.goto(`http://localhost:${PORT}/#/`); await page.waitForTimeout(400); } },
   { name: 'inbox', hash: '#/inbox', setup: seedSession, arg: { out: true }, height: 1300, action: async (page) => { await page.getByRole('button', { name: 'Add as relationship' }).nth(1).click(); } },
