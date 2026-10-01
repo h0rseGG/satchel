@@ -1,8 +1,0 @@
-node_modules/
-test-results/
-playwright-report/
-tests/e2e/fresh-check-*.txt
-# Kits are personal character data: never commit them (test fixtures excepted)
-*.kit
-!tests/fixtures/*.kit
-!demo/*.kit

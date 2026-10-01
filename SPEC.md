@@ -1,497 +1,496 @@
-# Satchel: specification
+# Satchel v2: specification
 
-Status: **APPROVED 2026-10-01.** Changes from here are logged in section 12.
-Last updated: 2026-10-01 · Schema version: 1
+Status: **APPROVED 2026-10-01** (including the field-journal style). Written from everything learned building v1. Open questions in section 14 take the recommended answers unless Jake says otherwise.
+This document is **self-contained**: a fresh Claude session on a new machine should be able to build Satchel v2 from this file and `CLAUDE.md` (in the same folder) alone, with no access to v1 or its history.
 
-Legend: **[NV]** = not verified. Confirm it against MDN, caniuse or the library docs before relying on it (build step 1).
-
----
-
-## 0. Summary
-
-**What it is:** a player-focused D&D character companion. It's a static web app (PWA) with one character per bundle.
-
-**What it tracks:** backstory, campaign notes, images and connections between entities. No mechanics or stats; D&D Beyond handles those.
-
-**Two layers:**
-1. **Front (in session):** one screen, one box. Type, press Enter, done. Speed over everything.
-2. **Back (out of session):** entities, relationships, triage, merge, graph. Optional, so nothing is lost if you never tidy up.
-
-**Non-goals:** mechanics and stats, DM tooling, accounts, live/automatic cloud sync, multiplayer, iOS support. (A manual, optional "Sync now" to a private GitHub repo is in scope: see D14 and section 5a.)
+Legend: **[NV]** = not verified; check before relying on it (milestone M0 does this). **(v1)** = proven in v1, keep as is.
 
 ---
 
-## 1. Decisions made
+## 0. How to use this document
 
-| # | Decision | Why |
+1. Read sections 1–3 for the product, then section 13 (lessons from v1) **before writing any code**.
+2. Build in the milestone order of section 12. Every milestone has "done when" criteria; don't start the next until they pass.
+3. Log every decision made during the build in section 15 (decision log), with the date.
+4. Owner: Jake. Working preferences are in `CLAUDE.md`. Summary: blunt, concise, AU English, end every reply with a **Next step**, ask at most 3 questions at a time, he mostly reviews behaviour rather than code.
+
+---
+
+## 1. Product
+
+**Satchel** is a player's companion for one D&D character. Players jot notes fast during a session and tidy them up afterwards. There are no stats or mechanics (D&D Beyond does those), no accounts and no server.
+
+### Principles
+1. **Two moments, one app.**
+   - **At the table:** one box. Type, press Enter, done. Speed beats everything.
+   - **Afterwards:** a tidy-up space for people, places, notes and files. Optional: nothing is lost if you never tidy.
+2. **Nothing gets lost.** Data lives in the browser. Backups are one tap. Deletes are recoverable until merged away. Destructive actions are confirmed.
+3. **Real notes are messy.** Shorthand, typos, first names, swearing. The app must cope with how people actually type (section 4).
+4. **Boring, planned, consistent.** One way to do each kind of thing (section 5.3).
+
+### Users
+Jake and friends. Firefox on Windows 11 and Android (Pixel). Nothing to install: they open a URL.
+
+### Non-goals
+- Stats, mechanics, dice, character sheets (link to D&D Beyond instead).
+- Accounts, servers, cloud sync of any kind, including GitHub sync (v1 had it; v2 drops it).
+- Multiplayer or real-time sharing; DM tools.
+- More than one character per app (switching characters = Replace, section 7).
+- iOS/Safari testing (best effort only).
+- Rendering Markdown (text files show as plain text).
+
+---
+
+## 2. Platform and stack
+
+| Need | Choice | Why |
 |---|---|---|
-| D1 | **One combined box.** Typing shows live matches and recall cards; Enter saves a note; Shift+Enter adds a new line (desktop) | Nothing to switch, one thing to focus |
-| D2 | **In-session / Out-of-session mode toggle** replaces "session auto-starts on first note of the day" | Fixes the midnight split, and notes don't have to belong to a session |
-| D3 | **One character at a time.** The app holds one bundle | Simpler code. Switching character = Replace import |
-| D4 | **Firefox first,** on Windows 11 and Android. iOS ignored. Chrome and Edge get best effort | Owner's choice |
-| D5 | **Both devices used in session** → Merge import is in week one | Merge is the only way to reconcile two devices |
-| D6 | **Hosted on GitHub Pages** (HTTPS). Dev server is `python -m http.server` | Free, boring. HTTPS/localhost is needed for the service worker and `crypto.randomUUID` |
-| D7 | **IndexedDB, not localStorage** | localStorage is small, text-only and blocks the page; images rule it out |
-| D8 | **Deletes are tombstones** (`deleted: true`), never removed rows | Otherwise Merge brings deleted records back |
-| D9 | **Merge conflict rule:** newest `updated_at` wins; ties keep local; the import shows a report | Simple and predictable. Risk: device clocks that are wrong (Q4) |
-| D10 | **File names as briefed:** `character.json` + `notes.jsonl` + `images/` | `character.json` holds everything except notes and images |
-| D11 | **Input box sits at the bottom** (chat-style), results above it | The Android keyboard then pushes results up instead of covering them |
-| D12 | **Import modes: New / Merge / Replace.** New only applies when the app is empty. Merge needs a matching `bundle_id`; a different character only allows Replace | Follows from D3 |
-| D13 | **Notes keep `original_text`** once edited | Reconciles "append-only" with "edit later" |
-| D14 | **Manual "Sync now" via a private GitHub repo:** pull → Merge → push. No checkout/locks. Emergency overwrite in either direction behind a confirmation. Optional; export/import still works without it | Merge never loses data, so no device has to be "the truth". Locks fail when you forget to check in. Every sync is a commit, so history doubles as backups |
+| Hosting | GitHub Pages (static, HTTPS), same repo as v1 | Free; HTTPS needed for service worker and `crypto.randomUUID` |
+| UI | **Preact + HTM**, ES modules, **no build step** (v1) | React-style components without a compiler; nothing to install to run |
+| Storage | **Dexie** over IndexedDB (v1) | Schema versions, live queries, works in Firefox |
+| Search | **MiniSearch** (v1) | Prefix + typo-tolerant full text, in memory; 5000 notes index in ~30 ms (v1 measured) |
+| Zip (kits) | **fflate** (v1) | Small, fast |
+| Offline | Hand-written service worker, **network-first** (v1) | Always the latest build online; works offline |
+| Images | Native canvas → WebP (JPEG fallback) (v1) | No dependency; strips photo metadata |
+| Unit tests | `node --test` (v1) | Built in |
+| Browser tests | **Playwright, Firefox engine**, 4 workers (v1) | 8 workers overloaded the PC |
+| Dev server | `python3 -m http.server` (v1) | Jake is Python-first; preinstalled on Ubuntu |
+| Build machine | Ubuntu (Node LTS via nvm, git, python3, Playwright Firefox with `--with-deps`) | Targets stay Firefox on Windows and Android; check those by hand at each milestone |
 
-## 2. Known risks
+**Library versions:** vendor pinned ESM builds into `vendor/` and use an import map in `index.html`. Check the current versions at M0 **[NV]**. v1 used preact 11.0.0, htm 3.1.1, dexie 4.4.6, minisearch 7.2.0 and fflate 0.8.3. Preact 11 notes: numbers in `style` don't get `px` added, and `useRef` needs a starting value.
 
-1. **Browser storage can be wiped.**
-   - Eviction under storage pressure, "clear site data", or a reinstall can all wipe it.
-   - Mitigations: the backup badge and nudge, a `persist()` request, and Restore offered whenever the app opens empty.
-   - Backups remain your responsibility.
-2. **Two devices means two databases.**
-   - Until sync lands (week 2): export → move the file (e.g. a Google Drive folder) → Merge.
-   - With sync: you still have to press "Sync now" on each device. The app can't know about changes the other device hasn't pushed yet.
-   - **GitHub token in the browser:** anyone using that browser profile can write to the sync repo. Limit the token to that one repo.
-3. **Clock skew.** If one device's clock is wrong, last-write-wins picks the wrong version.
-4. **Firefox desktop has no standard PWA install [NV].**
-   - On Windows the app may be a bookmarked tab, not an installed app. Recent Firefox versions may have "Taskbar Tabs".
-   - Offline use via the service worker still works.
-5. **Android keyboard focus [NV].** Mobile browsers may not raise the keyboard from programmatic focus until you tap the box. "Always focused" is fully achievable on desktop only.
+**Verified in v1 (Firefox):**
+- `storage.persist()` shows a prompt with "remember decision" on desktop and Android.
+- WebP encoding works.
+- Private windows: IndexedDB works but is wiped when the window closes.
+- Android Firefox can install sites with a valid manifest.
+- A file picker with `accept=".kit"` may grey out files on Android, so **no `accept` filter**: check the file in code.
+- Web Share with files is not supported: export is a plain download.
+- A `.kit` download keeps its name on Android.
+- Firefox for Windows has "Web Apps" (Taskbar Tabs) since Firefox 143.
 
-## 3. Tech stack
+---
 
-Principle: no bundler, no compile step. Third-party files are downloaded once into `vendor/`, pinned and committed. npm is used only for the test tools.
+## 3. Data model
 
-| Need | Options considered | Pick | Trade-off |
+All records share `id` (UUID v4), `created_at` and `updated_at` (ISO UTC; displayed in local time, en-AU) and `deleted` (bool). **Deleting creates a tombstone** (the record stays, marked deleted) so merges carry deletions.
+
+### 3.1 Character (the bundle)
+- One per app: `bundle_id`, plus `pc_entity_id` pointing at the player character's entity.
+- The PC entity carries:
+  - **`profile`:** `concept, backstory, personality, ideals, bonds, flaws, goals, appearance, notes`, all plain text.
+  - **`profile_times`:** `{ section: ISO }`, the last edit time per section, so merges keep edits made to different sections on two devices (v1).
+  - **`dndbeyond_url`:** optional, must start with `https://www.dndbeyond.com/` **[NV: confirm URL shape]**. Shown as an "Open in D&D Beyond" button on the dashboard, the character page and the in-session overview (new tab).
+  - **`portrait_file_id`** (any entity can have one).
+
+### 3.2 Entity types (new: built-in + custom)
+A `types` table holds every type, including the built-ins, so they all behave the same way.
+
+| Field | Notes |
+|---|---|
+| `id` | Built-ins have **fixed ids** (`type-npc`, `type-location`, `type-faction`, `type-item`, `type-character`, `type-other`) so kits from any device agree |
+| `label` / `plural` | e.g. "Deity" / "Deities" |
+| `person` | bool. Person types get **short names** (section 4.3). Built-ins: npc and character are people |
+| `builtin` | Built-ins can be renamed and get fields, but not deleted |
+| `fields[]` | `{ id, label, kind, link_type? }`. `kind` is one of `text`, `long_text`, `number`, `date`, `link` (to another entity, optionally of one type), `url` |
+| `order` | Position in lists |
+
+- **Stub** isn't a type: it's an entity with `stub: true` and no type yet (`type_id: null`).
+- Deleting a custom type is allowed only when no live entity uses it, or after you choose a type to move them to (destructive: confirm).
+- Removing a field hides its values; they stay in the record, so re-adding the field restores them.
+
+### 3.3 Entity
+`type_id`, `name`, `aliases[]`, `tags[]`, `summary` (one line, shown on recall cards), `body` (long text), `fields: { fieldId: value }`, `stub`, `portrait_file_id`, `merged_into` (a tombstone redirect after a merge).
+
+### 3.4 Note
+| Field | Notes |
+|---|---|
+| `text` | Mentions stored as tokens `@[label](entityId)`; tags kept as typed `#tag` text |
+| `mentions[]` | Entity ids (derived) |
+| `tags[]` | Lower-case tag keys (derived from `#tags`, section 4.4) |
+| `mode` | `in` or `out` (written in or out of session) |
+| `triaged_at` | null = in the Inbox |
+| `promoted_to[]` | Ids the note was added to |
+| `original_text` | The first version, set on first edit (v1) |
+
+### 3.5 Relationship (v1)
+`from_id`, `to_id`, `type` (free text, suggested list), `directed` (bool), `notes`, `source_note_ids[]`.
+- Suggested types: ally, rival, family and enemy (both ways); owes, member of, located in and works for (one-way).
+- An unknown type defaults to one-way.
+
+### 3.6 File (v1)
+- Fields: `entity_id` (or null), `name`, `kind` (`image` | `text`), `mime`, `size`, `width`/`height`, `caption`. Bytes live in a separate `blobs` table.
+- Accepted: images (re-encoded to WebP at quality 0.85, longest side 2560 px) and `.txt`/`.md`, checked as valid UTF-8. **10 MB** max.
+
+### 3.7 Local-only (never exported)
+- Session mode: `mode`, `mode_since`.
+- Backup status: `last_backup_at`, `changes_since_backup`, `first_change_at`.
+- Persistence: `persist_asked`, `persist_granted`.
+- Device-level keys (mode, persist) survive Replace and New character.
+
+### 3.8 Database
+- Dexie tables: `entities, types, notes, relationships, files, blobs, meta`.
+- Start at local db version 1 for v2; add versions only via upgrades.
+- Only index fields you query on. IndexedDB can't index booleans or nulls, so `deleted` and `triaged_at` are filtered in code.
+
+---
+
+## 4. Typing rules: mentions, short names, tags
+
+This is the heart of the app. Every rule below was found the hard way in v1.
+
+### 4.1 Mentions
+- **Typed form:**
+  - `@Name`; multi-word names use underscores, `@Lord_Aldric` → "Lord Aldric".
+  - A possessive is dropped and stays as text: `@Mira’s` → Mira, then "’s". Handle both straight `'` and curly `’` apostrophes.
+  - Trailing `_ - ’` characters are dropped.
+  - `@` only counts at the start of the text or after a non-word character, so emails don't trigger it.
+  - Unicode letters are allowed.
+- **Resolution on save,** in order:
+  1. The autocomplete pick (the exact entity the user chose).
+  2. An exact name or alias match, ignoring case. If several match, prefer a non-stub, then the most recently edited.
+  3. A **short name** (4.3).
+  4. Otherwise a new **stub**.
+- **Stored form:** `@[label](id)`, readable in exports. The UI always shows the entity's *current* name, so renames flow through. Strip `[]` from labels.
+- **Editing a note** shows tokens in typed form, remembers which entity each one was, and re-resolves on save. Tokens whose entity has since been deleted are left untouched, so an edit never creates new stubs.
+
+### 4.2 Autocomplete (capture box)
+- Typing `@` lists suggestions: prefix matches first, then substring matches, up to 5, newest first.
+- **Tab or tap picks; Enter always saves.** Arrow keys move the highlight; Esc closes the list, and a second Esc clears the box.
+- Act on **pointerdown with preventDefault**, so the phone keyboard stays open.
+- A "new stub: X" hint shows when nothing matches.
+- **Typing cancels any pending caret restore.** v1 bug: a fast tap-then-type scrambled letters ("odayt").
+
+### 4.3 Short names
+People say "Grimbold", not "Grimbold Ironhand".
+- **Which entities get them:** people only (person types and stubs).
+- **Which words count:** any word of a multi-word name that is **4+ letters** and belongs to **no other entity** (not part of another name, and not another entity's name or alias).
+- **Examples:** "Grimbold", "Caldra" (Sister Caldra) and "Aldric" count. A shared surname ("Ashdown") or a title shared by two NPCs ("Sister") doesn't.
+- **Used for:** recall cards, tap-to-link and `@mention` resolution.
+- **Tap-to-link picks the occurrence that ends last;** among those, the longest. So "lord aldric" beats the short name "aldric" inside it (v1 regression).
+
+### 4.4 Tags on notes (new)
+- **Typed form:** `#tag`, multi-word `#two_words`. It counts after the start of the text or a non-word character, so URLs with `#` don't trigger it; the same rules as `@`.
+- **Stored:** as typed in the text, plus a derived `tags[]` of lower-case keys (underscores become spaces).
+- **Capture box:** typing `#` suggests existing tags (most used first). Tab or tap picks.
+- **Display:** a tag shows as a quiet chip in note text. Tapping it out of session opens the Notes list filtered to that tag.
+- **Entity tags** (on entities) and **note tags** are separate lists, but search covers both.
+- No tag colours or hierarchy.
+
+### 4.5 Recall cards (in session) (v1)
+- **When they appear:**
+  - while typing an `@token`: a card for the highlighted suggestion;
+  - when the text contains an exact name, alias or short name: that entity's card, up to 3, most recently typed first;
+  - never for the player character.
+- **What a card shows:**
+  - name, type and tags;
+  - the summary, or "First mention: …" when there are more than 3 mentions;
+  - up to 3 relationships as plain text;
+  - the last 3 mentions, dated.
+- **Actions on a card:**
+  - **Tap to link:** turns the plain name into a mention.
+  - **Quick type:** a "stub ▾" picker sets a stub's type in one tap.
+- **Search alongside:** text of 4 words or fewer also runs full search. Typo tolerance: 0 edits for ≤3 letters, 1 for 4 letters, 2 for 5+ (swapped letters count as 2).
+- **Layout:** results stack bottom-up, with the best match nearest the box, so the phone keyboard never hides them.
+
+---
+
+## 5. Screens and navigation
+
+### 5.1 Frame (every screen)
+- **Top bar,** always one line:
+  - **Home** (the character name; long names end in "…");
+  - **breadcrumbs** for the current location ("Home › NPCs › Grimbold Ironhand");
+  - a **session button** ("Start session" / "● In session");
+  - the **backup badge**;
+  - **Menu**.
+  - **Phone (≤600 px):** breadcrumbs move to their own thin line under the bar; the session button shortens to "Session"; the badge drops "since backup" ("3 changes"); the name ends in "…". The bar must never wrap (it wrapped to three lines in the style preview before this rule).
+- **Menu** (short): Export kit, Import kit, How it works, Settings, New character. The build number goes at the bottom.
+- **Messages:** toasts float under the top bar without moving the page (v1 fix). Tap to dismiss; they auto-hide after 8 s.
+- **Page addresses:** hash routes (`#/world/npc`), so the back button works.
+  - The router must re-read the address when its listener attaches (v1 race).
+- **Phone:** works at 412 px wide with no sideways scroll; the app height follows `visualViewport` so the keyboard never hides the box.
+
+### 5.2 Screens
+| Screen | Address | Contents |
+|---|---|---|
+| **Home** (hub) | `#/` | Search everything (top). Panels: My character (portrait, concept, D&D Beyond button), Inbox (count), World (counts per type, stubs), Recent notes, Recent files. Quick note box at the bottom |
+| **Session** | (shown while in session) | v1 capture screen: feed, live results/recall cards, one box. Tap the name for the character overview. The top bar shows "● In session"; End is one tap |
+| **Inbox** | `#/inbox` | Unsorted notes, oldest first. Filter: All / In / Out. Per note: Keep as log; Add to (each mentioned entity); Add to my character (choose a section); Add as relationship; Edit; Delete. Mark all as log. Show sorted → Back to inbox |
+| **Notes** | `#/notes` | All notes, newest first. Filter by text, tag, mode, or mentioned entity. Edit/delete in place |
+| **World** | `#/world` | Types with counts (built-in + custom) and Stubs; manage types (add type, add/rename fields) |
+| **Type list** | `#/world/<typeId>` | A–Z list, filter by name/alias/tag/field value, add new |
+| **Entity** | `#/entity/<id>` | Name, type, tags, aliases, summary, description, **custom fields**, files, relationships plus connections diagram, notes mentioning it. Merge into…, Delete |
+| **Character** | `#/character` | Portrait, name, concept, D&D Beyond link, profile sections, files, relationships |
+| **Files** | `#/files`, `#/files/<id>` | Grid; viewer (rename, attach, use as picture, download, delete) |
+| **Settings** | `#/settings` | Backup status (last export, unsaved changes), storage persistence status, manage types shortcut, danger zone (New character) |
+| **Help** | dialog | "How it works" (v1 text, updated) |
+| **First run** | | Name a new character · Import a kit · Try the demo character |
+
+### 5.3 Interaction rules (fixing v1's "too many dialogs and menus")
+1. **Edit in place:**
+   - Fields autosave 0.7 s after typing stops, and when you leave the field.
+   - Saving the same value is a no-op.
+   - While a field is focused, outside updates don't overwrite what you're typing.
+2. **One confirm sheet** (a single shared component), only for destructive actions: delete, merge, delete type, Replace, New character.
+   - Replace and New character also need the **character's name typed**, and download a backup kit first.
+3. **One inline-form pattern** (expand under the row, Save/Cancel) for multi-field adds: relationships, inbox → relationship, custom fields. Never a pop-up for adding.
+4. **Pickers:**
+   - Entity pickers are one searchable list component used everywhere (merge target, relationship "with", link fields, file attach).
+   - New names typed into a picker create a stub, the same as `@mentions` do.
+5. **Buttons:** primary (one per area), secondary, quiet (small, transparent), danger. The main actions come first; less common ones go in a quieter row.
+6. **Labels:** types as title case (NPC, Location); lower case inside sentences. Counts with singular and plural ("1 note", "2 entities").
+
+### 5.4 Visual system: "field journal"
+The look is an adventurer's field journal: ink on aged paper, ruled lines, a red margin, and sparing marks in red and green. It fits the satchel/kit idea without costing readability at the table. (This replaces v1's plain technical look.)
+
+**Palette.** Only these colours; define them as CSS variables in `css/tokens.css`. Contrast is against `--paper`, computed with the WCAG formula (my calculation; re-check with a contrast tool at M2 **[NV]**). AA needs 4.5:1 for normal text.
+
+| Variable | Value | Use | Contrast |
 |---|---|---|---|
-| UI | Vanilla JS · **Preact + HTM** · Svelte/React with Vite | **Preact + HTM** (ES module files, no build) | Vanilla gets messy once the back layer arrives. Vite adds Node tooling. Preact+HTM gives React-style components with plain JS template strings and no compiler. Cost: learning components/state |
-| Storage | raw IndexedDB · `idb` · **Dexie.js** | **Dexie** | Mature, good docs, built-in schema versioning and live queries |
-| Search | substring · Fuse.js · FlexSearch · **MiniSearch** | **MiniSearch** | In-memory full-text with prefix + fuzzy matching. The index is rebuilt at load; expected to be fast at thousands of notes **[NV, measure]** |
-| Zip | JSZip · **fflate** | **fflate** | Smaller and faster. Images are stored without recompression |
-| PWA | Workbox (needs build) · **hand-written service worker** | **Hand-written** (~40 lines, versioned cache name) | No build step; offline works in a normal tab |
-| Images | browser-image-compression · **native canvas** | **Native** `createImageBitmap` → canvas → `toBlob('image/webp')`, JPEG fallback | No dependency. Firefox WebP encoding support **[NV]**. Re-encoding strips EXIF/GPS data |
-| IDs | **`crypto.randomUUID()`** (v4) | — | Built in; needs a secure context |
-| Sync | Live DB (Supabase/Firestore/Dexie Cloud) · **GitHub REST API + private repo** | **GitHub API** via plain `fetch` | No server, no extra service, free history. Manual rather than live |
-| Unit tests | **`node --test`** | — | Built into Node; zero dependencies |
-| Browser tests | **Playwright, Firefox engine** | — | Desktop Firefox automated; Android is a manual checklist |
+| `--paper` | #F6F1E4 | Page background | |
+| `--paper-alt` | #EDE5D2 | Panels, cards, top bar | |
+| `--rule` | #D8CDB6 | Borders, ruled lines, dividers | |
+| `--ink` | #3B3026 | Body text, primary buttons (ink fill, paper text) | ~11.4:1 |
+| `--ink-muted` | #7A6A57 | Secondary text, timestamps, hints | ~4.6:1 (passes AA, unlike v1's grey) |
+| `--red` | #9C4A3A | Margin line, danger, wax-seal accents, focus ring | ~5.4:1 |
+| `--green` | #4F6B47 | "Done/backed up" marks | ~5.2:1 (darkened from #5E7A55, which was ~4.3:1) |
+| `--wash-ok` | #DCE5D3 | Success background | |
+| `--wash-warn` | #EED9AE | Warning background | |
+| `--wash-err` | #E9C9BF | Error background | |
+| `--highlight` | #E2D3B0 | Mention chips (with a 1 px `--ink-muted` underline), selected rows. #EADFC4 was too close to `--paper-alt` inside panels (seen in the style preview) | |
 
-### Verification results (build step 1, done 2026-10-01)
-Checked against MDN, Mozilla release notes and Bugzilla, GitHub docs and the npm registry. Items still marked **[NV]** below need a test on a real device.
+- Washes are backgrounds with `--ink` text on top; never wash colours as text.
+- No dark mode for 1.0.
 
-**Pinned versions** (in `vendor/`, mapped by an import map in `index.html`):
-- preact 11.0.0 + hooks
-- htm 3.1.1
-- dexie 4.4.6
-- minisearch 7.2.0
-- fflate 0.8.3
+**Type**
+- **Headings:** page titles, panel headings, the app name and the first-run title use **IM Fell English** (old-book serif, SIL Open Font Licence), **bundled** in `vendor/fonts/` as woff2 so it works offline. Include the licence file. Fallback: Georgia, serif. **[NV: confirm licence, file size (<100 KB per weight) and legibility at 20 px at M0; alternative: EB Garamond.]**
+- **Body, notes, inputs, buttons:** the system font stack, kept crisp for fast reading and typing on the phone.
+- **Numbers are never set in the serif.** Its old-style figures make "11" read as "II". Counts, dates and times inside headings use the system font (a `.num` span).
+- **Scale:** 12/13/14/16/20/26 px. Headings 20 px (panels, in small caps) and 26 px (page titles).
 
-**Preact 11 is a new major version.** Check its breaking changes before using Preact 10 examples.
+**Shapes and detail**
+- Corner radius 3 px; no pill buttons (kept from v1).
+- **Ruled lines:** lists and the notes feed use a 1 px `--rule` line under each row, like a ruled page.
+- **Red margin:** on desktop (≥760 px), a 1 px `--red` vertical line runs down the left of the page content, like a notebook margin. Not on the phone (it costs width).
+- **Paper grain:** an optional, very subtle noise texture on `--paper`, made with an inline SVG data URI in CSS (no image files). It must not lower text contrast. Easy to turn off in `tokens.css`.
+- **Buttons:**
+  - primary = `--ink` fill with paper text (like a stamp);
+  - secondary = ink outline;
+  - quiet = text only, underlined on hover;
+  - danger = `--red` outline, or `--red` fill inside the confirm sheet.
+- **Mentions** show as a `--highlight` chip; **tags** as small `--ink-muted` text with a leading `#`.
+- **Focus:** a 2 px `--red` outline.
+- **Icons:** few, simple, line style in `--ink`, inline SVG. No emoji in the UI chrome.
+- **App icon:** the satchel drawn in ink on paper with a red wax-seal clasp (redo `tools/make-icons.mjs` with this palette). Manifest `background_color` #F6F1E4, `theme_color` #EDE5D2.
 
-| Item | Result | Effect on the spec |
-|---|---|---|
-| `storage.persist()` | Desktop and Android (tested on the Pixel 2026-10-01) both show a prompt with a "remember decision" option | Ask at a sensible moment (first note), with a one-line explanation |
-| WebP `toBlob` | Supported since Firefox 96 (desktop and Android) | WebP as planned |
-| Private window IndexedDB | Works since Firefox 115, wiped when the private window closes | Show a warning banner in private mode if detectable |
-| Desktop install | "Web Apps" (Taskbar Tabs) on Windows since Firefox 143, on by default | Ship a valid manifest; Windows users can pin it |
-| Android install | Menu → Install / Add to Home screen works | Ship a valid manifest |
-| `accept=".kit"` on Android | Picker may grey out unknown extensions **[NV]** | **Changed:** no `accept` filter; check the file contents in JS |
-| Web Share with files (Android) | Not supported in Firefox | **Changed:** export is download-only |
-| GitHub API cross-origin | Allowed, including the `Authorization` header | Sync as planned |
-| GitHub file limits | Contents API: full support ≤1 MB; Git Data blobs up to 100 MB | **Decided:** sync stores separate files, committed atomically via the Git Data API |
-| Stale updates | Stale contents `sha` → 409 or 422; a non-forced ref update must be a fast-forward | Treat 409/422/non-fast-forward as "remote changed: pull, merge, retry" |
-| Fine-grained token | One repo + Contents read/write supported; no-expiry allowed | Recommend a 1-year expiry; the app shows a clear "token expired" error |
-| `randomUUID` on localhost | Secure context since Firefox 84 | As planned |
+**Wording: light touch.** Labels stay plain where clarity matters (Inbox, Notes, World, Files, Search, Start session, the badge texts). The theme appears at signature moments:
 
-**Original verify-first list (kept for reference):**
-- The current stable versions of Preact, HTM, Dexie, MiniSearch and fflate.
-- Firefox behaviour of:
-  - `storage.persist()`
-  - WebP `toBlob`
-  - private-window IndexedDB
-  - `accept=".kit"` on Android
-  - Web Share with files on Android
-  - Taskbar Tabs
-- GitHub API:
-  - calls from a web page work in Firefox (cross-origin requests allowed)
-  - file-size limits on the file endpoint (recalled ~1 MB standard)
-  - stale-version rejection (a `sha` mismatch is refused)
-  - fine-grained token scoped to one repo with contents read/write
-
-## 4. Data model
-
-**Fields on every record:** `id` (UUID), `created_at`, `updated_at` (ISO 8601 UTC, displayed in local time), `deleted` (bool).
-
-### Entity
-| Field | Notes |
+| Where | Text |
 |---|---|
-| `type` | `character \| npc \| faction \| location \| item \| other \| unknown`. Stubs start as `unknown` |
-| `name` | |
-| `aliases[]` | Merging entities adds the old name here, so typo mentions still resolve |
-| `tags[]` | Free-form tags (added 2026-10-01), e.g. `shopkeeper`, `owes us`. Trimmed, `#` dropped, deduped ignoring case. Searchable. Optional in kits: missing = `[]` |
-| `summary` | One line, for the recall card |
-| `body` | Long text: backstory/description |
-| `stub` | bool |
-| `image_ids[]` | First one = primary |
-| `merged_into` | id or null. A tombstone that redirects references |
+| Export / import | **Pack kit** / **Unpack kit** (v1) |
+| Export toast | "Kit packed: kael-2026-10-01-2130.kit" |
+| Merge toast | "Kit unpacked into your satchel: 3 added, 1 updated." |
+| Empty notes | "Your satchel is light. Type below and press Enter." |
+| Empty inbox | "Nothing loose. Every page is filed." |
+| Empty files | "No maps or scraps yet." |
+| First run | "A satchel for one adventurer. Everything stays in this browser." |
+| End-of-session nudge | "Session over. Pack your kit before you go?" |
 
-The player character is the entity named by `pc_entity_id` in `character.json`.
+Keep a single `js/ui/strings.js` with all user-facing text, so wording can be tuned in one place.
 
-### Note
-| Field | Notes |
+**Spacing scale:** 4/8/12/16/24 px.
+
+Define components first (M2): Button, Field, ChipsField, Select, EntityPicker, ListRow, Panel, Card, Toast, Sheet, InlineForm, Thumb. M2's component gallery page doubles as the visual-style review: screenshot it at both widths before building screens.
+
+**Reference:** `style-preview.html` (next to this spec) is a static mock of the palette, type, top bar (desktop and phone), panels, notes, a recall card, buttons and badges. Open it in Firefox; it's the visual target for M2.
+
+---
+
+## 6. In/Out of session
+- **Toggle:** the top-bar session button.
+  - **In session:** the capture screen is on every address. Notes get `mode: 'in'`.
+  - **Out of session:** the hub and pages. Notes get `mode: 'out'`.
+- **Auto-end:** after 12 h with no in-session note or mode change. Checked on open and every minute, with a toast.
+- **End-session nudge:** with unsaved changes, ending a session offers **Export kit** (or *Not now*).
+- New characters start out of session.
+
+---
+
+## 7. Backup, devices, kits (no sync)
+
+### 7.1 Kit file
+A `.kit` file is a zip:
+```
+<character>-YYYY-MM-DD-HHmm.kit
+├── character.json   format "satchel", schema_version, bundle_id, exported_at, pc_entity_id,
+│                    entities, types, relationships, files (records)
+├── notes.jsonl      one note per line, tombstones included
+└── files/<id>.<webp|jpg|txt|md>   bytes of live files only
+```
+- **Canonical JSON** (keys sorted) so the same data gives the same bytes (v1).
+- **Schema version:** v2 starts at **schema_version 3**, so it never collides with v1's 1–2. Importing v1 kits is optional (decision log).
+- **Unpack checks:**
+  - not a zip / no `character.json` / damaged JSON / wrong format → refuse;
+  - newer schema → refuse ("made by a newer Satchel");
+  - older schema → migrate in memory;
+  - bad note lines → skip and report;
+  - duplicate ids → keep the newest;
+  - unknown or `../` paths → ignore;
+  - missing optional fields → defaults.
+- **Filename:** an ASCII slug of the character name.
+
+### 7.2 Import modes
+| Mode | When | What |
+|---|---|---|
+| New | App empty | Load the kit; badge = backed up as of `exported_at` |
+| Merge | Same `bundle_id` | Union by id, newest `updated_at` wins, a tie keeps local; per-section profile merge; types merge like records; combine duplicate stubs; redirect `merged_into`. **Doesn't count as unsaved changes** |
+| Replace | Any (a different character, or discard local) | Typed-name confirm, backup kit downloads first, one transaction (old data kept if loading fails) |
+
+**Duplicate stubs (merge):** stubs with the same name fold into the single real entity with that name if there's exactly one; otherwise into the oldest stub (oldest `created_at`, then lowest id), so every device picks the same survivor. Mentions, relationships and files are redirected.
+
+### 7.3 Backup badge (v1)
+| Badge | When |
 |---|---|
-| `text` | Contains mention tokens |
-| `original_text` | Set on first edit, so the original is never lost |
-| `mode` | `in \| out` |
-| `session_id` | Set when mode = in |
-| `mentions[]` | Entity ids, derived from text |
-| `triaged_at` | null = in the inbox |
-| `promoted_to[]` | Entity/relationship ids |
+| Green **Backed up** | No changes since the last export |
+| Grey **N changes since backup** | Changes under 24 h old |
+| Yellow, same text | Changes over 24 h old |
+| Red | Never backed up, or changes over 7 days old |
 
-**Mention token in text:** `@[Grimbold](<entity-id>)`
-- Readable in the raw file, and survives renames: the app shows the current name and the label in the text is only a fallback.
-- Merging entities rewrites ids in notes.
+- Ages from `first_change_at`; re-checked every minute.
+- Tap the badge = Export kit.
+- "since backup" is hidden on narrow screens.
 
-### Session
-> **Changed 2026-10-01:** session records and numbers aren't tracked for now. The device holds an In/Out mode (local meta: `mode`, `mode_since`), toggled from the menu; each note records `mode`. The table below is kept in the schema, unused.
+### 7.4 Moving between devices
+Export on device A → move the file (Drive, USB, email) → Import / Merge on device B. Document this in Help. Each device only knows about its own unsaved changes.
 
-- Fields: `number` (S1, S2…), `started_at`, `ended_at`, `title?`, `summary?`.
-- Toggling to In creates a session. Toggling to Out ends it.
-- Auto-ends after 12 h with no notes; `ended_at` is set to the last note's time.
+---
 
-### Relationship
-- `from_id`, `to_id`
-- `type`: free text with suggestions (ally, rival, family, owes, member of, located in, enemy, employer)
-- `directed` (bool), `notes`, `source_note_ids[]`
+## 8. Demo character
+- **`demo/wren.kit`**, built by a script (`tools/make-demo-kit.mjs`) from the app's own code. Offered on the first-run screen ("Try the demo character").
+- **Content:** a month of play written as **real table notes**: typos, shorthand, swearing, chatter, emoji.
+  - Tags like "fuck this guy" and "do NOT trust".
+  - Notes typed with `@` and `#` and run through the real resolver, so building the demo exercises the parser.
+  - **Deliberate rough edges:** unsorted notes, a typo stub, untyped stubs, an edited note.
+  - **Custom type examples:** "Deity" with a "Domain" field; "Ship" with a "Captain" link field.
+  - A D&D Beyond link.
+- **Stable ids** derived from keys, so rebuilds merge cleanly.
+- Her character page's Notes section says it's a test character and lists what to poke at.
 
-### Image
-- `entity_id`, `file` (`images/<id>.webp`), `mime`, `width`, `height`, `bytes`, `caption`.
-- The blob itself lives in a separate IndexedDB store.
+---
 
-### Local-only (never exported)
-`last_backup_at`, `changes_since_backup`, current mode, whether persistent storage was granted, `device_name`, and sync settings (`repo`, `token`, `last_synced_at`, `last_synced_sha`, `changes_since_sync`).
-
-## 5. The kit file (.kit)
-
-**Vocabulary:** the backup file is a **kit**. Export = **Pack kit**. Import = **Unpack kit** (New / Merge / Replace). You pack your kit into your satchel, or unpack it.
-
-A zip with the custom extension `.kit`. Filename: `<pc-name>-YYYY-MM-DD-HHmm.kit`.
-
+## 9. Code structure
 ```
-kael-2026-10-01-2130.kit
-├── character.json
-├── notes.jsonl        one note per line, tombstones included
-└── images/<image-id>.webp
+index.html  manifest.webmanifest  sw.js  icons/  demo/  vendor/
+css/        tokens.css (palette, spacing, type) · components.css · screens.css
+js/core/    pure logic, no browser APIs, unit tested:
+            model.js types.js mentions.js tags.js search.js kit.js merge.js backup.js session.js files-rules.js
+js/data/    the only code that touches Dexie:
+            db.js (schema) entities.js notes.js types.js files.js relationships.js kits.js meta.js
+js/ui/components/   one component per file (Button, Field, Sheet, EntityPicker, ...)
+js/ui/screens/      one screen per file (Home, Session, Inbox, Notes, World, TypeList, Entity, Character, Files, Settings)
+js/ui/app/          App.js (frame), router.js, Toasts.js
+tools/      make-demo-kit.mjs, make-icons.mjs, screens.mjs (screenshot review)
+tests/unit/ tests/e2e/ tests/fixtures/
 ```
+**Rules:**
+- **Core is pure;** screens never import Dexie directly.
+- **Every write goes through `data/`,** which handles change counters (`save()` / `saveMany()`) and transactions.
+- **Comments explain *why*,** not *what*. A file over ~250 lines gets split.
 
-`character.json`:
-```json
-{
-  "format": "satchel",
-  "schema_version": 1,
-  "bundle_id": "uuid",
-  "app_version": "0.1.0",
-  "exported_at": "2026-10-01T11:30:00Z",
-  "pc_entity_id": "uuid",
-  "entities": [],
-  "relationships": [],
-  "sessions": [],
-  "images": []
-}
-```
-- Notes go in JSONL so one bad line doesn't sink the whole file, and diffs stay readable.
+---
 
-### Import pipeline
-1. Unzip, and ignore any entry outside the expected names (blocks `../` path tricks).
-2. Parse and check `format`.
-3. Check `schema_version`:
-   - Newer than the app → refuse with a clear message.
-   - Older → run the migrations v1→v2→… in memory.
-4. Validate. Duplicate ids keep the newest `updated_at` and get reported.
-5. Apply the mode:
-   - **New:** the app must be empty.
-   - **Merge:** the `bundle_id` must match. Union by id, then the newest `updated_at` wins and ties keep local. Shows a report: added / updated / kept local.
-   - **Replace:** typed confirmation, and it forces a backup download of the current data first.
+## 10. Quality bars
+| Area | Target |
+|---|---|
+| Speed | Capture save < 100 ms; search < 50 ms at 5000 notes; no visible lag typing with 5000 notes (check in M10) |
+| Phone | 412 px wide, no sideways scroll on any screen (automated test) |
+| Offline | Opens and captures with no network after one online visit |
+| Data safety | No action loses data without a confirm; every import validates first; merges are deterministic |
+| Accessibility | Every control labelled; dialogs `role=dialog` with names; focus returns to the box after card/overview actions |
+| Security | No `innerHTML` with user data; text files shown as text; Content-Security-Policy allowing only the app's own scripts (hash the import map) **[NV: verify CSP with import maps in Firefox]** |
 
-## 5a. Sync (week 2, optional)
+---
 
-**Setup (one-off, per device):**
-1. Create a private GitHub repo (e.g. `satchel-data`).
-2. Create a fine-grained token limited to that repo, with contents read/write.
-3. In Satchel settings, enter the repo, the token and a device name (e.g. "Pixel").
+## 11. Testing strategy
+- **Unit tests** (`node --test`) for all of `js/core`:
+  - mentions (every rule in section 4), tags, short names;
+  - merge (both directions, idempotent, deterministic, stubs, profiles, types);
+  - kit (round trip, canonical bytes, every refusal, migrations);
+  - backup, session, file rules.
+- **Syntax-check every module** in the unit run. A duplicate declaration breaks the whole app, and browser tests only show it as timeouts.
+- **Browser tests** (Playwright, Firefox, 4 workers): one spec per screen, plus:
+  - **two devices** = two browser profiles exchanging kits;
+  - **demo kit** unpacks with the expected counts;
+  - **phone width** on every screen;
+  - **offline** (service worker);
+  - **install** (manifest and icons).
+- **Fixtures:** keep `tests/fixtures/schema-<n>.kit` for every schema version, forever.
+- **Screenshot review:** `tools/screens.mjs` seeds or unpacks the demo and screenshots every screen at 1280 px and 412 px. Claude reads them back and fixes visual problems before calling a UI milestone done.
+- **Gate every commit:**
+  - unit + full browser suite with `--repeat-each=2`;
+  - commit/push **only** if everything passes, checked in the same command;
+  - chain with `&&` so a failing test stops the push (v1 pushed a regression when tests and push ran unconditionally).
+- **Flaky tests are leads.** Read `test-results/**/error-context.md`. v1 found two real bugs this way.
 
-**Sync now:**
-1. Pull the online copy (and note its `sha`).
-2. Merge it into this device using the same Merge as import (newest `updated_at` wins, tombstones respected).
-3. Push the result as one commit whose parent is the commit from step 1.
-4. If GitHub refuses because the online copy changed in between (409, 422 or a non-fast-forward error), go back to step 1. Give up after 3 tries and show an error.
-5. Record `last_synced_at` / `last_synced_sha`, reset `changes_since_sync`, write a commit message like `Sync from Pixel, 2026-10-04 21:40`.
+---
 
-**Storage in the repo:** the same contents as a `.kit` file, unzipped: `character.json`, `notes.jsonl`, `images/<id>.webp`. Each sync is one atomic commit via the Git Data API (blobs → tree → commit → fast-forward ref update). Images upload only when new. History stays readable.
+## 12. Milestones (build order)
+Each milestone ends with its tests passing, a screenshot review (UI milestones) and a push.
 
-**Status shown in the top bar:**
-- "N changes not synced" (this device).
-- "Online copy changed since your last sync" (checked on app open, if online).
-- "Last synced from <device>, <time>".
-- A successful sync also counts as a backup for the backup badge.
-
-**Emergency options** (behind a typed confirmation):
-- "Replace online copy with this device"
-- "Replace this device with online copy" (forces a local backup download first)
-
-**Without sync:** export/import works exactly as before. Friends don't need GitHub.
-
-## 6. Front layer
-
-**Layout**
-- **Top bar:** In/Out toggle (shows the session number), backup badge, menu (Export, Import, Back layer).
-- **Results area** sits above the input box. The box is pinned to the bottom.
-
-**Live results while typing**
-- While you're typing an `@token`: entity matches.
-- When the text is 4 words or fewer: full search.
-- Whenever the text contains an exact name or alias: that entity's recall card.
-
-**Recall card**
-- The summary (or, if empty, the first mention).
-- The last 3 mentions, each with its session number.
-
-**Picking an @ suggestion**
-- Tab or tap picks a suggestion. **Enter always saves** (no accidental picks).
-- On save, an unresolved `@Word` matches a name/alias exactly (case-insensitive), or else becomes a stub.
-- Multi-word stubs use underscores: `@Lord_Aldric` creates "Lord Aldric".
-
-**Other keys and states**
-- **Empty box:** shows the recent notes feed.
-- **Esc:** clears the box.
-
-### Backup status
-- Header badge:
-  - `--ok`: backed up since the last change.
-  - `--warn`: changes older than 24 h.
-  - `--err`: never backed up, or more than 7 days with changes.
-- A nudge appears when you switch to Out of session.
-- "Backed up" means the file was downloaded, not that it's stored safely somewhere.
-- If the app opens empty, it offers "Restore from backup".
-- Requests `navigator.storage.persist()` on first note (Firefox may show a prompt **[NV]**).
-
-## 7. Back layer: the out-of-session screen (designed 2026-10-01, Q6)
-
-**The mode decides the screen.**
-- **Out of session:** the dashboard below, with a quick-note box along the bottom.
-- **In session** (Menu → Start session): today's fast capture screen.
-- **Desktop first.** Every page stacks into one column on the phone.
-- **Pages have their own addresses** (e.g. `#/character`), so the browser and Android back buttons work.
-
-### Pages
-| Page | Address | Contents |
+| # | Milestone | Done when |
 |---|---|---|
-| **Dashboard** | `#/` | Panels: My character (portrait, concept) · Inbox (N new notes, "Sort them") · People & places (counts per type, plus stubs) · Recent files. Quick note at the bottom |
-| **My character** | `#/character` | Portrait, one-line concept, then Backstory, Personality, Ideals, Bonds, Flaws, Goals, Appearance, Notes. All optional, no stats. Saves as you type |
-| **List** | `#/list/<type>` | Entities of one type (or stubs), filter box, newest first → entity page |
-| **Entity** | `#/entity/<id>` | Name, type, tags (chips: add/remove), aliases, summary (the recall-card line), description, attached files, notes mentioning it. Actions: merge into another entity, delete |
-| **Inbox** | `#/inbox` | Un-triaged notes, oldest first. Per note: *Keep as log*, *Add to <mentioned entity>'s description*, *Add to my character* (choose section). *Mark all as log* |
-| **Files** | `#/files` | All files, images as thumbnails; open, rename, re-attach, delete |
+| M0 | **Setup:** fresh repo contents, `CLAUDE.md`, tooling (Node, Playwright Firefox, Python server), vendored libs at verified versions, empty frame live on GitHub Pages, service worker, manifest, icons | Hello-frame live; syntax test and one browser test pass; [NV] items checked |
+| M1 | **Core logic (pure):** model, types, mentions, short names, tags, search, kit (schema 3), merge, backup, session rules | Unit tests cover section 4 and 7 rules |
+| M2 | **Data layer + components:** Dexie schema, `data/` modules, design tokens, all components from 5.4, toasts, confirm sheet, router with breadcrumbs, top bar | Component gallery page (dev only) renders every component; router tests pass |
+| M3 | **Session screen:** capture box, `@` and `#` autocomplete, recall cards, tap-to-link, quick type, feed, character overview, auto-end | Capture specs pass on desktop and at phone width |
+| M4 | **World:** hub World panel, type lists, entity page with fields, manage types and fields, merge, delete | Custom type with link field works end to end |
+| M5 | **Notes and Inbox:** Notes list with filters (tag/mode/entity), edit/delete, Inbox with all promote actions | Inbox specs pass |
+| M6 | **Character:** profile sections, portrait, D&D Beyond link everywhere it shows | |
+| M7 | **Relationships:** sentences, inline add, connections diagram (inline SVG, ≤12 nodes), on recall cards | |
+| M8 | **Files:** upload rules, viewer, attach, pictures | |
+| M9 | **Backup and kits:** export, import New/Merge/Replace, badge, nudge, persist, first run (incl. demo), Help, Settings | Two-device specs pass; demo kit spec passes |
+| M10 | **Hardening and release:** CSP, speed check at 5000 notes, error toasts for unexpected failures, offline, accessibility pass, README, version 1.0.0 | All quality bars in section 10 met |
 
-**In session:** tapping your character's name in the top bar opens a **read-only overview** of the character page (concept, personality, ideals, bonds, flaws, goals) for roleplay reference. Closing it returns to the capture box with your text intact.
+---
 
-### Files
-- **Accepted:** images, plus `.txt` and `.md`. Max **10 MB** per file, checked after images are shrunk.
-- **Images:** shrunk to WebP on upload, at most 2560 px on the long edge. Big enough for maps; re-encoding strips GPS and other photo metadata.
-- **Text files:** stored as-is and shown as plain text. Formatted Markdown (headings, bold, lists) can come later; it needs a library and sanitising (cleaning the file's content so it can't inject code).
-- **What a file attaches to:** an entity, the character (the portrait is a file), or nothing (shows only on the Files page).
-- **Data model:** a `files` table replaces the unused `images` table. Fields: `id`, `entity_id` (null if unattached), `name` (original filename), `kind` (`image` | `text`), `mime`, `size`, `width`/`height` (images), `caption`, plus the common fields. File bytes stay in the `blobs` table. Entities may have `portrait_file_id`.
-- **Kit:** `files/<id>.<ext>` replaces `images/`. This is **schema version 2**: a v1→v2 migration maps the (always empty) `images` to `files`. An older app refuses a v2 kit or online copy with "made by a newer Satchel", and the service worker updates devices on next open.
+## 13. Lessons from v1 (read before coding)
+1. **Plan the UI as a system first** (components, one pattern per job). v1's dialogs, inline forms and menus grew piecemeal.
+2. **Real-sounding test data finds real bugs.** The messy demo exposed the missing short names on its first run. Build the demo early (M1 data) and use it in tests.
+3. **Mentions are the product.** Every edge case in section 4 came from an actual failure.
+4. **Merge must be deterministic and order-independent:** stable survivors, canonical JSON, ties resolved by value. Otherwise devices ping-pong.
+5. **Don't count merged-in data as unsaved changes,** and don't bump `updated_at` in upgrades that aren't user edits.
+6. **Status messages must not shift the page** (taps landed on the wrong thing).
+7. **Wait for the state, not the event:** a download starting ≠ "backed up" recorded. Tests waiting on the event raced.
+8. **Event listeners attached in effects can miss early events:** re-read state on attach (router).
+9. **A typed pick must beat a late caret restore** (typing cancels the pending restore).
+10. **Phone keyboards:** act on pointerdown, keep focus in the box, stack results bottom-up, size the app to `visualViewport`.
+11. **Field-order differences break byte comparisons:** write canonical JSON.
+12. **Same-specificity CSS later in the file wins:** quiet buttons and select widths broke this way. Use component-scoped classes.
+13. **htm drops whitespace that contains a newline:** keep text with `${}` on one line (it caused "device:2 notes").
+14. **Gate pushes on tests in the same command.** v1 build .31 went live with a regression because the push didn't wait for the test result. (v1 also needed PowerShell workarounds; on Ubuntu `&&` does the job.)
+15. **GitHub Pages caches files for 10 minutes:** the network-first service worker plus a visible build number made testing on the phone sane.
 
-### Character profile
-- Stored on the player-character entity as `profile: { concept, backstory, personality, ideals, bonds, flaws, goals, appearance, notes }` plus `portrait_file_id`.
-- **Per-section merge (added 2026-10-01):** each section's edit time is kept in `profile_times`. When the same character arrives from two devices, sections merge one by one (newest wins per section; other fields follow the newer record). Editing Backstory on the phone and Goals on the PC keeps both.
+---
 
-### Build order (week 2–3)
-1. Page addresses, dashboard skeleton, mode switches the screen, quick note.
-2. Entity list and entity page: type, tags, aliases, summary, description; delete (tombstone); merge entities.
-3. My character page, plus the in-session overview.
-4. Inbox triage.
-5. Files: images + txt/md, schema 2, portrait, Files page.
+## 14. Open questions (resolve in M0)
+1. **Import v1 kits (schema 1–2)?** Recommendation: no (test data only). Add later if wanted.
+2. **Can built-in types be renamed?** Recommendation: yes (label only; ids fixed).
+3. **Field kinds:** is `text, long_text, number, date, link, url` enough? Recommendation: yes for 1.0.
+4. **"Recent notes" on Home:** last 5, or only notes from the last session? Recommendation: last 5.
 
-**Later:** relationships editor; graph view (library choice deferred); note editing.
+---
 
-## 8. Visual style
-
-| Variable | Value | Use |
-|---|---|---|
-| `--bg` | #F5F5F0 | Page background |
-| `--bg-alt` | #E6E6E1 | Panels, cards |
-| `--border` | #D9D9D3 | Borders, dividers |
-| `--text` | #4A4A4A | Body text, focus ring |
-| `--muted` | #8A8A8A | Timestamps, secondary labels only |
-| `--ok` | #B8D8C0 | Success backgrounds |
-| `--warn` | #E6CFA1 | Warning backgrounds |
-| `--err` | #D4B4AF | Error backgrounds |
-
-- `--radius: 3px`. No pill buttons.
-- Font stack: `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`.
-- Status colours are backgrounds with `--text` on top, never text colours.
-- `--muted` on `--bg` is about 3.2:1 contrast (my calculation), which fails the WCAG 4.5:1 guideline for small text. Use it only for timestamps and secondary labels.
-- No other colours. No dark mode (the palette is light-only).
-
-## 9. Week-one milestone
-
-**Done when:** on Firefox on Windows 11 **and** Firefox on the Pixel, via the GitHub Pages URL, you can:
-1. Toggle In / Out of session.
-2. Type a note, press Enter, and see it saved with a timestamp.
-3. Use `@` mentions with autocomplete; unknown names create stubs.
-4. See live search and recall cards as you type.
-5. Export a `.kit` file, and see the backup badge update.
-6. Import in New mode (empty app).
-7. Merge an export from the other device.
-8. Reload or close the browser and still have your data. Persistent storage is requested.
-
-**Stretch, in order:** service worker for offline use · inline "add summary" on the recall card.
-
-**Not in week one:** images, back layer, Replace import, triage, relationships, merge entities, graph.
-
-### Build order
-1. Verify the [NV] items and pin library versions.
-2. Repo and GitHub Pages skeleton (hello-world page live on the URL).
-3. `db.js` / `model.js` (Dexie schema, record factories).
-4. Capture box and notes feed.
-5. Mentions (parse, autocomplete, stubs).
-6. Search and recall cards.
-7. Export.
-8. Import (New, Merge).
-9. Backup badge and nudge.
-10. Mode toggle and sessions.
-11. Android pass (manual checklist).
-
-### Later phases
-- **Week 2:** **Sync now (first)**, then entity list and editor, note edit/delete, merge entities, Replace import, offline mode.
-- **Week 3:** inbox triage, relationships, images.
-- **Later:** graph view.
-
-### Project layout
-```
-satchel/
-  index.html  manifest.webmanifest  sw.js  SPEC.md
-  css/app.css
-  js/ app.js db.js model.js mentions.js search.js bundle.js merge.js sync.js images.js ui/
-  vendor/   (pinned preact, htm, dexie, minisearch, fflate)
-  tests/unit/  tests/e2e/  tests/fixtures/*.kit
-```
-
-## 10. Test plan
-
-**Unit tests** (`node --test`, pure logic):
-- mention parsing and resolution
-- the Merge algorithm
-- schema migrations
-- bundle validation
-- duplicate-id handling
-- the search trigger rule
-
-**Browser tests** (Playwright, Firefox):
-- capture → Enter → saved
-- `@` → stub; `@` existing → linked
-- recall card shows the last 3 mentions
-- export → wipe → import New gives identical data (round trip)
-- two diverged exports → Merge → expected result
-- data survives a reload
-
-### Edge cases
-- **Storage wipe:** clear the site data → the app opens empty and offers Restore.
-- **Duplicate IDs in a file:** keep the newest and report it.
-- **Old schema:** keep a fixture file for every schema version, forever, and import each one in the test run.
-- **Newer schema:** refused with a clear message.
-- **Merge conflicts:**
-  - Same note edited on both devices → newest wins.
-  - Deleted on A, edited later on B → B wins (resurrected). Accepted.
-  - Entity merged on A while B kept mentioning the stub → `merged_into` redirects.
-  - Different `bundle_id` → only Replace is offered.
-- **Clock skew:** known risk, documented (section 2).
-- **Sync (week 2):**
-  - Both devices sync at the same moment → the second gets a `sha` conflict, pulls, merges, retries, and nothing is lost.
-  - Phone offline mid-sync → clear error, local data untouched.
-  - Bad or expired token → clear error pointing at settings.
-  - Repo is empty (first sync) → push only.
-  - Online copy is a different `bundle_id` → refuse; offer the emergency overwrite only.
-  - Online copy has a newer `schema_version` → refuse.
-  - The token is never included in exports or commit contents.
-  - Unit test the pull → merge → push logic against a fake GitHub API.
-- **Bad files:** corrupt zip, a bad line in `notes.jsonl`, a `../` path in the zip, a non-zip renamed to `.kit`.
-- **Large images (week 3):**
-  - 20 MB phone photo
-  - 12 000 px panorama
-  - transparent PNG
-  - corrupt image
-  - non-image file renamed to `.jpg`
-  - quota-exceeded error
-- **Other:**
-  - Two tabs open at once (stale state → refresh between tabs, or warn).
-  - Private window **[NV: Firefox may keep the data in memory only]**.
-  - Emoji and non-English names.
-  - A very long note.
-
-### Android manual checklist
-- The keyboard doesn't hide results.
-- The keyboard's Enter key saves.
-- Tapping an autocomplete suggestion works.
-- The export lands in Downloads.
-- The file picker lets you select a `.kit` file (no `accept` filter) **[NV]**.
-- Note what `persist()` does on Android: prompt, silent grant or refusal **[NV]**.
-- Menu → Install puts Satchel on the home screen.
-
-## 11. Open questions
-- ~~Q1~~ Resolved: `@Lord_Aldric` (underscores → spaces).
-- ~~Q2~~ Resolved: yes, auto-end after 12 h idle; the end time is set to the last note.
-- ~~Q3~~ Resolved: all un-triaged notes go to the inbox, filterable by In/Out.
-- ~~Q4~~ Resolved: newest edit wins; clock-skew risk accepted; the merge report shows what was overwritten.
-- ~~Q5~~ Resolved: add an `item` entity type (story items only, no stats).
-
-- ~~Q6~~ Resolved 2026-10-01: dashboard design in section 7 (files: images + txt/md, 10 MB). Original notes kept below.
-- **Q6 (original)** Out-of-session interface (also where entity **tags** and type are edited): Jake plans a completely different UI for out-of-session work (the back layer), including uploading **images and documents**. Design it at the start of week 2. Documents are new scope beyond images. Open points:
-  - Which file types to accept: PDFs? Office files? Any file?
-  - The kit layout: a general `files/` folder alongside `images/`?
-  - Size: documents make kits bigger, and GitHub sync caps a single file at 100 MB.
-  - Should documents be compressed or size-limited?
-
-## 12. Decision log
+## 15. Decision log
 | Date | Decision |
 |---|---|
-| 2026-10-01 | One combined box (D1) |
-| 2026-10-01 | Both devices in session → Merge in week one (D5) |
-| 2026-10-01 | Firefox on Windows 11 + Android; iOS ignored (D4) |
-| 2026-10-01 | In/Out session toggle instead of day-based sessions (D2) |
-| 2026-10-01 | One character at a time (D3) |
-| 2026-10-01 | GitHub Pages hosting (D6) |
-| 2026-10-01 | Multi-word mentions via underscores (Q1) |
-| 2026-10-01 | Auto-end session after 12 h idle (Q2) |
-| 2026-10-01 | All notes go to the triage inbox (Q3) |
-| 2026-10-01 | Last-write-wins merge, clock-skew risk accepted (Q4) |
-| 2026-10-01 | `item` entity type added (Q5) |
-| 2026-10-01 | Manual "Sync now" via private GitHub repo, merge-based, no locks; first item in week 2 (D14) |
-| 2026-10-01 | SPEC approved |
-| 2026-10-01 | Step 1 done: libraries pinned; no `accept` filter on import; export is download-only; sync uses separate files + Git Data API commits |
-| 2026-10-01 | Local db v2 upgrade links `@names` in notes saved before mentions existed |
-| 2026-10-01 | Recall cards: player character excluded (would match nearly every note); highlighted @suggestion gets a card |
-| 2026-10-01 | Backup file renamed `.satchel` → `.kit`; export = "Pack kit", import = "Unpack kit". The `format: "satchel"` marker inside is unchanged |
-| 2026-10-01 | Service worker pulled forward from stretch: network-first (revalidate every load, cache as offline fallback), same-origin GETs only. Fixes Firefox Android running stale builds |
-| 2026-10-01 | Merge combines duplicate **stubs** with the same name (from two devices). Survivor = oldest `created_at`, then lowest id, so every device picks the same one; the loser becomes a tombstone with `merged_into`; mentions and relationships are redirected. Real entities are never auto-combined (manual merge, week 2) |
-| 2026-10-01 | Unpack kit: New (empty device, also offered on the first-run screen) and Merge (same `bundle_id`) with a confirm screen showing counts. Different character → refused until Replace (week 2) |
-| 2026-10-01 | Replace pulled forward from week 2, plus **New character** (menu). Both: red warning with counts, type the character's name to confirm, a backup kit downloads first; Replace is one transaction (old data kept if loading fails) |
-| 2026-10-01 | Demo rewritten in a real player's voice (shorthand, typos, swearing, table chatter; tags like "fuck this guy", "do NOT trust"), notes run through the real mention resolver as typed, party characters added, stable ids so a rebuilt demo merges cleanly; her Notes section says it's a test character and lists what to poke at. It exposed a real gap, now fixed: **short names**. For people (NPCs, characters, stubs), any word of a multi-word name that's 4+ letters and belongs to no other entity counts for recall cards, tap-to-link and `@mentions` ("Grimbold", "Caldra", "Aldric"); shared words ("Ashdown", "Sister") and non-people don't. Also: no "No notes yet" flash while the feed loads |
-| 2026-10-01 | **Demo character** (Wren Ashdown) at `demo/wren.kit`, built by `tests/tools/make-demo-kit.mjs` with the app's own code: 22 entities, 45 dated notes over 4 sessions (11 unsorted), filled character page with portrait, 14 relationships, map, handout and loot list, plus deliberate rough edges (typo stub "Grimbolt", plain stubs, an edited note). First-run screen offers **Try the demo character** (same confirm screen as any kit). A unit test now syntax-checks every module |
-| 2026-10-01 | **Graph view, decided unattended:** a per-entity "connections" diagram (inline SVG, no library) above the relationships list on entity and character pages. The entity sits in the centre with up to 12 others around it; lines are labelled with the type, one-way types get arrows, and names link to their pages. A whole-campaign network view stays deferred until there's real data to judge it on (a full graph of a few dozen entities is mostly crossing lines) |
-| 2026-10-01 | Character profile merges **per section** (`profile_times`), removing the two-device data-loss limit. Deterministic and order-independent, so devices settle on the same result. Visual review pass from screenshots (`tests/tools/screens.mjs`): one-line top bar (build label moved into the menu), quieter Inbox secondary actions, title-case type labels, search-hit layout fix |
-| 2026-10-01 | Built (unattended): **relationships** on entity and character pages. Suggested types: ally, rival, family, enemy (both ways); owes, member of, located in, works for (one-way; "works for" replaces "employer" so the sentence reads clearly). Free text allowed; unknown types default to one-way. Shown as sentences ("Kael owes Grimbold", "Kael ↔ Mira (ally)") on both ends, oldest first. An unknown "with" name creates a stub. Recall cards show up to 3, as plain text. Remove with ×. Inbox **Add as relationship…** (only for notes that mention someone): from/type/to picked from your character plus the mentioned entities; the dated note text becomes the relationship's notes and `source_note_ids`; the note is marked sorted. A phone-width test checks that no page scrolls sideways |
-| 2026-10-01 | Built (unattended): **All notes** page (`#/log`, newest first, text filter) and note **edit/delete** there and in the Inbox. Edit shows @names in typed form and re-links them to the same entities; mentions of deleted entities are left untouched (no new stubs); `original_text` keeps the first version and the note shows "edited". Fix: typing straight after a tap-to-link no longer scrambles letters |
-| 2026-10-01 | Built (unattended), files: kit **schema 2** live (`files/<id>.<webp\|jpg\|txt\|md>`; a schema-1 example kit is kept at `tests/fixtures/schema-1.kit` and tested). File record field is `size` (not `bytes`). Any entity can have a picture (`portrait_file_id`); the character's is its portrait. Images are WebP at quality 0.85 (JPEG if WebP can't be written). Text is checked as valid UTF-8. No `accept` filter on pickers. Deleting a file tombstones the record and frees its bytes; other devices free theirs on merge/sync. Sync doesn't re-download file bytes a device already has. Local db v4 adds `files` and drops the unused `images` table |
-| 2026-10-01 | Built (unattended): Inbox adds note text stamped with its date ("Wed, 1 Oct 2026: …") to descriptions and character sections, as its own paragraph. A "Show sorted" view can send notes back to the inbox (undo). "Mark all as log" respects the In/Out filter. Status messages float under the top bar instead of pushing the page down (taps right after a message no longer miss) |
-| 2026-10-01 | Built (unattended): lists are sorted A–Z rather than newest first (easier to scan; the filter matches name, alias or tag). Entity fields autosave after 0.7 s idle and on leaving a field; saving the same value is a no-op. Merge entities: the loser's name and aliases become aliases, tags are combined, an empty summary is filled from the loser, descriptions are joined, and files and relationships follow. Delete is a tombstone; notes keep the name as text. Session mode is device meta (survives Replace/New character) |
-| 2026-10-01 | Out-of-session design (section 7): the mode decides the screen; dashboard home with full pages; desktop first; hash addresses; files = images + txt/md, 10 MB, shown as plain text; fixed roleplay sections on the character page, with a read-only overview in session; kit schema 2 (`files/` replaces `images/`) |
-| 2026-10-01 | Entities: one fixed **type** plus free **tags**. Tags are edited out of session (Q6); in session, a stub's recall card has a quick type picker ("stub ▾"). No note #tags for now. Local db v3 adds `tags: []` without touching `updated_at` |
-| 2026-10-01 | Merge: a stub also folds into the single real entity with the same name (typed on one device, stub on the other). Two or more real ones with the name: left alone (ambiguous) |
-| 2026-10-01 | Kit files are written as canonical JSON (keys sorted), so the same data always gives the same bytes and sync makes no phantom commits. Existing data commits once after this change |
-| 2026-10-01 | Week 2 starts with sync (D14), before the out-of-session UI: fully specified, removes the manual kit shuffle, and copies whatever files a kit has, so Q6 (documents) won't need sync changes. Repo layout: `characters/<bundle_id>/…` plus `sync.json` (device, time). Public repos refused at setup and on every sync. Sync stamps kits with the newest record time so an unchanged character makes no commit. A successful sync counts as a backup |
-| 2026-10-01 | D2 revised: the In/Out toggle lives in the menu ("Start session" / "End session"); no session records or numbers; small "In session" label in the top bar only while in session; auto-end after 12 h idle kept; ending a session with unsaved changes nudges Pack kit. Both modes use the capture screen until the out-of-session UI is designed (Q6) |
-| 2026-10-01 | Backup badge: neutral for changes under 24 h (spec left this unstated); colour ages from the first unsaved change (`first_change_at`); tapping the badge packs a kit |
-| 2026-10-01 | "Changes since backup" = edits made on this device not yet in any kit. Merge leaves the counters alone (merged-in records came from a kit) |
-| 2026-10-01 | Pixel test: Android file picker selects `.kit` files for Unpack |
-| 2026-10-01 | Pixel test: Pack kit downloads as `.kit` (not renamed to `.kit.zip`) |
-| 2026-10-01 | Search typo allowance: ≤3 letters exact, 4 letters 1 edit, 5+ letters 2 edits (swapped letters = 2) |
+| 2026-10-01 | v2 replaces v1, built fresh from this spec on a new machine, in the same GitHub repo (v1 kept under tag `v1-final`) |
+| 2026-10-01 | Keep: one character per app; capture + `@mentions` + recall; Inbox; relationships + diagram; files; kits |
+| 2026-10-01 | Drop: GitHub sync; manual kit export/import is the only device transfer and backup |
+| 2026-10-01 | New: tags on notes (`#tag`); built-in + custom entity types with custom fields; D&D Beyond link |
+| 2026-10-01 | Navigation: hub (as v1) cleaned up, with breadcrumbs, Home always visible, and a session button in the top bar |
+| 2026-10-01 | Confirmations only for destructive actions; everything else edits in place |
+| 2026-10-01 | Jake mostly reviews behaviour; code stays clean and conventional, without teaching material |
+| 2026-10-01 | Build machine is Ubuntu: python3, Node LTS via nvm, `gh auth login` for GitHub; Windows/PowerShell notes dropped |
+| 2026-10-01 | SPEC v2 and the style preview approved by Jake. Section 14 defaults accepted: no v1 kit import, built-in types renamable (label only), field kinds as listed, Home shows the last 5 notes |
+| 2026-10-01 | **Visual style: "field journal"** (section 5.4) replaces v1's plain palette: aged paper, sepia ink, ruled lines, red margin, green marks; green darkened to #4F6B47 for AA contrast. Headings in a bundled old-book serif (IM Fell English, fallback EB Garamond); body in system fonts. Wording themed only at signature moments (Pack/Unpack kit, empty states, toasts); all strings in `js/ui/strings.js` |

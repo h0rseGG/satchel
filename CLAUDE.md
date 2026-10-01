@@ -1,58 +1,41 @@
-# Satchel: working notes for Claude
+# Satchel v2: working notes for Claude
 
-Player-side D&D character companion. Static PWA on GitHub Pages, data in IndexedDB, no backend.
-**SPEC.md is the source of truth.** Design: sections 0–11; every decision since approval: section 12 (decision log).
-Owner: Jake (electrician; Python-first, new to web). Personal project, not Cablewise work.
+Player-side D&D character companion. Static PWA on GitHub Pages (github.com/h0rseGG/satchel, live at https://h0rsegg.github.io/satchel/), data in IndexedDB, no backend, no sync.
+**SPEC.md is the source of truth.** Read section 13 (lessons from v1) before coding. Log every build decision in SPEC section 15 with the date.
+Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablewise work). He mostly reviews behaviour, not code.
 
-## Working style (owner's preferences)
-- Blunt, concise, structured. AU English, metric. Flag anything unverified ([NV]). Don't invent.
-- End every reply with a clear **Next step** (he works in short, interrupted bursts).
-- Ask at most 3 questions at a time (AskUserQuestion). Explain key choices briefly.
-- When he's away and says "keep going": build approved scope, decide details, **log decisions in SPEC §12**, test, push each finished step.
-- Authorised: push to `origin main` after each finished, tested step (it updates the live site).
+## Working style
+- Blunt, concise, structured. Challenge weak ideas. AU English, metric.
+- Flag anything unverified as [NV]; never invent library behaviour or browser limits.
+- End every reply with a clear **Next step**: he works in short, interrupted bursts.
+- Ask at most 3 questions at a time (AskUserQuestion); recommend an option.
+- Explain key choices briefly. Make reasonable assumptions and say so inline.
+- When he says "keep going" / is away: build approved scope milestone by milestone, decide details, log them, test, push each finished step. Don't expand scope; leave design-changing questions for his return.
+- Authorised: push to `origin main` after each finished, **tested** step (it updates the live site).
+- Testing uses the demo character only until he says the app is finished. Still treat data safety as if it were real.
 
-## Environment quirks (Windows, PowerShell 5.1)
-- Prefix shell commands with:
-  `$env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User');`
-- Commit messages: write to the scratchpad and `git commit -F <file>` (PS 5.1 mangles quotes).
-- Don't edit repo files with `Set-Content`/`Out-File` (BOM). Use the Edit tool, or a node script file for bulk edits.
-- htm drops whitespace that contains a newline: keep sentences with `${}` on one line.
-- Bump `BUILD` in `js/version.js` on every push (date.counter); it's shown in the top bar.
+## Environment (Ubuntu build machine; the app targets Firefox on Windows and Android)
+- Tools:
+  - `git`;
+  - Node **LTS via nvm** (Ubuntu's apt `nodejs` is often too old);
+  - `python3`, already installed.
+  - Playwright Firefox: `npx playwright install --with-deps firefox` (needs sudo once for system libraries).
+- GitHub sign-in: `gh auth login` (GitHub CLI) or an SSH key. Interactive prompts can't run inside Claude Code's shell, so Jake does the first sign-in in a normal terminal.
+- Commit identity is repo-local: `h0rse` / `189693150+h0rseGG@users.noreply.github.com`. Never use a work email.
+- Commit messages: a heredoc or `git commit -F <file>`; end with the attribution line the harness provides.
+- Bump `BUILD` in `js/version.js` on every push (date.counter); it shows in the menu.
+- Manual checks: Playwright covers Firefox on Linux. At each milestone Jake also opens the live site in Firefox on Windows and on his Pixel (the real targets).
+- v1 was built on Windows/PowerShell; its PowerShell workarounds don't apply here.
 
 ## Run and test
-- Serve: `python -m http.server 8000`, then open http://localhost:8000 (Firefox).
-- Unit: `npm test` (node --test, pure modules only). Browser: `npm run e2e` (Playwright, Firefox, 4 workers).
-- Before pushing a step: unit tests plus the full browser suite, ideally `npx playwright test --repeat-each=2` (it has caught races).
-- **Gate the commit on the result in the same command** (capture output, commit/push only if `ℹ fail 0` and no "failed"/"flaky"). Build .31 went live with a regression because tests and push ran unconditionally in one command.
-- A flaky test is a lead, not noise: read `test-results/**/error-context.md` (page snapshot at failure). Two real bugs were found that way.
-- Tests use `window.__satchel.db` (localhost only) and `tests/fake-github.js` (in-memory GitHub).
-- New characters land **out of session** (dashboard). Capture-screen tests call `enterSession(page)` from `tests/e2e/helpers.js`.
-- Keep `tests/fixtures/schema-<n>.kit` for every kit schema version, forever.
+- Serve: `python3 -m http.server 8000` → http://localhost:8000 (Firefox). Tests use port 8123 (the Playwright config starts `python3 -m http.server 8123`).
+- Unit: `npm test`. Browser: `npx playwright test` (Firefox, 4 workers; 8 overloads this PC).
+- **Before every push:** unit + `npx playwright test --repeat-each=2`, and **commit/push in the same command only if all pass**, e.g. `npm test && npx playwright test --repeat-each=2 && git commit -F msg.txt && git push` (`&&` stops at the first failure). Never chain the push after tests with `;`.
+- Flaky test = lead: read `test-results/**/error-context.md`.
+- UI milestones: run `tools/screens.mjs`, read the screenshots back, fix visual problems before calling it done.
+- Tests may read the database through `window.__satchel.db` (exposed on localhost only).
+- htm drops whitespace containing a newline: keep sentences with `${}` on one line.
 
-## Code map
-| File | Role |
-|---|---|
-| `js/model.js` | Record factories (entity, note, file, session, relationship), SCHEMA_VERSION (kit, now 2), PROFILE_SECTIONS |
-| `js/mentions.js` | @mention parsing; tokens `@[label](id)`; resolveMentions; linkPlainName |
-| `js/search.js` | MiniSearch index, recall-card matching |
-| `js/kit.js` | Pack/unpack `.kit` (zip): kitFiles/readKitFiles, canonical JSON, MIGRATIONS |
-| `js/merge.js` | Union by id (newest wins), duplicate-stub combining, mergeEntityInto, redirects |
-| `js/fileRules.js`, `js/upload.js` | File rules (images, .txt, .md; 10 MB) and upload processing (WebP) |
-| `js/backup.js`, `js/session.js` | Backup-badge rules; In/Out auto-end |
-| `js/github.js`, `js/syncCore.js`, `js/sync.js` | GitHub client, pull/push engine, Sync now |
-| `js/db.js` | Dexie schema (local db v4) and all reads/writes. Change counters via `save()` |
-| `js/ui/App.js` | Shared top bar, messages, session toggle; picks CaptureScreen (in) or OutScreen (out) |
-| `js/ui/CaptureScreen.js` | In-session front layer: feed, recall cards, capture box |
-| `js/ui/OutScreen.js` + `js/ui/pages/*` | Hash-routed back layer: Dashboard, EntityList, Entity, Character, Inbox, Files, Log |
-| `js/ui/fields.js`, `js/ui/files.js` | Autosave fields, chips, confirm dialog; file thumbs, viewer helpers, uploads |
-| `js/ui/NoteItem.js`, `js/ui/Relationships.js` | Note row with edit/delete (Log, Inbox); relationships list, add form, sentence text |
-| `sw.js` | Service worker: network-first, offline fallback |
-
-## Status (2026-10-01)
-- Week one: done. Week 2: sync (GitHub, merge-based) done. Out-of-session design (SPEC §7) steps 1–5 done.
-- Also done: All notes page (#/log) with note edit/delete; relationships (entity/character pages, recall cards, Inbox "Add as relationship").
-- Also done: per-section profile merge; visual review via `node tests/tools/screens.mjs <dir>` (needs `python -m http.server 8123` running), screenshots read back with the Read tool.
-- Also done: per-entity connections diagram (`js/ui/Connections.js`, inline SVG).
-- Demo character: `demo/wren.kit` (rebuild with `node tests/tools/make-demo-kit.mjs`; keep `tests/e2e/demo.spec.js` counts in step). Screenshots of it: `node tests/tools/screens.mjs <dir> demo/wren.kit`.
-- Deferred: whole-campaign network graph (judge with real data first); private-window warning (Firefox gives no reliable way to detect it).
-- Unverified on the Pixel: photo upload orientation; feel of the new pages on the phone.
+## Status
+- v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
+- v2: not started. Begin at SPEC milestone M0.
