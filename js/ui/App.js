@@ -10,6 +10,7 @@ import { formatShort } from './format.js';
 import { FirstRun } from './FirstRun.js';
 import { CaptureScreen } from './CaptureScreen.js';
 import { OutScreen } from './OutScreen.js';
+import { CharacterOverview } from './pages/Character.js';
 import { Menu } from './Menu.js';
 import { BackupBadge } from './BackupBadge.js';
 import { href } from './router.js';
@@ -40,6 +41,7 @@ function Main() {
 
   // In / Out of session. Ending a session with unsaved changes nudges a backup.
   const [nudge, setNudge] = useState(null);
+  const [overview, setOverview] = useState(false);
   async function toggleSession() {
     if (session.mode === 'in') {
       await setMode('out');
@@ -80,13 +82,15 @@ function Main() {
   return html`
     <header class="topbar">
       ${inSession
-        ? html`<span class="topbar__title">${name}</span>`
+        ? html`<button type="button" class="topbar__title topbar__pc" title="Character overview"
+            onClick=${() => setOverview(true)}>${name}</button>`
         : html`<a class="topbar__title topbar__home" href=${href('/')}>${name}</a>`}
       ${inSession && html`<span class="topbar__session muted">In session</span>`}
       <span class="topbar__build muted" title="Build">${BUILD}</span>
       <${BackupBadge} onMessage=${setMessage} />
       <${Menu} onMessage=${setMessage} mode=${session.mode} onToggleSession=${toggleSession} />
     </header>
+    ${overview && inSession && pc && html`<${CharacterOverview} pc=${pc} onClose=${() => setOverview(false)} />`}
     ${nudge && html`<${EndNudge} status=${nudge} onMessage=${setMessage} onClose=${() => setNudge(null)} />`}
     ${message && html`
       <p class=${`message badge badge--${message.kind}`} role="status" onClick=${() => setMessage(null)}>${message.text}</p>

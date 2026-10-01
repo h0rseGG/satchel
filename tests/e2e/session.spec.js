@@ -61,8 +61,11 @@ test('No nudge when already backed up; Not now closes it otherwise', async ({ pa
   await start(page);
   await say(page, 'x');
   await Promise.all([page.waitForEvent('download'), page.locator('.topbar .badge').click()]);
+  // The download starts before "backed up" is recorded; wait for the record.
+  await expect(page.locator('.topbar .badge')).toHaveText('Backed up');
   await menu(page, 'Start session');
   await menu(page, 'End session');
+  await expect(page.getByRole('region', { name: 'Inbox' })).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
   await menu(page, 'Start session');

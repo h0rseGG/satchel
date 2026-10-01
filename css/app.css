@@ -276,6 +276,23 @@ html, body {
 .page__title { margin: 0; font-size: 20px; }
 .crumb { font-size: 13px; }
 
+/* Character page and in-session overview */
+.character__body { max-width: 760px; }
+.topbar__pc {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed var(--muted);
+  cursor: pointer;
+}
+.overview { max-width: 560px; }
+.overview__concept { font-style: italic; margin: 0 0 12px; }
+.overview__section h3 { margin: 12px 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+.overview__section p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* Lists and entity pages */
 .list__tools { margin-bottom: 10px; }
 .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }

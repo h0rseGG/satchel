@@ -8,6 +8,10 @@ export const APP_VERSION = '0.1.0';
 export const ENTITY_TYPES = ['character', 'npc', 'faction', 'location', 'item', 'other', 'unknown'];
 export const NOTE_MODES = ['in', 'out'];
 
+// Character page sections (SPEC section 7), stored on the player
+// character's entity as profile: { concept, backstory, ... }.
+export const PROFILE_SECTIONS = ['concept', 'backstory', 'personality', 'ideals', 'bonds', 'flaws', 'goals', 'appearance', 'notes'];
+
 export function now() {
   return new Date().toISOString();
 }

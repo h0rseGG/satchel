@@ -3,7 +3,7 @@
 
 import Dexie from 'dexie';
 import {
-  ENTITY_TYPES, cleanName, cleanTags, live, makeEntity, makeNote, newId, now, setType, tombstone, touch,
+  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, live, makeEntity, makeNote, newId, now, setType, tombstone, touch,
 } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
@@ -129,6 +129,21 @@ export async function updateEntity(id, changes) {
     const same = Object.entries(next).every(([k, v]) => JSON.stringify(e[k]) === JSON.stringify(v));
     if (same) return e;
     return save('entities', touch(e, next));
+  });
+}
+
+// Character page: set one profile section. Reads and writes inside one
+// transaction, so sections saving at nearly the same time can't overwrite
+// each other.
+export async function updateProfile(id, section, value) {
+  if (!PROFILE_SECTIONS.includes(section)) throw new Error(`Unknown section ${section}`);
+  return db.transaction('rw', db.entities, db.meta, async () => {
+    const e = await db.entities.get(id);
+    if (!e || e.deleted) throw new Error('Character not found.');
+    const profile = { ...(e.profile ?? {}) };
+    if ((profile[section] ?? '') === value) return e;
+    profile[section] = value;
+    return save('entities', touch(e, { profile }));
   });
 }
 
