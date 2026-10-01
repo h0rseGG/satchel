@@ -90,6 +90,23 @@ test('relationships show on recall cards in session', async ({ page }) => {
   await expect(page.locator('.card__rels a')).toHaveCount(0);   // plain text in session
 });
 
+test('connections diagram: one node per other entity, shared lines, links work', async ({ page }) => {
+  await start(page);
+  await note(page, '@Grimbold and @Mira');
+  await page.goto('/#/character');
+  await expect(page.locator('.connections')).toHaveCount(0);   // nothing yet, no empty diagram
+  await addRel(page, { type: 'owes', other: 'Grimbold' });
+  await addRel(page, { type: 'rival', other: 'Grimbold' });
+  await addRel(page, { type: 'ally', other: 'Mira' });
+  const svg = page.getByRole('img', { name: /^Connections of Kael/ });
+  await expect(svg).toHaveAttribute('aria-label', 'Connections of Kael: Grimbold, Mira');
+  await expect(svg.locator('circle')).toHaveCount(2);
+  await expect(svg.locator('.connections__type')).toHaveText(['owes, rival', 'ally']);
+  await svg.locator('a', { hasText: 'Mira' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mira');
+  await expect(page.getByRole('img', { name: /^Connections of Mira/ })).toBeVisible();
+});
+
 test('merging entities moves their relationships', async ({ page }) => {
   await start(page);
   await note(page, '@Grimbold @Grimbolt');

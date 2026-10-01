@@ -51,6 +51,12 @@ async function seed(page) {
     await db.addRelationship({ selfId: id('Mira Vane'), otherName: 'Thieves Guild', type: 'member of', directed: true });
     await db.addRelationship({ selfId: pcId, otherName: 'Mira Vane', type: 'ally', directed: false });
     await db.addRelationship({ selfId: id('Lord Aldric'), otherName: 'Grimbold', type: 'rival', directed: false });
+    // Enough on the character to check the diagram with many connections.
+    await db.addRelationship({ selfId: pcId, otherName: 'Lord Aldric', type: 'rival', directed: false });
+    await db.addRelationship({ selfId: pcId, otherName: 'Lyra', type: 'family', directed: false });
+    await db.addRelationship({ selfId: pcId, otherName: 'Thornwood', type: 'raised in', directed: true });
+    await db.addRelationship({ selfId: pcId, otherName: 'Thieves Guild', type: 'enemy', directed: false });
+    await db.addRelationship({ selfId: id('Lord Aldric'), otherName: 'Kael Stormborn', type: 'owes a favour to', directed: true });
 
     const canvas = document.createElement('canvas');
     canvas.width = 800; canvas.height = 500;
@@ -83,6 +89,9 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 860 }], ['ph
     await page.locator('main').waitFor();
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(out, `${label}-${name}.png`), fullPage: true });
+    // Pages scroll inside <main>, so also capture the relationships section on its own.
+    const rels = page.locator('.rels');
+    if (await rels.count()) await rels.screenshot({ path: join(out, `${label}-${name}-rels.png`) });
   }
   // In session: feed, then a recall card.
   await page.goto(`${BASE}#/`);

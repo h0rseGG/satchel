@@ -358,6 +358,18 @@ a.btn { display: inline-block; text-decoration: none; color: var(--text); }
 .rels__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .rels__row .chip__x { margin-left: auto; }
 .rels__form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+.connections { margin: 4px 0 12px; }
+.connections svg { display: block; width: 100%; max-width: 520px; height: auto; }
+.connections__line { stroke: var(--muted); stroke-width: 1.2; }
+.connections__arrow { fill: var(--muted); }
+/* A background-coloured outline behind labels so lines don't run through them. */
+.connections__type { fill: var(--muted); font: 12px var(--font); stroke: var(--bg); stroke-width: 4px; paint-order: stroke; }
+.connections__dot { fill: var(--bg-alt); stroke: var(--text); stroke-width: 1.5; }
+.connections__name { fill: var(--text); font: 14px var(--font); stroke: var(--bg); stroke-width: 4px; paint-order: stroke; }
+.connections a:hover .connections__name { text-decoration: underline; }
+.connections a:hover .connections__dot { fill: var(--text); }
+.connections__centre { fill: var(--bg-alt); stroke: var(--text); stroke-width: 1.5; }
+.connections__self { fill: var(--text); font: 600 13px var(--font); }
 .card__rels { list-style: none; margin: 0 0 6px; padding: 0; font-size: 14px; }
 
 /* Inbox */

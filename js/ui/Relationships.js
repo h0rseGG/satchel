@@ -4,6 +4,7 @@ import { useLive } from './useLive.js';
 import { db, addRelationship, deleteRelationship } from '../db.js';
 import { RELATIONSHIP_TYPES, directedByDefault, live } from '../model.js';
 import { href } from './router.js';
+import { Connections } from './Connections.js';
 
 // Live relationships touching an entity (both ends must still exist).
 export function useRelationships(entityId, names) {
@@ -56,6 +57,7 @@ export function Relationships({ entity, names, pcId, onMessage }) {
   return html`
     <section class="rels" aria-label="Relationships">
       <h2 class="panel__title">Relationships (${rels.length})</h2>
+      <${Connections} entity=${entity} rels=${rels} names=${names} pcId=${pcId} />
       ${rels.length > 0 && html`
         <ul class="rels__list">
           ${rels.map((r) => html`
@@ -74,8 +76,8 @@ export function Relationships({ entity, names, pcId, onMessage }) {
           onInput=${(e) => setOther(e.currentTarget.value)} />
         <datalist id="rel-others">${others.map((n) => html`<option value=${n} />`)}</datalist>
         <select class="input" aria-label="Direction" value=${shownDirection} onChange=${(e) => setDirection(e.currentTarget.value)}>
-          <option value="out">${entity.name} → them</option>
-          <option value="in">them → ${entity.name}</option>
+          <option value="out">this → them</option>
+          <option value="in">them → this</option>
           <option value="both">both ways</option>
         </select>
         <input class="input" aria-label="Relationship notes" placeholder="Notes (optional)" value=${notes}
