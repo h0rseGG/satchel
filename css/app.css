@@ -53,7 +53,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.topbar__session { font-size: 12px; white-space: nowrap; }
+.topbar__session { font-size: 12px; white-space: nowrap; margin-right: auto; }
 .topbar .badge, .topbar .btn { flex: none; white-space: nowrap; }
 @media (max-width: 480px) {
   .badge__long { display: none; }   /* "3 changes since backup" -> "3 changes" */
@@ -308,6 +308,7 @@ html, body {
 /* Character page and in-session overview */
 .character__body { max-width: 760px; }
 .topbar__pc {
+  flex: 0 1 auto;   /* only as wide as the name, so the dashed underline fits it */
   padding: 0;
   text-align: left;
   font: inherit;
