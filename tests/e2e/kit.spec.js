@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 import { readFile } from 'node:fs/promises';
 import { unpackKit } from '../../js/kit.js';
 
@@ -8,6 +9,7 @@ async function start(page) {
   await page.goto('/');
   await page.getByLabel('Character name').fill('Kael Stormborn');
   await page.getByRole('button', { name: 'Start' }).click();
+  await enterSession(page);
   await expect(box(page)).toBeFocused();
 }
 

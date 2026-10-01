@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 
 // A database left by build step 4 (local db v1): notes with plain "@Name"
 // text and no links. Opening the current app must link them (db v2 upgrade).
@@ -40,6 +41,7 @@ test('v1 -> v2: old typed @mentions get linked', async ({ page }) => {
   });
 
   await page.goto('/');
+  await enterSession(page);
   await expect(page.locator('.note .mention')).toHaveText(['Sunblade', 'Sunblade', 'Kael']);
 
   const { ents, notes } = await page.evaluate(async () => ({

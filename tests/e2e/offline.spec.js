@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 import { writeFile, rm } from 'node:fs/promises';
 
 const box = (page) => page.getByLabel('Note');
@@ -15,6 +16,7 @@ test('service worker registers and the app opens offline with its data', async (
   await page.goto('/');
   await page.getByLabel('Character name').fill('Kael');
   await page.getByRole('button', { name: 'Start' }).click();
+  await enterSession(page);
   await box(page).pressSequentially('note before going offline');
   await box(page).press('Enter');
   await swReady(page, box(page));

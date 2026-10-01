@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 import { fakeGitHub } from '../fake-github.js';
 
 // Two browser profiles (phone, PC) sync through one in-memory fake GitHub.
@@ -26,6 +27,7 @@ async function device(browser, fake) {
 async function start(page, name = 'Kael') {
   await page.getByLabel('Character name').fill(name);
   await page.getByRole('button', { name: 'Start' }).click();
+  await enterSession(page);
   await expect(box(page)).toBeFocused();
 }
 
@@ -64,6 +66,7 @@ async function unpackFrom(phone, pc) {
   await pc.getByRole('button', { name: 'Unpack a kit' }).click();
   await pc.getByLabel('Kit file').setInputFiles(await download.path());
   await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
 }
 
 test('setup refuses a public repo and a bad token, accepts a good one', async ({ browser }) => {

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 
 const box = (page) => page.getByLabel('Note');
 const card = (page, name) => page.getByRole('region', { name: `Recall: ${name}` });
@@ -7,6 +8,7 @@ async function start(page) {
   await page.goto('/');
   await page.getByLabel('Character name').fill('Kael');
   await page.getByRole('button', { name: 'Start' }).click();
+  await enterSession(page);
   await expect(box(page)).toBeFocused();
 }
 

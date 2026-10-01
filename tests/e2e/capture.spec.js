@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 
 async function startCharacter(page, name = 'Kael') {
   await page.goto('/');
   await page.getByLabel('Character name').fill(name);
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(page.locator('.topbar__title')).toHaveText(name);
+  await enterSession(page);
 }
 
 const box = (page) => page.getByLabel('Note');

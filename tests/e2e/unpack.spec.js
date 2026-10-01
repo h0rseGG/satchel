@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { enterSession } from './helpers.js';
 import { writeFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,6 +18,7 @@ async function device(browser) {
 async function start(page, name = 'Kael') {
   await page.getByLabel('Character name').fill(name);
   await page.getByRole('button', { name: 'Start' }).click();
+  await enterSession(page);
   await expect(box(page)).toBeFocused();
 }
 
@@ -64,6 +66,7 @@ test('New: unpack a kit onto an empty device', async ({ browser }) => {
   await expect(dialog).toContainText('Unpack Kael');
   await expect(dialog).toContainText('2 notes, 2 entities');
   await dialog.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
 
   await expect(pc.locator('.topbar__title')).toHaveText('Kael');
   await expect(pc.locator('.note__text')).toHaveText(['met Grimbold at the forge', 'second note']);
@@ -77,6 +80,7 @@ test('Merge: two devices combine, duplicate stubs become one', async ({ browser 
   const pc = await device(browser);
   await chooseKit(pc, await pack(phone));
   await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
   await expect(pc.locator('.note__text')).toHaveText(['shared start']);
 
   // Both devices meet "Grimbold" separately before syncing.
@@ -112,6 +116,7 @@ test('Merge does not count as unsaved changes; local edits stay counted', async 
   const pc = await device(browser);
   await chooseKit(pc, await pack(phone));
   await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
   await expect(badge(pc)).toHaveText('Backed up');
 
   // Phone adds notes; PC merges them: still backed up.
@@ -140,6 +145,7 @@ test('Merging the same kit twice changes nothing the second time', async ({ brow
   const pc = await device(browser);
   await chooseKit(pc, kit);
   await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
   await expect(pc.locator('.note__text')).toHaveText(['only note']);
   await chooseKit(pc, kit);
   await expect(pc.getByRole('dialog')).toContainText('0 added, 0 updated');
@@ -202,6 +208,7 @@ test('Replace instead of merge (same character) discards local changes', async (
   const pc = await device(browser);
   await chooseKit(pc, kit);
   await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await enterSession(pc);
   await say(pc, 'only on pc');
   await chooseKit(pc, kit);
   await pc.getByRole('button', { name: 'Replace instead…' }).click();

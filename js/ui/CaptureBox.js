@@ -8,7 +8,10 @@ import { nameKey } from '../model.js';
 // Esc closes the list. Enter always saves (SPEC section 6).
 // linkRequest: { entity } set by tapping a recall card; turns the plain
 // name in the box into a mention of that exact entity.
-export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = () => {}, linkRequest = null }) {
+export function CaptureBox({
+  entities, onSave, onDraft = () => {}, onPreview = () => {}, linkRequest = null,
+  placeholder = 'Type a note, press Enter. @ to mention.',
+}) {
   const ref = useRef(null);
   const caretAfterRender = useRef(null);
   const [text, setText] = useState('');
@@ -153,7 +156,7 @@ export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = (
         class="capture__box"
         rows="1"
         enterkeyhint="send"
-        placeholder="Type a note, press Enter. @ to mention."
+        placeholder=${placeholder}
         aria-label="Note"
         value=${text}
         onInput=${onInput}

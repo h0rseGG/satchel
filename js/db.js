@@ -234,7 +234,8 @@ export async function unpackMerge(data) {
 
 // Meta keys that describe the browser, not the character: kept on wipe.
 // Sync settings stay too: the repo holds one folder per character.
-const DEVICE_META = ['persist_asked', 'persist_granted', 'sync_repo', 'sync_token', 'sync_device', 'sync_branch'];
+// In/Out mode is about this device too, so Replace doesn't end a session.
+const DEVICE_META = ['persist_asked', 'persist_granted', 'sync_repo', 'sync_token', 'sync_device', 'sync_branch', 'mode', 'mode_since'];
 
 async function clearCharacter() {
   for (const t of [...TABLES, 'blobs']) await db[t].clear();
