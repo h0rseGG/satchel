@@ -23,6 +23,8 @@ Owner: Jake (electrician; Python-first, new to web). Personal project, not Cable
 - Serve: `python -m http.server 8000`, then open http://localhost:8000 (Firefox).
 - Unit: `npm test` (node --test, pure modules only). Browser: `npm run e2e` (Playwright, Firefox, 4 workers).
 - Before pushing a step: unit tests plus the full browser suite, ideally `npx playwright test --repeat-each=2` (it has caught races).
+- **Gate the commit on the result in the same command** (capture output, commit/push only if `ℹ fail 0` and no "failed"/"flaky"). Build .31 went live with a regression because tests and push ran unconditionally in one command.
+- A flaky test is a lead, not noise: read `test-results/**/error-context.md` (page snapshot at failure). Two real bugs were found that way.
 - Tests use `window.__satchel.db` (localhost only) and `tests/fake-github.js` (in-memory GitHub).
 - New characters land **out of session** (dashboard). Capture-screen tests call `enterSession(page)` from `tests/e2e/helpers.js`.
 - Keep `tests/fixtures/schema-<n>.kit` for every kit schema version, forever.
