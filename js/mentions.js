@@ -5,7 +5,7 @@
 // Stored form (inside note.text):         @[Grimbold](<entity-id>)
 //   the label is a readable fallback; the app shows the entity's current name.
 
-import { nameKey } from './model.js';
+import { makeEntity, nameKey } from './model.js';
 
 // A mention starts with @ at the start of the text or after a non-word
 // character (so emails like a@b.com don't count). Names may contain letters,
@@ -99,6 +99,30 @@ export function matchByName(entities, name) {
   );
   hits.sort((a, b) => (a.stub - b.stub) || b.updated_at.localeCompare(a.updated_at));
   return hits[0] ?? null;
+}
+
+// Turn typed mentions into stored tokens. Each name resolves to: the
+// autocomplete pick, else an exact name/alias match, else a new stub.
+// Pure: new stubs are returned in `created` for the caller to save.
+// entities: live entities. picked: { [nameKey]: entityId }.
+export function resolveMentions(text, entities, picked = {}) {
+  const byId = new Map(entities.map((e) => [e.id, e]));
+  const pool = [...entities];
+  const resolved = new Map();
+  const created = [];
+  for (const m of findTyped(text)) {
+    const key = nameKey(m.name);
+    if (resolved.has(key)) continue;
+    let ent = byId.get(picked[key]) ?? matchByName(pool, m.name);
+    if (!ent) {
+      ent = makeEntity({ name: m.name });
+      pool.push(ent);
+      created.push(ent);
+    }
+    resolved.set(key, ent);
+  }
+  const stored = tokenise(text, resolved);
+  return { text: stored, mentions: storedIds(stored), created };
 }
 
 // Autocomplete: names starting with the query first, then containing it.

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findTyped, tokenise, storedIds, parts, plain, activeQuery, typedForm, matchByName, suggest, token,
+  resolveMentions,
 } from '../../js/mentions.js';
 import { makeEntity, touch } from '../../js/model.js';
 
@@ -89,6 +90,26 @@ test('matchByName: case-insensitive, aliases, prefers non-stub then newest', () 
   const older = touch(makeEntity({ name: 'Twin', type: 'npc' }), {}, '2020-01-01T00:00:00.000Z');
   const newer = touch(makeEntity({ name: 'Twin', type: 'npc' }), {}, '2030-01-01T00:00:00.000Z');
   assert.equal(matchByName([older, newer], 'twin'), newer);
+});
+
+test('resolveMentions: links existing, creates one stub per new name, honours picks', () => {
+  const grim = makeEntity({ name: 'Grimbold', type: 'npc' });
+  const twinA = makeEntity({ name: 'Twin', type: 'npc' });
+  const twinB = makeEntity({ name: 'Twin', type: 'npc' });
+  const r = resolveMentions('@grimbold met @Zed and @zed and @Twin', [grim, twinA, twinB], { twin: twinA.id });
+  assert.equal(r.created.length, 1);
+  assert.equal(r.created[0].name, 'Zed');
+  assert.equal(r.created[0].stub, true);
+  assert.deepEqual(r.mentions, [grim.id, r.created[0].id, twinA.id]);
+  assert.equal(findTyped(r.text).length, 0, 'nothing left unlinked');
+});
+
+test('resolveMentions is idempotent on already-linked text', () => {
+  const grim = makeEntity({ name: 'Grimbold' });
+  const once = resolveMentions('saw @Grimbold', [grim]);
+  const twice = resolveMentions(once.text, [grim]);
+  assert.equal(twice.text, once.text);
+  assert.deepEqual(twice.created, []);
 });
 
 test('suggest: prefix matches before substring matches, limited', () => {

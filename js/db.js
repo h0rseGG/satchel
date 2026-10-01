@@ -2,15 +2,16 @@
 // record shapes live in model.js, which is unit tested without a browser.
 
 import Dexie from 'dexie';
-import { live, makeEntity, makeNote, nameKey, newId, now, touch } from './model.js';
-import { findTyped, matchByName, storedIds, tokenise } from './mentions.js';
+import { live, makeEntity, makeNote, newId, now, touch } from './model.js';
+import { findTyped, resolveMentions } from './mentions.js';
 
 export const db = new Dexie('satchel');
 
 // Only fields we query on are listed (the first one is the primary key).
 // IndexedDB can't index booleans or nulls, so `deleted` and `triaged_at`
 // are filtered in JS instead. Changing this list needs a new db.version().
-db.version(1).stores({
+// This is the local browser database version, not the .satchel schema_version.
+export const STORES = {
   entities: 'id, type, updated_at',
   notes: 'id, created_at, session_id, *mentions',
   sessions: 'id, number',
@@ -18,7 +19,28 @@ db.version(1).stores({
   images: 'id, entity_id',
   blobs: 'id',   // image bytes, kept apart so listing images stays fast
   meta: 'key',   // local-only settings: bundle_id, pc_entity_id, backup and sync status
-});
+};
+
+db.version(1).stores(STORES);
+
+// v2: notes saved before @mentions existed (build step 5) still hold plain
+// "@Name" text. Link them now, using the same rules as a new note.
+db.version(2).stores(STORES).upgrade(relinkTypedMentions);
+
+export async function relinkTypedMentions(tx) {
+  const entities = tx.table('entities');
+  const notes = tx.table('notes');
+  const ents = live(await entities.toArray());
+  for (const n of await notes.toArray()) {
+    if (n.deleted || !findTyped(n.text).length) continue;
+    const r = resolveMentions(n.text, ents);
+    for (const e of r.created) {
+      await entities.add(e);
+      ents.push(e);
+    }
+    await notes.put(touch(n, { text: r.text, mentions: r.mentions }));
+  }
+}
 
 export async function getMeta(key, fallback = null) {
   const row = await db.meta.get(key);
@@ -70,21 +92,9 @@ export async function update(table, id, changes) {
 // The first note ever also asks for persistent storage.
 export async function addNote({ text, mode = 'out', session_id = null, picked = {} }) {
   const note = await db.transaction('rw', db.entities, db.notes, db.meta, async () => {
-    const ents = live(await db.entities.toArray());
-    const byId = new Map(ents.map((e) => [e.id, e]));
-    const resolved = new Map();
-    for (const m of findTyped(text)) {
-      const key = nameKey(m.name);
-      if (resolved.has(key)) continue;
-      let ent = byId.get(picked[key]) ?? matchByName(ents, m.name);
-      if (!ent) {
-        ent = await save('entities', makeEntity({ name: m.name }));
-        ents.push(ent);
-      }
-      resolved.set(key, ent);
-    }
-    const stored = tokenise(text, resolved);
-    return save('notes', makeNote({ text: stored, mode, session_id, mentions: storedIds(stored) }));
+    const r = resolveMentions(text, live(await db.entities.toArray()), picked);
+    for (const e of r.created) await save('entities', e);
+    return save('notes', makeNote({ text: r.text, mode, session_id, mentions: r.mentions }));
   });
   if (!(await getMeta('persist_asked'))) {
     await setMeta('persist_asked', true);
@@ -93,8 +103,8 @@ export async function addNote({ text, mode = 'out', session_id = null, picked = 
   return note;
 }
 
-// Ask the browser not to evict our data. Firefox desktop shows a prompt
-// (SPEC 3, verification results); Android behaviour still to be tested.
+// Ask the browser not to evict our data. Firefox shows a prompt on desktop
+// and Android (SPEC 3, verification results).
 export async function requestPersist() {
   if (!navigator.storage?.persist) return false;
   if (await navigator.storage.persisted()) return true;
