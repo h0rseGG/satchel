@@ -36,3 +36,9 @@ test('no app file is git-ignored', async () => {
   const ignored = execFileSync('git', ['ls-files', '--others', '--ignored', '--exclude-standard', 'index.html', 'sw.js', 'manifest.webmanifest', 'js', 'css', 'vendor', 'icons', 'demo'], { cwd: new URL('../../', import.meta.url).pathname, encoding: 'utf8' }).trim();
   assert.equal(ignored, '');
 });
+
+test('sw.js pre-caches every app file (run node tools/sw-files.mjs after adding files)', async () => {
+  const { appFiles, swBlock, readBlock } = await import('../../tools/sw-files-lib.mjs');
+  const root = new URL('../../', import.meta.url).pathname;
+  assert.equal(readBlock(read('sw.js')), swBlock(appFiles(root)));
+});

@@ -23,3 +23,10 @@ export function when(iso, now = new Date()) {
   const d = new Date(iso);
   return `${day(iso, now)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+// "21:40"
+export function time(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

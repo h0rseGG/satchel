@@ -7,11 +7,11 @@ import { badge } from '../../core/backup.js';
 import { toast } from './toasts.js';
 
 // One line, always (SPEC 5.1). On phones the crumbs move to their own line (Crumbs below).
-export function TopBar({ name, crumbs, session, backup, onToggleSession, hasCharacter }) {
+export function TopBar({ name, crumbs, session, backup, onToggleSession, hasCharacter, onHome, overviewOpen }) {
   const inSession = session?.mode === 'in';
   return html`
     <header class="topbar">
-      <a class="topbar-home" href=${href('home')} title=${name || S.appName}>${name || S.appName}</a>
+      <a class="topbar-home" href=${href('home')} title=${onHome ? S.overview.open : name || S.appName} onClick=${onHome} aria-expanded=${onHome ? (overviewOpen ? 'true' : 'false') : undefined}>${name || S.appName}</a>
       <nav class="topbar-crumbs" aria-label=${S.nav.crumbs}><${CrumbTrail} crumbs=${crumbs} /></nav>
       ${hasCharacter && html`
         <button type="button" class=${`btn btn-secondary session-btn${inSession ? ' is-on' : ''}`} aria-pressed=${inSession ? 'true' : 'false'} onClick=${onToggleSession}>

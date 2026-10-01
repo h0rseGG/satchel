@@ -31,6 +31,7 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 - Serve: `python3 -m http.server 8000` → http://localhost:8000 (Firefox). Tests use port 8123 (the Playwright config starts `python3 -m http.server 8123`).
 - Unit: `npm test`. Browser: `npx playwright test` (Firefox, 4 workers; 8 overloads this PC).
 - **Before every push:** unit + `npx playwright test --repeat-each=2`, and **commit/push in the same command only if all pass**, e.g. `npm test && npx playwright test --repeat-each=2 && git commit -F msg.txt && git push` (`&&` stops at the first failure). Never chain the push after tests with `;`.
+- **After adding or removing app files:** `node tools/sw-files.mjs` (the service worker's pre-cache list; a unit test fails if it's stale). After editing the import map: `node tools/csp-hash.mjs`.
 - **After every push:** `node tools/check-live.mjs` (waits for Pages, opens the live site in Firefox, checks the version and no errors). Local tests can't see files that never got committed.
 - Flaky test = lead: read `test-results/**/error-context.md`.
 - UI milestones: run `tools/screens.mjs`, read the screenshots back, fix visual problems before calling it done.
@@ -39,5 +40,4 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: M0–M2 done (frame, core logic, demo kit, data layer, components, router, top bar). Next: M3 session screen.
-- Open question for Jake: mentions show the entity's current name, which reads oddly for aliases and short names ("capt Captain Rook Harlow"). Proposed: show the typed label while it's still one of the entity's names, else the current name.
+- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). Next: M4 World.

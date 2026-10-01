@@ -1,7 +1,7 @@
 // Full-text search over notes and entities (SPEC 4.5, 5.2). Pure apart from the index object.
 // Imports the vendored file by relative path so the same code runs in Node tests.
 import MiniSearch from '../../vendor/minisearch.mjs';
-import { plainText } from './mentions.js';
+import { segments } from './mentions.js';
 import { PROFILE_SECTIONS } from './model.js';
 
 // Typo tolerance by word length: 0 edits up to 3 letters, 1 for 4, 2 for 5+.
@@ -16,8 +16,18 @@ export function shouldSearch(text) {
   return words.length > 0 && words.length <= 4;
 }
 
+// A mention is indexed as shown ("Mira") and by the entity's full name ("Mira Vane"),
+// so searching either finds the note.
+function noteSearchText(text, byId) {
+  return segments(text, byId).map((s) => {
+    if (s.type !== 'mention') return s.text;
+    const name = byId.get(s.id)?.name;
+    return name && name !== s.label ? `${s.label} ${name}` : s.label;
+  }).join('');
+}
+
 export function noteDoc(note, byId) {
-  return { id: `n:${note.id}`, kind: 'note', ref: note.id, name: '', tags: (note.tags || []).join(' '), text: plainText(note.text, byId) };
+  return { id: `n:${note.id}`, kind: 'note', ref: note.id, name: '', tags: (note.tags || []).join(' '), text: noteSearchText(note.text, byId) };
 }
 
 export function entityDoc(entity, typesById = new Map()) {

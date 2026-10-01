@@ -12,7 +12,7 @@ test('renders every component with no errors or CSP violations', async ({ page }
   for (const h of ['Buttons', 'Fields', 'Entity picker', 'Ruled list and inline form', 'Card', 'Thumbs', 'Messages and confirm sheet']) {
     await expect(page.getByRole('heading', { name: h })).toBeVisible();
   }
-  await expect(page.locator('.mention').first()).toHaveText('Grimbold Ironhand');
+  await expect(page.locator('.mention').first()).toHaveText('Grimbold', { message: 'shows the name as typed' });
   await expect(page.locator('.tag').first()).toHaveText('#debts');
   expect(problems).toEqual([]);
 });

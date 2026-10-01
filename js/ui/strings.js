@@ -36,6 +36,49 @@ export const S = {
     title: 'Pack a kit to back up',
   },
 
+  capture: {
+    label: 'Note',
+    placeholderIn: 'Type and press Enter. @ to mention, # to tag.',
+    placeholderOut: 'Quick note: goes to your Inbox. @ to mention, # to tag.',
+    suggestions: 'Suggestions',
+    newStub: (name) => `New stub: ${name}`,
+    results: 'Results',
+    saved: 'Saved to your Inbox.',
+  },
+
+  recall: {
+    mentions: (n) => count(n, 'mention'),
+    firstMention: 'First mention:',
+    link: 'Link',
+    linkLabel: (name) => `Turn “${name}” into a mention`,
+    stub: 'stub',
+    setType: (name) => `Set a type for ${name}`,
+    typeSet: (name, type) => `${name}: type set to ${type}.`,
+  },
+
+  feed: {
+    label: 'This session',
+    empty: 'Your satchel is light. Type below and press Enter.',
+  },
+
+  overview: {
+    open: 'Character overview',
+    close: 'Back to notes',
+    dndbeyond: 'Open in D&D Beyond',
+    sections: {
+      concept: 'Concept', backstory: 'Backstory', personality: 'Personality', ideals: 'Ideals', bonds: 'Bonds',
+      flaws: 'Flaws', goals: 'Goals', appearance: 'Appearance', notes: 'Notes',
+    },
+    empty: 'Nothing written yet. Fill in your character page after the session.',
+  },
+
+  home: {
+    recent: 'Recent notes',
+    noNotes: 'Your satchel is light. Type below and press Enter.',
+  },
+
+  autoEnd: 'Session ended: nothing written for 12 hours.',
+
   firstRun: {
     title: 'Satchel',
     nameLabel: 'Your character’s name',

@@ -127,13 +127,29 @@ export function toTypedForm(storedText, byId) {
 
 // --- Display --------------------------------------------------------------
 
+// What a mention shows: what was typed while it's still one of the entity's names
+// ("Grimbold" for Grimbold Ironhand, "The Fox" for Mira Vane), spelled the entity's way;
+// otherwise the current name, so a rename flows through (decision 2026-10-01).
+export function displayLabel(label, entity) {
+  const k = key(label);
+  if (!k) return entity.name;
+  for (const a of [entity.name, ...(entity.aliases || [])]) if (key(a) === k) return a;
+  const words = entity.name.trim().split(/\s+/);
+  const want = k.split(' ');
+  for (let i = 0; i + want.length <= words.length; i++) {
+    const slice = words.slice(i, i + want.length);
+    if (key(slice.join(' ')) === k) return slice.join(' ');
+  }
+  return entity.name;
+}
+
 // Stored text -> segments for rendering. Mentions show the entity's current name.
 export function segments(storedText, byId) {
   const text = String(storedText ?? '');
   const marks = [
     ...findStored(text).map((s) => {
       const e = resolveMerged(s.id, byId);
-      return { ...s, type: 'mention', id: e && isLive(e) ? e.id : s.id, label: e && isLive(e) ? e.name : s.label, missing: !isLive(e) };
+      return { ...s, type: 'mention', id: e && isLive(e) ? e.id : s.id, label: e && isLive(e) ? displayLabel(s.label, e) : s.label, missing: !isLive(e) };
     }),
     ...findTags(text).map((t) => ({ ...t, type: 'tag' })),
   ].sort((a, b) => a.start - b.start);

@@ -10,7 +10,35 @@ const seed = async () => {
   const d = window.__satchel.data;
   if (!(await d.getMeta('bundle'))) await d.createCharacter('Wren Ashdown');
 };
+// A small world and a session in progress, for the capture screens.
+const seedSession = async (opts = {}) => {
+  const d = window.__satchel.data;
+  if (await d.getMeta('bundle')) return;
+  await d.createCharacter('Wren Ashdown');
+  const { pc_entity_id } = await d.getMeta('bundle');
+  await d.updateEntity(pc_entity_id, { profile: { concept: 'Exiled ranger looking for her missing sister', goals: 'Find Lyra. Pay off Grimbold.' }, dndbeyond_url: 'https://www.dndbeyond.com/characters' });
+  const mk = (name, extra = {}) => d.createEntity({ name, type_id: 'type-npc', ...extra });
+  await mk('Grimbold Ironhand', { summary: 'Dwarf smith and moneylender. 10% a week.' });
+  await mk('Lord Aldric Thorne', { summary: 'Owns the mill. Hired us. Lying through his teeth.', tags: ['noble', 'fuck this guy', 'liar'] });
+  await mk('Mira Vane', { aliases: ['The Fox'], tags: ['fence'] });
+  await d.addNote('need money for gear. @Grimbold lends at 10% a WEEK?? took 20gp #debts');
+  await d.setSession(true);
+  for (const t of ['back to the mill. @Aldric pretends nothing happened #fuck_this_guy', '@Mira_Vane shows up. sells us a map of the barrow for 40gp', 'met a kid @Pip who sells info for sweets 🍬', 'paid @Grimbold 5gp #debts']) await d.addNote(t);
+  if (opts.out) await d.setSession(false);
+};
+const type = (text) => async (page) => {
+  const box = page.getByRole('combobox', { name: 'Note' });
+  await box.click();
+  await box.pressSequentially(text);
+  await page.waitForTimeout(300);
+};
 const SCREENS = [
+  { name: 'session-feed', hash: '#/', setup: seedSession },
+  { name: 'session-suggest', hash: '#/', setup: seedSession, action: type('owes @gr') },
+  { name: 'session-recall', hash: '#/', setup: seedSession, action: type('grimbold and lord aldric') },
+  { name: 'session-stub', hash: '#/', setup: seedSession, action: type('pip again') },
+  { name: 'session-overview', hash: '#/', setup: seedSession, action: (page) => page.locator('.topbar-home').click() },
+  { name: 'home-box', hash: '#/', setup: seedSession, arg: { out: true } },
   { name: 'first-run', hash: '#/' },
   { name: 'gallery', hash: '#/dev/gallery', height: 3200 },
   { name: 'home', hash: '#/', setup: seed },
@@ -34,12 +62,14 @@ try {
       const context = await browser.newContext({ viewport: { width: w.width, height: s.height ?? w.height } });
       const page = await context.newPage();
       await page.goto(`http://localhost:${PORT}/${s.hash}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('load');
       if (s.setup) {
         await page.waitForFunction(() => window.__satchel?.data);
-        await page.evaluate(s.setup);
+        await page.evaluate(s.setup, s.arg ?? {});
         await page.reload();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('load');
+        await page.evaluate(() => document.fonts.ready);
+        await page.waitForTimeout(300);
       }
       if (s.action) await s.action(page);
       await page.evaluate(() => document.fonts.ready);

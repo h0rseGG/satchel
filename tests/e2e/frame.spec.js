@@ -19,7 +19,8 @@ async function openApp(page) {
 
 test('boots under the CSP with no errors or violations', async ({ page }) => {
   const problems = await openApp(page);
-  await page.waitForLoadState('networkidle');
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(300);
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
   expect(problems).toEqual([]);
 });
@@ -76,23 +77,17 @@ test('manifest and icons are served', async ({ request }) => {
   }
 });
 
-test('opens offline after one online visit', async ({ page, context }) => {
+test('opens offline after one online visit, styled', async ({ page, context }) => {
   await openApp(page);
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.ready;
-    // The first visit isn't controlled until clients.claim() runs.
-    if (!navigator.serviceWorker.controller) {
-      await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));
-    }
-  });
-  // Reload once while controlled so every app file passes through the worker's cache.
-  await page.reload();
-  await expect(page.locator('.topbar-home')).toHaveText('Satchel');
-  await page.waitForLoadState('networkidle');
+  // Wait for the state, not the event (v1 lesson 7): the worker is active and has pre-cached.
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await expect.poll(() => page.evaluate(async () => (await (await caches.open('satchel-v2')).keys()).length)).toBeGreaterThan(20);
   await context.setOffline(true);
-  await page.reload();
-  await expect(page.locator('.topbar-home')).toHaveText('Satchel');
-  await expect(page.locator('.page-title')).toHaveText('Satchel');
-  // Proves the service worker served it, not the browser's HTTP cache.
-  expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  // A new page in the same profile: nothing from this tab's memory cache.
+  const offline = await context.newPage();
+  await offline.goto('/');
+  await expect(offline.locator('.topbar-home')).toHaveText('Satchel');
+  await expect(offline.locator('.page-title')).toHaveText('Satchel');
+  expect(await offline.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(246, 241, 228)');
+  expect(await offline.evaluate(async () => (await document.fonts.load('20px "IM Fell English"')).length > 0)).toBe(true);
 });

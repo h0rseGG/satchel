@@ -123,7 +123,7 @@ test('edit: merged entities show the survivor', () => {
   const gone = stub('Grimbol', { deleted: true, merged_into: surv.id });
   const byId = new Map([[surv.id, surv], [gone.id, gone]]);
   assert.equal(toTypedForm(`hi @[Grimbol](${gone.id})`, byId).text, 'hi @Grimbold_Ironhand');
-  assert.equal(plainText(`hi @[Grimbol](${gone.id})`, byId), 'hi Grimbold Ironhand');
+  assert.equal(plainText(`hi @[Grimbol](${gone.id})`, byId), 'hi Grimbold Ironhand', 'merged typo shows the survivor\'s name');
 });
 
 test('edit: names that cannot be typed back stay in stored form', () => {
@@ -136,11 +136,21 @@ test('edit: names that cannot be typed back stay in stored form', () => {
 });
 
 // --- display ---
-test('segments: mentions use current names, tags marked', () => {
+test('display label: typed form while it is still a name, else the current name', async () => {
+  const { displayLabel } = await import('../../js/core/mentions.js');
+  const e = ent('Captain Rook Harlow', { aliases: ['The Crow'] });
+  assert.equal(displayLabel('rook', e), 'Rook', 'a word of the name, spelled the entity\'s way');
+  assert.equal(displayLabel('captain rook', e), 'Captain Rook');
+  assert.equal(displayLabel('the crow', e), 'The Crow', 'alias');
+  assert.equal(displayLabel('Grimbol', e), 'Captain Rook Harlow', 'no longer a name: current name');
+  assert.equal(displayLabel('rook harlow captain', e), 'Captain Rook Harlow');
+});
+
+test('segments: mentions show the typed name, tags marked', () => {
   const m = ent('Mira Vane');
   const s = segments(`@[mira](${m.id})’s back #lyra`, new Map([[m.id, m]]));
   assert.deepEqual(s, [
-    { type: 'mention', id: m.id, label: 'Mira Vane', missing: false },
+    { type: 'mention', id: m.id, label: 'Mira', missing: false },
     { type: 'text', text: '’s back ' },
     { type: 'tag', text: '#lyra', key: 'lyra' },
   ]);

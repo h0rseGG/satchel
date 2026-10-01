@@ -52,3 +52,17 @@ export async function deleteNote(id, { now = isoNow() } = {}) {
 export async function recentNotes(limit = 5) {
   return db().notes.orderBy('created_at').reverse().filter((n) => !n.deleted).limit(limit).toArray();
 }
+
+// The session feed: notes written since the session started, oldest first.
+export async function notesSince(iso) {
+  return db().notes.where('created_at').aboveOrEqual(iso ?? '').filter((n) => !n.deleted).toArray();
+}
+
+export async function lastInSessionNoteAt() {
+  const n = await db().notes.orderBy('created_at').reverse().filter((x) => !x.deleted && x.mode === 'in').first();
+  return n?.created_at ?? null;
+}
+
+export async function allLiveNotes() {
+  return db().notes.filter((n) => !n.deleted).toArray();
+}

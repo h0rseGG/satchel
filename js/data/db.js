@@ -20,6 +20,8 @@ function open(name) {
     blobs: 'id',
     meta: 'key',
   });
+  // v2 (M3): recall cards look up notes by the entities they mention.
+  db.version(2).stores({ notes: 'id, created_at, *mentions' });
   return db;
 }
 
