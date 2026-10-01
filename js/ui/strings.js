@@ -83,6 +83,35 @@ export const S = {
 
   autoEnd: 'Session ended: nothing written for 12 hours.',
 
+  character: {
+    title: 'My character',
+    basics: 'Basics',
+    profile: 'Profile',
+    dndbeyond: 'D&D Beyond link',
+    dndbeyondHint: 'Your character sheet on D&D Beyond, e.g. https://www.dndbeyond.com/characters/12345678',
+    open: 'Open in D&D Beyond',
+    page: 'Character page',
+    noConcept: 'Add a one-line concept on your character page.',
+  },
+
+  portrait: {
+    add: 'Add picture',
+    change: 'Change picture',
+    remove: 'Remove picture',
+    none: 'No picture',
+    alt: (name) => `Picture of ${name}`,
+    saved: 'Picture saved.',
+  },
+
+  upload: {
+    'too-big': 'That file is over 10 MB.',
+    empty: 'That file is empty.',
+    unsupported: 'Satchel takes images, and .txt or .md text files.',
+    'not-image': 'Pictures must be images.',
+    'not-utf8': 'That text file isn’t plain UTF-8 text.',
+    unreadable: 'That image couldn’t be read.',
+  },
+
   note: {
     edit: 'Edit',
     editLabel: 'Edit note',
@@ -200,7 +229,6 @@ export const S = {
     confirmDeleteBody: 'Notes that mention them keep the name as plain text. You can’t undo this.',
     deleted: (a) => `${a} deleted.`,
     gone: 'This entry was deleted.',
-    pcHint: 'This is you. Your full character page comes in a later build.',
     openLink: 'Open',
     change: 'Change',
     clear: 'Clear',
@@ -240,6 +268,7 @@ export const S = {
       'not-a-number': 'Enter a number',
       'not-a-date': 'Enter a date like 2026-10-01',
       'not-a-url': 'Enter a web address starting with https://',
+      dndbeyond: 'Paste a link from dndbeyond.com or ddb.ac (starting with https://)',
     },
   },
 };

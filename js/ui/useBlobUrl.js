@@ -5,6 +5,7 @@ import { getBlob } from '../data/files.js';
 export function useBlobUrl(fileId) {
   const [url, setUrl] = useState(null);
   useEffect(() => {
+    setUrl(null);
     if (!fileId) return undefined;
     let u = null;
     let live = true;

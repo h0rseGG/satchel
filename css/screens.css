@@ -134,3 +134,12 @@
 .notes-count { margin: 0; }
 .home-big { font-size: var(--fs-20); margin: 0; }
 .home-link { font-size: var(--fs-16); margin-left: var(--sp-8); }
+
+/* Character and entity heads */
+.character-head { display: flex; gap: var(--sp-16); align-items: flex-start; flex-wrap: wrap; }
+.character-title { flex: 1; min-width: 200px; }
+.character-concept { margin: 0 0 var(--sp-8); font-size: var(--fs-16); color: var(--ink-muted); }
+.home-character-body { display: flex; gap: var(--sp-16); align-items: flex-start; }
+.home-character-body > a { text-decoration: none; }
+.home-name { text-decoration: none; font-family: var(--serif); }
+.home-concept { margin: 2px 0 var(--sp-8); }

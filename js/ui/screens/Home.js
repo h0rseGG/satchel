@@ -6,6 +6,8 @@ import { worldCounts } from '../../data/entities.js';
 import { inboxCount } from '../../data/inbox.js';
 import { allTypes } from '../../data/types.js';
 import { href } from '../app/router.js';
+import { Portrait } from '../components/Portrait.js';
+import { DndBeyondButton } from '../components/DndBeyondButton.js';
 import { Panel } from '../components/Panel.js';
 import { RuledList, ListRow } from '../components/ListRow.js';
 import { NoteText } from '../components/NoteText.js';
@@ -20,8 +22,17 @@ export function Home({ pc, cap }) {
   const inbox = useLive(inboxCount, [], 0);
   return html`
     <h1 class="page-title">${pc.name}</h1>
+    <${Panel} title=${S.character.title} titleId="home-character" class="home-character" action=${html`<a class="btn btn-quiet" href=${href('character')}>${S.character.page}</a>`}>
+      <div class="home-character-body">
+        <a href=${href('character')} aria-label=${S.character.page} tabindex="-1"><${Portrait} entity=${pc} size=${72} editable=${false} /></a>
+        <div>
+          <p class=${pc.profile?.concept ? 'home-concept' : 'home-concept muted'}>${pc.profile?.concept || S.character.noConcept}</p>
+          <${DndBeyondButton} url=${pc.dndbeyond_url} />
+        </div>
+      </div>
+    <//>
     <${Panel} title=${S.home.inbox} titleId="home-inbox">
-      ${inbox === 0 ? html`<p class="muted">${S.inbox.empty}</p>` : html`<p class="home-big"><span class="num">${inbox}</span> ${S.inbox.newNotes(inbox)} <a class="home-link" href=${href('inbox')}>${S.inbox.sortThem}</a></p>`}
+      ${inbox === 0 ? html`<p class="muted">${S.inbox.empty}</p>` : html`<p class="home-big home-count"><span class="num">${inbox}</span> ${S.inbox.newNotes(inbox)} <a class="home-link" href=${href('inbox')}>${S.inbox.sortThem}</a></p>`}
     <//>
     <${Panel} title=${S.home.world} titleId="home-world" action=${html`<a class="btn btn-quiet" href=${href('world')}>${S.home.seeAll}</a>`}>
       ${used.length === 0 && !counts.stubs ? html`<p class="muted">${S.world.empty}</p>` : html`

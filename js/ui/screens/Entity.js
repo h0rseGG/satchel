@@ -15,6 +15,7 @@ import { EntityPicker } from '../components/EntityPicker.js';
 import { RuledList, ListRow } from '../components/ListRow.js';
 import { NoteText } from '../components/NoteText.js';
 import { EntityFields } from './EntityFields.js';
+import { Portrait } from '../components/Portrait.js';
 import { NotBuilt } from './NotBuilt.js';
 import { confirmSheet } from '../app/confirm.js';
 import { toast, reportError } from '../app/toasts.js';
@@ -28,10 +29,11 @@ export function Entity({ id, pcId }) {
   const notes = useLive(() => notesMentioning(id), [id], []);
   const [merging, setMerging] = useState(false);
 
-  // A merged entity lives on in its survivor: follow the redirect.
+  // A merged entity lives on in its survivor: follow the redirect. Your own entry is the character page.
   useEffect(() => {
     if (entity?.deleted && entity.merged_into) location.replace(href('entity', { id: entity.merged_into }));
-  }, [entity?.deleted, entity?.merged_into]);
+    else if (entity && id === pcId) location.replace(href('character'));
+  }, [entity?.deleted, entity?.merged_into, id, pcId]);
 
   if (entity === undefined) return null;
   if (!entity || entity.deleted) return html`<${NotBuilt} title=${entity?.name ?? S.nav.notFound} />`;
@@ -71,8 +73,10 @@ export function Entity({ id, pcId }) {
   };
 
   return html`
-    <h1 class="page-title">${entity.name}</h1>
-    ${isPc && html`<p class="muted">${S.entity.pcHint}</p>`}
+    <div class="character-head">
+      <${Portrait} entity=${entity} size=${96} />
+      <h1 class="page-title">${entity.name}</h1>
+    </div>
     <${Panel}>
       <${Field} label=${S.entity.name} value=${entity.name} onSave=${(v) => v.trim() && save({ name: v.trim() })} />
       ${!isPc && html`<${Select} label=${S.entity.type} value=${entity.type_id ?? ''} onChange=${setType} options=${[...(entity.stub || !entity.type_id ? [{ value: '', label: S.entity.stubType }] : []), ...types.map((t) => ({ value: t.id, label: t.label }))]} />`}

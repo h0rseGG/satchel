@@ -228,3 +228,9 @@ a.tag:hover { text-decoration: underline; }
 .note-link { font: var(--fs-13) var(--font); color: var(--ink-muted); background: none; border: 0; padding: 0 2px; cursor: pointer; }
 .note-link:hover { text-decoration: underline; color: var(--ink); }
 .note-link.note-link-danger { color: var(--red); }
+
+/* Portrait */
+.portrait { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); flex: none; }
+.portrait-img { display: block; object-fit: cover; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper-alt); }
+.portrait-empty { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--ink-muted); border-radius: var(--radius); background: var(--paper-alt); font: 40px/1 var(--serif); color: var(--ink-muted); }
+.portrait-actions { display: flex; flex-wrap: wrap; margin-left: -8px; }

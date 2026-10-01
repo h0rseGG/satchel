@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 test('Home shows the inbox count; Inbox lists unsorted notes oldest first', async ({ page }) => {
   await seed(page);
   await page.goto('/#/');
-  await expect(page.locator('.home-big')).toContainText('3 new notes');
+  await expect(page.locator('.home-count')).toContainText('3 new notes');
   await page.getByRole('link', { name: 'Sort them →' }).click();
   await expect(page.locator('.page-title')).toHaveText('Inbox');
   await expect(page.locator('.note-row-text')).toHaveText([/^first/, /^second/, /^third/]);

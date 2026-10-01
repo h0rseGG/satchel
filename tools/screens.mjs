@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { firefox } from '@playwright/test';
+import { png } from '../tests/e2e/png.js';
 
 const PORT = 8124;
 // Each screen: an address, plus optional setup (runs in the page) and an action before the shot.
@@ -51,7 +52,14 @@ const seedWorld = async () => {
   await d.addNote('met a kid @Pip who sells info. and @Vex is the boss?');
   localStorage.setItem('gull', gull.id);
 };
+const withPortrait = async (page) => {
+  await page.goto(`http://localhost:${PORT}/#/character`);
+  await page.locator('.portrait input[type=file]').setInputFiles({ name: 'wren.png', mimeType: 'image/png', buffer: png(400, 400, [79, 107, 71]) });
+  await page.waitForTimeout(600);
+};
 const SCREENS = [
+  { name: 'character', hash: '#/', setup: seedSession, arg: { out: true }, action: withPortrait, height: 1400 },
+  { name: 'home-portrait', hash: '#/', setup: seedSession, arg: { out: true }, action: async (page) => { await withPortrait(page); await page.goto(`http://localhost:${PORT}/#/`); await page.waitForTimeout(400); } },
   { name: 'inbox', hash: '#/inbox', setup: seedSession, arg: { out: true }, height: 1300, action: async (page) => { await page.getByRole('button', { name: 'Add as relationship' }).nth(1).click(); } },
   { name: 'notes', hash: '#/notes', setup: seedSession, arg: { out: true } },
   { name: 'world', hash: '#/world', setup: seedWorld, action: (page) => page.locator('.type-row', { hasText: 'Ship / Ships' }).getByRole('button', { name: 'Edit' }).click(), height: 1300 },

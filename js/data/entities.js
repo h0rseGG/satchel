@@ -3,6 +3,8 @@ import { db } from './db.js';
 import { save, saveMany } from './store.js';
 import { getMeta } from './meta.js';
 import { mergeEntityInto } from '../core/merge.js';
+import { addFile, UploadError } from './files.js';
+import { classifyUpload } from '../core/files-rules.js';
 import { isoNow, tombstone, makeRecord } from '../core/model.js';
 
 export async function allEntities() {
@@ -67,4 +69,13 @@ export async function worldCounts() {
 // Notes that mention an entity, newest first.
 export async function notesMentioning(id) {
   return (await db().notes.where('mentions').equals(id).filter((n) => !n.deleted).sortBy('created_at')).reverse();
+}
+
+// Uploads an image and makes it the entity's picture (the file also appears in Files).
+export async function setPortrait(entityId, file, { now = isoNow() } = {}) {
+  const check = classifyUpload({ name: file.name, type: file.type, size: file.size });
+  if (check.ok && check.kind !== 'image') throw new UploadError('not-image');
+  const rec = await addFile(file, { entityId, now });
+  await updateEntity(entityId, { portrait_file_id: rec.id }, { now });
+  return rec;
 }
