@@ -186,6 +186,12 @@ test('@FirstName links to the one entity it can mean instead of making a stub', 
   assert.equal(r.text, `paid ${token(grim)} today`);
 });
 
+test('linkPlainName: the full name wins over a short name inside it', () => {
+  const lord = makeEntity({ name: 'Lord Aldric', type: 'npc' });
+  assert.equal(linkPlainName('bowed to lord aldric', lord, ['Lord', 'Aldric']).text, 'bowed to @Lord_Aldric');
+  assert.equal(linkPlainName('lord aldric? aldric!', lord, ['Aldric']).text, 'lord aldric? @Lord_Aldric!');
+});
+
 test('linkPlainName with a short name links the full entity', () => {
   const grim = makeEntity({ name: 'Grimbold Ironhand', type: 'npc' });
   assert.equal(linkPlainName('ask grimbold', grim, ['Grimbold']).text, 'ask @Grimbold_Ironhand');

@@ -34,6 +34,9 @@ async function pack(page) {
     page.waitForEvent('download'),
     page.getByRole('menuitem', { name: /Pack kit/ }).click(),
   ]);
+  // The download starts before "backed up" is recorded; wait for the record,
+  // or a quick End session afterwards can pop the backup nudge over the page.
+  await expect(page.locator('.topbar .badge')).toHaveText('Backed up');
   return download.path();
 }
 

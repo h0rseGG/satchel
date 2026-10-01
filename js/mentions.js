@@ -174,7 +174,13 @@ export function linkPlainName(text, entity, extra = []) {
     // Not already part of a mention (@Name or the _Aldric in @Lord_Aldric).
     const re = new RegExp(`(?<![\\p{L}\\p{N}_@])${pattern}(?![\\p{L}\\p{N}_])`, 'giu');
     for (const m of text.matchAll(re)) {
-      if (!best || m.index > best.start) best = { start: m.index, removed: m[0].length };
+      // The occurrence that ends last; if several end there, the longest, so
+      // "lord aldric" beats the short name "aldric" inside it.
+      const end = m.index + m[0].length;
+      const bestEnd = best && best.start + best.removed;
+      if (!best || end > bestEnd || (end === bestEnd && m[0].length > best.removed)) {
+        best = { start: m.index, removed: m[0].length };
+      }
     }
   }
   if (!best) return null;

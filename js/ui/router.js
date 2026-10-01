@@ -13,6 +13,9 @@ export function useRoute() {
   useEffect(() => {
     const onChange = () => setHash(location.hash);
     window.addEventListener('hashchange', onChange);
+    // The address may have changed between the first render and this
+    // listener being attached (seen as a flaky test); catch up now.
+    onChange();
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
   return parseHash(hash);
