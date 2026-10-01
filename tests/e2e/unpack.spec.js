@@ -104,6 +104,34 @@ test('Merge: two devices combine, duplicate stubs become one', async ({ browser 
   expect(phoneGrims.map((e) => e.id)).toEqual(grims.map((e) => e.id));
 });
 
+test('Merge does not count as unsaved changes; local edits stay counted', async ({ browser }) => {
+  const badge = (p) => p.locator('.topbar .badge');
+  const phone = await device(browser);
+  await start(phone);
+  await say(phone, 'shared');
+  const pc = await device(browser);
+  await chooseKit(pc, await pack(phone));
+  await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await expect(badge(pc)).toHaveText('Backed up');
+
+  // Phone adds notes; PC merges them: still backed up.
+  await say(phone, 'phone one');
+  await say(phone, 'phone two');
+  await chooseKit(pc, await pack(phone));
+  await pc.getByRole('button', { name: 'Merge' }).click();
+  await expect(pc.locator('.note__text')).toHaveCount(3);
+  await expect(badge(pc)).toHaveText('Backed up');
+
+  // A local edit on the PC counts, and still counts after another merge.
+  await say(pc, 'pc only');
+  await expect(badge(pc)).toHaveText('1 change since backup');
+  await say(phone, 'phone three');
+  await chooseKit(pc, await pack(phone));
+  await pc.getByRole('button', { name: 'Merge' }).click();
+  await expect(pc.locator('.note__text')).toHaveCount(5);
+  await expect(badge(pc)).toHaveText('1 change since backup');
+});
+
 test('Merging the same kit twice changes nothing the second time', async ({ browser }) => {
   const phone = await device(browser);
   await start(phone);

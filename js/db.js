@@ -169,23 +169,18 @@ export async function unpackNew(data) {
 
 // Merge: union with what's here (SPEC D9). Re-reads local data inside the
 // transaction, so anything typed since the confirm screen is included.
+// Doesn't touch the change counters: "changes since backup" means edits made
+// on this device that aren't in any kit yet. Merged-in records came from a
+// kit, and stub/redirect fixes can be redone from the kits.
 export async function unpackMerge(data) {
   return db.transaction('rw', DATA_TABLES(), async () => {
     if ((await getMeta('bundle_id')) !== data.bundle_id) {
       throw new KitError('This kit is a different character, so it can’t be merged.');
     }
     const { writes, report } = mergeData(await readLocal(), data);
-    let written = 0;
-    for (const t of TABLES) {
-      await db[t].bulkPut(writes[t]);
-      written += writes[t].length;
-    }
+    for (const t of TABLES) await db[t].bulkPut(writes[t]);
     const have = new Set(await db.blobs.toCollection().primaryKeys());
     await putImageFiles([...data.imageFiles].filter(([id]) => !have.has(id)));
-    if (written) {
-      await setMeta('changes_since_backup', (await getMeta('changes_since_backup', 0)) + written);
-      await setMeta('changes_since_sync', (await getMeta('changes_since_sync', 0)) + written);
-    }
     return report;
   });
 }
