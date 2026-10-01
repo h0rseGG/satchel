@@ -1,0 +1,81 @@
+/* Palette from SPEC.md section 8. Do not add colours outside this list. */
+:root {
+  --bg: #F5F5F0;
+  --bg-alt: #E6E6E1;
+  --border: #D9D9D3;
+  --text: #4A4A4A;
+  --muted: #8A8A8A;   /* ~3.2:1 on --bg: timestamps and secondary labels only */
+  --ok: #B8D8C0;      /* status colours are backgrounds, never text */
+  --warn: #E6CFA1;
+  --err: #D4B4AF;
+
+  --radius: 3px;
+  --gap: 8px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.4 var(--font);
+}
+
+/* Full-height column: top bar, scrolling results, capture box pinned to the bottom (D11) */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: var(--gap) 12px;
+  border-bottom: 1px solid var(--border);
+}
+.topbar__title { font-weight: 600; margin-right: auto; }
+
+.results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.capture {
+  padding: var(--gap) 12px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.capture__box {
+  width: 100%;
+  resize: none;
+  padding: 10px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+.capture__box:focus { outline: 2px solid var(--text); outline-offset: -1px; }
+
+.muted { color: var(--muted); }
+
+.badge {
+  padding: 2px 8px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-alt);
+}
+.badge--ok { background: var(--ok); }
+.badge--warn { background: var(--warn); }
+.badge--err { background: var(--err); }
