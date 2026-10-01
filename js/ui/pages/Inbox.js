@@ -5,9 +5,9 @@ import { db, promoteNote, triageAll, triageKeep, untriage } from '../../db.js';
 import { live } from '../../model.js';
 import { plain } from '../../mentions.js';
 import { href } from '../router.js';
-import { NoteText } from '../NoteText.js';
+import { NoteItem } from '../NoteItem.js';
 import { Confirm } from '../fields.js';
-import { formatDay, formatShort } from '../format.js';
+import { formatDay } from '../format.js';
 import { SECTIONS } from './Character.js';
 
 const MODES = [['', 'All'], ['in', 'In session'], ['out', 'Out of session']];
@@ -61,7 +61,7 @@ export function Inbox({ pcId, onMessage }) {
 
       ${!showSorted && (inbox.length
         ? html`<ul class="inbox__list">${inbox.map((n) => html`
-            <${InboxNote} key=${n.id} note=${n} names=${names} entities=${entities} pcId=${pcId}
+            <${InboxNote} key=${n.id} note=${n} names=${names} entities=${entities} pcId=${pcId} onMessage=${onMessage}
               onKeep=${() => run(() => triageKeep(n.id))}
               onToEntity=${(e) => run(() => promoteNote(n.id, { entityId: e.id }, textOf(n)), `Added to ${e.name}’s description.`)}
               onToCharacter=${(section, label) => run(() => promoteNote(n.id, { entityId: pcId, section }, textOf(n)), `Added to your ${label}.`)} />`)}
@@ -70,14 +70,10 @@ export function Inbox({ pcId, onMessage }) {
 
       ${showSorted && (sorted.length
         ? html`<ul class="inbox__list">${sorted.map((n) => html`
-            <li key=${n.id} class="inbox__note">
-              <div class="inbox__meta muted">${formatShort(n.created_at)} · ${n.mode === 'in' ? 'in session' : 'out of session'}
-                ${n.promoted_to?.length > 0 && html` · added to ${n.promoted_to.map((id) => names.get(id) ?? '?').join(', ')}`}</div>
-              <p class="inbox__text"><${NoteText} text=${n.text} names=${names} links /></p>
-              <div class="row inbox__actions">
-                <button type="button" class="btn" onClick=${() => run(() => untriage(n.id))}>Back to inbox</button>
-              </div>
-            </li>`)}
+            <${NoteItem} key=${n.id} note=${n} names=${names} onMessage=${onMessage}>
+              <button type="button" class="btn" onClick=${() => run(() => untriage(n.id))}>Back to inbox</button>
+              ${n.promoted_to?.length > 0 && html`<span class="muted inbox__added">Added to ${n.promoted_to.map((id) => names.get(id) ?? '?').join(', ')}</span>`}
+            </${NoteItem}>`)}
           </ul>`
         : html`<p class="muted">Nothing sorted yet.</p>`)}
 
@@ -93,30 +89,26 @@ export function Inbox({ pcId, onMessage }) {
   `;
 }
 
-function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharacter }) {
+function InboxNote({ note, names, entities, pcId, onKeep, onToEntity, onToCharacter, onMessage }) {
   const mentioned = note.mentions
     .filter((id) => id !== pcId)
     .map((id) => entities.find((e) => e.id === id))
     .filter(Boolean);
   return html`
-    <li class="inbox__note">
-      <div class="inbox__meta muted">${formatShort(note.created_at)} · ${note.mode === 'in' ? 'in session' : 'out of session'}</div>
-      <p class="inbox__text"><${NoteText} text=${note.text} names=${names} links /></p>
-      <div class="row inbox__actions">
-        <button type="button" class="btn" onClick=${onKeep}>Keep as log</button>
-        ${mentioned.map((e) => html`
-          <button type="button" key=${e.id} class="btn" onClick=${() => onToEntity(e)}>Add to ${e.name}</button>`)}
-        <select class="input inbox__select" aria-label="Add to my character"
-          onChange=${(ev) => {
-            const key = ev.currentTarget.value;
-            ev.currentTarget.value = '';
-            const s = SECTIONS.find(([k]) => k === key);
-            if (s) onToCharacter(s[0], s[1].toLowerCase());
-          }}>
-          <option value="">Add to my character…</option>
-          ${SECTIONS.map(([key, label]) => html`<option value=${key}>${label}</option>`)}
-        </select>
-      </div>
-    </li>
+    <${NoteItem} note=${note} names=${names} onMessage=${onMessage}>
+      <button type="button" class="btn" onClick=${onKeep}>Keep as log</button>
+      ${mentioned.map((e) => html`
+        <button type="button" key=${e.id} class="btn" onClick=${() => onToEntity(e)}>Add to ${e.name}</button>`)}
+      <select class="input inbox__select" aria-label="Add to my character"
+        onChange=${(ev) => {
+          const key = ev.currentTarget.value;
+          ev.currentTarget.value = '';
+          const s = SECTIONS.find(([k]) => k === key);
+          if (s) onToCharacter(s[0], s[1].toLowerCase());
+        }}>
+        <option value="">Add to my character…</option>
+        ${SECTIONS.map(([key, label]) => html`<option value=${key}>${label}</option>`)}
+      </select>
+    </${NoteItem}>
   `;
 }

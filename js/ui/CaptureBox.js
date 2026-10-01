@@ -68,6 +68,9 @@ export function CaptureBox({
   }
 
   function onInput(e) {
+    // Typing beats a pending caret restore from a pick/link that hasn't
+    // rendered yet; otherwise the restore would land mid-word ("odayt").
+    caretAfterRender.current = null;
     setText(e.currentTarget.value);
     setCaret(e.currentTarget.selectionStart);
     setDismissed(false);

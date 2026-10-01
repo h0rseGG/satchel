@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findTyped, tokenise, storedIds, parts, plain, activeQuery, typedForm, matchByName, suggest, token,
-  resolveMentions, linkPlainName,
+  resolveMentions, linkPlainName, toTypedForEdit,
 } from '../../js/mentions.js';
 import { makeEntity, touch } from '../../js/model.js';
 
@@ -133,6 +133,27 @@ test('linkPlainName: ignores names already mentioned or inside other words', () 
   assert.equal(linkPlainName('met @Lord_Aldric', lord), null);
   assert.equal(linkPlainName('met @Al and Alder', al), null);
   assert.equal(linkPlainName('nobody here', al), null);
+});
+
+test('toTypedForEdit round-trips through resolveMentions to the same links', () => {
+  const lord = makeEntity({ name: 'Lord Aldric', type: 'npc' });
+  const twinA = makeEntity({ name: 'Twin', type: 'npc' });
+  const twinB = makeEntity({ name: 'Twin', type: 'npc' });
+  const stored = `bowed to ${token(lord)} and met ${token(twinB)}.`;
+  const names = new Map([lord, twinA, twinB].map((e) => [e.id, e.name]));
+  const { text, picked } = toTypedForEdit(stored, names);
+  assert.equal(text, 'bowed to @Lord_Aldric and met @Twin.');
+  const back = resolveMentions(text, [lord, twinA, twinB], picked);
+  assert.equal(back.text, stored, 'same entity, even with a duplicate name');
+  assert.deepEqual(back.created, []);
+});
+
+test('toTypedForEdit leaves tokens of deleted entities untouched', () => {
+  const gone = makeEntity({ name: 'Zoltan' });
+  const stored = `met ${token(gone)}`;
+  const { text } = toTypedForEdit(stored, new Map());
+  assert.equal(text, stored);
+  assert.deepEqual(resolveMentions(text, []).created, [], 'no stub recreated');
 });
 
 test('suggest: prefix matches before substring matches, limited', () => {

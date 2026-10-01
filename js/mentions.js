@@ -154,6 +154,22 @@ export function linkPlainName(text, entity) {
   };
 }
 
+// Stored text -> what you see when editing a note: tokens of live entities
+// become their typed form (@Grimbold, @Lord_Aldric), remembered in `picked`
+// so saving links the same entities again. Tokens for entities that are
+// gone (not in `names`) are left as stored, so an edit can't turn them into
+// new stubs. names: Map of live entity id -> current name.
+export function toTypedForEdit(text, names) {
+  const picked = {};
+  const typed = text.replace(STORED, (whole, label, id) => {
+    const name = names.get(id);
+    if (!name) return whole;
+    picked[nameKey(name)] = id;
+    return typedForm(name);
+  });
+  return { text: typed, picked };
+}
+
 // Autocomplete: names starting with the query first, then containing it.
 export function suggest(entities, query, limit = 5) {
   const q = nameKey(query);

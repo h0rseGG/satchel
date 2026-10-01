@@ -346,6 +346,8 @@ a.btn { display: inline-block; text-decoration: none; color: var(--text); }
 .inbox__text { margin: 4px 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .inbox__actions { flex-wrap: wrap; gap: 6px; }
 .inbox__select { width: auto; min-width: 200px; }
+.inbox__added { font-size: 13px; align-self: center; }
+.note__edit { width: 100%; margin: 4px 0; font: inherit; line-height: 1.5; resize: vertical; }
 
 /* Lists and entity pages */
 .list__tools { margin-bottom: 10px; }

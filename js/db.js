@@ -3,7 +3,7 @@
 
 import Dexie from 'dexie';
 import {
-  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, live, makeEntity, makeFile, makeNote, newId, now, setType, tombstone, touch,
+  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, editNote, live, makeEntity, makeFile, makeNote, newId, now, setType, tombstone, touch,
 } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
@@ -149,6 +149,29 @@ export async function updateProfile(id, section, value) {
     if ((profile[section] ?? '') === value) return e;
     profile[section] = value;
     return save('entities', touch(e, { profile }));
+  });
+}
+
+// ---------- Editing notes (SPEC D13) ----------
+
+// Save edited note text (typed form, see toTypedForEdit). Mentions are
+// resolved like a new note; the first version stays in original_text.
+export async function editNoteText(id, typedText, picked = {}) {
+  return db.transaction('rw', db.notes, db.entities, db.meta, async () => {
+    const n = await db.notes.get(id);
+    if (!n || n.deleted) throw new Error('That note no longer exists.');
+    const r = resolveMentions(typedText, live(await db.entities.toArray()), picked);
+    const edited = editNote(n, r.text);
+    if (edited === n) return n;
+    for (const e of r.created) await save('entities', e);
+    return save('notes', { ...edited, mentions: r.mentions });
+  });
+}
+
+export async function deleteNote(id) {
+  return db.transaction('rw', db.notes, db.meta, async () => {
+    const n = await db.notes.get(id);
+    if (n && !n.deleted) await save('notes', tombstone(n));
   });
 }
 

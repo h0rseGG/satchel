@@ -33,6 +33,7 @@ export function Dashboard({ pcId, pc, onMessage }) {
         <h2 class="panel__title"><a href=${href('/inbox')}>Inbox</a></h2>
         <p class="panel__big">${inbox} new note${inbox === 1 ? '' : 's'}</p>
         <p>${inbox ? html`<a href=${href('/inbox')}>Sort them →</a>` : html`<span class="muted">All sorted.</span>`}</p>
+        <p><a href=${href('/log')}>All notes →</a></p>
       </section>
 
       <section class="panel panel--wide" aria-label="People and places">
