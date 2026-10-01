@@ -51,5 +51,6 @@ Owner: Jake (electrician; Python-first, new to web). Personal project, not Cable
 - Also done: All notes page (#/log) with note edit/delete; relationships (entity/character pages, recall cards, Inbox "Add as relationship").
 - Also done: per-section profile merge; visual review via `node tests/tools/screens.mjs <dir>` (needs `python -m http.server 8123` running), screenshots read back with the Read tool.
 - Also done: per-entity connections diagram (`js/ui/Connections.js`, inline SVG).
+- Demo character: `demo/wren.kit` (rebuild with `node tests/tools/make-demo-kit.mjs`; keep `tests/e2e/demo.spec.js` counts in step). Screenshots of it: `node tests/tools/screens.mjs <dir> demo/wren.kit`.
 - Deferred: whole-campaign network graph (judge with real data first); private-window warning (Firefox gives no reliable way to detect it).
 - Unverified on the Pixel: photo upload orientation; feel of the new pages on the phone.

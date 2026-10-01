@@ -33,6 +33,8 @@ export function FirstRun() {
         ${error && html`<p class="badge badge--err">${error}</p>`}
       </form>
       <p>Already have a character? <button type="button" class="btn" onClick=${unpack.choose}>Unpack a kit</button></p>
+      <p>Just looking? <button type="button" class="btn" onClick=${() => unpack.chooseUrl('./demo/wren.kit', 'wren.kit')}>Try the demo character</button></p>
+      <p class="muted">Wren Ashdown: a month of play with notes, people, places, files and relationships. Use a private window if you want to keep it separate.</p>
       ${message && html`<p class=${`badge badge--${message.kind}`} role="status">${message.text}</p>`}
       ${unpack.view}
     </main>

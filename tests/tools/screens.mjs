@@ -1,18 +1,32 @@
 // Dev tool: fill a character with realistic data and screenshot every page
 // at desktop and Pixel width, for a visual review.
 //   python -m http.server 8123   (in another terminal)
-//   node tests/tools/screens.mjs <output folder>
+//   node tests/tools/screens.mjs <output folder> [kit file to unpack instead of seeding]
 import { firefox } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const BASE = 'http://localhost:8123/';
 const out = process.argv[2] ?? 'screens';
+const kit = process.argv[3] ?? null;
 await mkdir(out, { recursive: true });
 
 const browser = await firefox.launch();
 
+async function unpack(page) {
+  await page.goto(BASE);
+  await page.getByRole('button', { name: 'Unpack a kit' }).click();
+  await page.getByLabel('Kit file').setInputFiles(kit);
+  await page.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await page.getByRole('region', { name: 'Inbox' }).waitFor();
+  return page.evaluate(async () => {
+    const all = await window.__satchel.db.entities.toArray();
+    return Object.fromEntries(all.map((e) => [e.name, e.id]));
+  });
+}
+
 async function seed(page) {
+  if (kit) return unpack(page);
   await page.goto(BASE);
   await page.getByLabel('Character name').fill('Kael Stormborn');
   await page.getByRole('button', { name: 'Start' }).click();
@@ -81,7 +95,7 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 860 }], ['ph
   const ids = await seed(page);
   const shots = [
     ['dashboard', '/'], ['character', '/character'], ['inbox', '/inbox'], ['log', '/log'],
-    ['list-npc', '/list/npc'], ['entity-grimbold', `/entity/${ids.Grimbold}`],
+    ['list-npc', '/list/npc'], ['entity-grimbold', `/entity/${ids.Grimbold ?? ids['Grimbold Ironhand']}`],
     ['entity-thornwood', `/entity/${ids.Thornwood}`], ['files', '/files'],
   ];
   for (const [name, path] of shots) {
@@ -102,7 +116,7 @@ for (const [label, viewport] of [['desktop', { width: 1280, height: 860 }], ['ph
   await page.getByLabel('Note').pressSequentially('grimbold');
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(out, `${label}-session-recall.png`) });
-  await page.getByRole('button', { name: 'Kael Stormborn' }).click();
+  await page.locator('.topbar__pc').click();
   await page.waitForTimeout(300);
   await page.screenshot({ path: join(out, `${label}-session-overview.png`) });
   await ctx.close();

@@ -23,15 +23,29 @@ export function useUnpack(onMessage) {
     setReplacing(false);
   }
 
+  async function planFrom(bytes, fileName) {
+    try {
+      const { data, report } = unpackKit(bytes);
+      const p = await planUnpack(data);
+      setPlan({ ...p, data, kitReport: report, fileName });
+    } catch (err) {
+      onMessage({ kind: 'err', text: `Couldn't unpack ${fileName}: ${err.message}` });
+    }
+  }
+
   async function onFile(e) {
     const file = e.currentTarget.files[0];
-    if (!file) return;
+    if (file) await planFrom(new Uint8Array(await file.arrayBuffer()), file.name);
+  }
+
+  // A kit shipped with the app (the demo character). Same confirm screen.
+  async function chooseUrl(url, fileName) {
     try {
-      const { data, report } = unpackKit(new Uint8Array(await file.arrayBuffer()));
-      const p = await planUnpack(data);
-      setPlan({ ...p, data, kitReport: report, fileName: file.name });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`download failed (${res.status})`);
+      await planFrom(new Uint8Array(await res.arrayBuffer()), fileName);
     } catch (err) {
-      onMessage({ kind: 'err', text: `Couldn't unpack ${file.name}: ${err.message}` });
+      onMessage({ kind: 'err', text: `Couldn't get ${fileName}: ${err.message}` });
     }
   }
 
@@ -79,7 +93,7 @@ export function useUnpack(onMessage) {
     <input ref=${input} type="file" class="visually-hidden" aria-label="Kit file" tabindex="-1" onChange=${onFile} />
     ${dialog}
   `;
-  return { choose, view };
+  return { choose, chooseUrl, view };
 }
 
 function pcNameOf(data) {
