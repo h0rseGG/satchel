@@ -21,6 +21,8 @@ import { Gallery } from '../screens/Gallery.js';
 import { World } from '../screens/World.js';
 import { TypeList } from '../screens/TypeList.js';
 import { Entity } from '../screens/Entity.js';
+import { Inbox } from '../screens/Inbox.js';
+import { Notes } from '../screens/Notes.js';
 import { CaptureBox } from '../components/CaptureBox.js';
 
 // The app follows the visual viewport, so a phone keyboard shrinks the app
@@ -80,6 +82,8 @@ export function App() {
   else if (!hasCharacter) body = html`<${Page}><${FirstRun} /><//>`;
   else if (inSession) body = html`<main class="session-main" id="main"><${Session} pc=${frame.pc} session=${frame.session} overview=${overview} onCloseOverview=${() => setOverview(false)} /></main>`;
   else if (route.name === 'home') body = html`<${HomeFrame} pc=${frame.pc} />`;
+  else if (route.name === 'inbox') body = html`<${Page}><${Inbox} pc=${frame.pc} /><//>`;
+  else if (route.name === 'notes') body = html`<${Page}><${Notes} query=${route.query} pc=${frame.pc} /><//>`;
   else if (route.name === 'world') body = html`<${Page}><${World} /><//>`;
   else if (route.name === 'type') body = html`<${Page}><${TypeList} key=${route.params.typeId} typeId=${route.params.typeId} pcId=${frame.pc.id} /><//>`;
   else if (route.name === 'stubs') body = html`<${Page}><${TypeList} key="stubs" typeId=${null} pcId=${frame.pc.id} /><//>`;

@@ -531,3 +531,9 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-02 | M4: deleting an entity is a tombstone; notes keep its name as plain text (a dashed chip). Deleting a type in use asks which type its entities move to, then confirms |
 | 2026-10-02 | M4: link fields filter the picker to the field's type plus stubs; a new name makes a stub. Quick type offers every type, including Character (party members) |
 | 2026-10-02 | M4: World lists every type with its count, then Stubs; Home's World panel shows only types that have entries. The player character isn't counted |
+| 2026-10-02 | M5: **"Add to X"** appends the note as a dated line ("26 Sep: paid Grimbold back…", mentions as names) in a new paragraph of X's description; **"Add to my character"** does the same in the chosen profile section (stamping its section time). Both sort the note and record `promoted_to` |
+| 2026-10-02 | M5: **"Add as relationship"**: who (you or anyone the note mentions), a suggested type or your own words, and whom (the entity picker; new names make stubs). The note is kept in `source_note_ids` |
+| 2026-10-02 | M5: "Mark all as log" acts on the current filter and needs no confirm (it's not destructive: "Show sorted" → "Back to inbox" undoes it). Deleting a note is confirmed |
+| 2026-10-02 | M5: notes are edited in place with the same box as capture (autocomplete included); Enter saves, Esc cancels. An edited note shows "edited", which reveals its first version. Edit and Delete sit as small links on the note's date line; a row's main actions are the sort actions |
+| 2026-10-02 | M5: Notes filters: text (the search index, typo-tolerant), tag, mode, mentioned entity; tag/mode/entity can come from the address (`#/notes?tag=debts`), so tag chips open it filtered. Shows 100 at a time |
+| 2026-10-02 | M5: date helpers moved to `js/core/dates.js` so data modules don't import from the UI |

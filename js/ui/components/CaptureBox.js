@@ -11,15 +11,17 @@ import { RecallStack } from './RecallStack.js';
 // The one box (SPEC 4.2). Enter always saves; Tab or tap picks a suggestion; arrows move
 // the highlight; Esc closes the list, a second Esc clears the box.
 // cap: from useCapture(). recall: show recall cards and search results (in session).
-export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, boxRef }) {
+// Edit mode: initial text and picks, onSubmit(typed, picks) instead of adding a note,
+// and Esc (with no list open) calls onCancel.
+export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, boxRef, initial = '', initialPicks = [], onSubmit, onCancel, label = S.capture.label, autoFocus = false }) {
   const id = useId();
   const ownRef = useRef(null);
   const ref = boxRef ?? ownRef;
-  const [text, setText] = useState('');
+  const [text, setText] = useState(initial);
   const [caret, setCaret] = useState(0);
   const [hi, setHi] = useState(0);
   const [dismissed, setDismissed] = useState(null);
-  const picks = useRef([]);
+  const picks = useRef([...initialPicks]);
   const pendingCaret = useRef(null);
 
   // A pick sets the caret after the re-render. Typing cancels a pending restore, or a fast
@@ -86,7 +88,7 @@ export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, bo
     try {
       // Not `onSaved?.(await addNote(...))`: optional call skips its arguments too,
       // so the note would never be saved when there's no onSaved.
-      const note = await addNote(typed, { picks: p });
+      const note = onSubmit ? await onSubmit(typed, p) : await addNote(typed, { picks: p });
       onSaved?.(note);
     } catch (err) {
       setText((t) => (t ? `${typed} ${t}` : typed));
@@ -111,6 +113,7 @@ export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, bo
       setHi((sel - 1 + items.length) % items.length);
     } else if (e.key === 'Escape') {
       if (open && (items.length || hint)) setDismissed(token.start);
+      else if (onCancel) onCancel();
       else {
         setText('');
         picks.current = [];
@@ -140,12 +143,12 @@ export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, bo
             </li>`)}
           ${hint && html`<li class="suggest-hint" role="presentation">${hint}</li>`}
         </ul>`}
-      <label class="sr-only" for=${id}>${S.capture.label}</label>
+      <label class="sr-only" for=${id}>${label}</label>
       <textarea id=${id} ref=${ref} class="capture-input" rows="1" value=${text} placeholder=${placeholder}
         enterkeyhint="send" autocomplete="off" spellcheck="true"
         role="combobox" aria-expanded=${items.length ? 'true' : 'false'} aria-controls=${listId} aria-autocomplete="list"
         aria-activedescendant=${items.length ? `${id}-o${sel}` : undefined}
-        onInput=${onInput} onKeyDown=${onKeyDown} onKeyUp=${trackCaret} onClick=${trackCaret} onSelect=${trackCaret}></textarea>
+        autofocus=${autoFocus} onInput=${onInput} onKeyDown=${onKeyDown} onKeyUp=${trackCaret} onClick=${trackCaret} onSelect=${trackCaret}></textarea>
     </div>`;
 }
 

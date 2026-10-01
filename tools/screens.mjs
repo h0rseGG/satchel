@@ -52,6 +52,8 @@ const seedWorld = async () => {
   localStorage.setItem('gull', gull.id);
 };
 const SCREENS = [
+  { name: 'inbox', hash: '#/inbox', setup: seedSession, arg: { out: true }, height: 1300, action: async (page) => { await page.getByRole('button', { name: 'Add as relationship' }).nth(1).click(); } },
+  { name: 'notes', hash: '#/notes', setup: seedSession, arg: { out: true } },
   { name: 'world', hash: '#/world', setup: seedWorld, action: (page) => page.locator('.type-row', { hasText: 'Ship / Ships' }).getByRole('button', { name: 'Edit' }).click(), height: 1300 },
   { name: 'type-list', hash: '#/world/type-npc', setup: seedWorld },
   { name: 'stubs', hash: '#/world/stubs', setup: seedWorld },

@@ -66,3 +66,12 @@ export async function lastInSessionNoteAt() {
 export async function allLiveNotes() {
   return db().notes.filter((n) => !n.deleted).toArray();
 }
+
+// Every live note, newest first, filtered in code (SPEC 5.2 Notes).
+// filter: { mode: 'all'|'in'|'out', tag, entity }
+export async function listNotes({ mode = 'all', tag = '', entity = '' } = {}) {
+  const list = await db().notes.orderBy('created_at').reverse()
+    .filter((n) => !n.deleted && (mode === 'all' || n.mode === mode) && (!tag || (n.tags || []).includes(tag)) && (!entity || (n.mentions || []).includes(entity)))
+    .toArray();
+  return list;
+}
