@@ -90,6 +90,31 @@ html, body {
 .note__time { flex: none; font-size: 13px; padding-top: 2px; font-variant-numeric: tabular-nums; }
 .note__text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* Mentions */
+.mention {
+  padding: 0 3px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.suggest {
+  list-style: none;
+  margin: 0 0 var(--gap);
+  padding: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.suggest__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  padding: 8px 10px;   /* comfortable tap target on the phone */
+  cursor: pointer;
+}
+.suggest__item[aria-selected="true"] { background: var(--bg-alt); }
+.suggest__new { padding: 6px 10px; font-size: 13px; }
+
 /* Forms */
 .firstrun h1 { font-size: 20px; margin: 0 0 8px; }
 .firstrun form { margin: 16px 0; }

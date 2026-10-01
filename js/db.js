@@ -2,7 +2,8 @@
 // record shapes live in model.js, which is unit tested without a browser.
 
 import Dexie from 'dexie';
-import { makeEntity, makeNote, newId, now, touch } from './model.js';
+import { live, makeEntity, makeNote, nameKey, newId, now, touch } from './model.js';
+import { findTyped, matchByName, storedIds, tokenise } from './mentions.js';
 
 export const db = new Dexie('satchel');
 
@@ -62,10 +63,29 @@ export async function update(table, id, changes) {
   return save(table, touch(rec, changes));
 }
 
-// Save a new note. The first note ever also asks for persistent storage,
-// so the browser's prompt appears at a moment that makes sense.
-export async function addNote({ text, mode = 'out', session_id = null }) {
-  const note = await save('notes', makeNote({ text, mode, session_id }));
+// Save a new note, resolving @mentions: an autocomplete pick wins, then an
+// exact name/alias match, otherwise a stub is created. All in one
+// transaction, so a failed save leaves no orphan stubs.
+// picked: { [nameKey]: entityId } from autocomplete.
+// The first note ever also asks for persistent storage.
+export async function addNote({ text, mode = 'out', session_id = null, picked = {} }) {
+  const note = await db.transaction('rw', db.entities, db.notes, db.meta, async () => {
+    const ents = live(await db.entities.toArray());
+    const byId = new Map(ents.map((e) => [e.id, e]));
+    const resolved = new Map();
+    for (const m of findTyped(text)) {
+      const key = nameKey(m.name);
+      if (resolved.has(key)) continue;
+      let ent = byId.get(picked[key]) ?? matchByName(ents, m.name);
+      if (!ent) {
+        ent = await save('entities', makeEntity({ name: m.name }));
+        ents.push(ent);
+      }
+      resolved.set(key, ent);
+    }
+    const stored = tokenise(text, resolved);
+    return save('notes', makeNote({ text: stored, mode, session_id, mentions: storedIds(stored) }));
+  });
   if (!(await getMeta('persist_asked'))) {
     await setMeta('persist_asked', true);
     requestPersist().catch((err) => console.warn('persist() failed', err));

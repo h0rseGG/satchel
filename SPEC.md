@@ -87,7 +87,7 @@ Checked against MDN, Mozilla release notes and Bugzilla, GitHub docs and the npm
 
 | Item | Result | Effect on the spec |
 |---|---|---|
-| `storage.persist()` | Desktop shows a permission prompt. Android behaviour **[NV]** | Ask at a sensible moment (first note), with a one-line explanation |
+| `storage.persist()` | Desktop and Android (tested on the Pixel 2026-10-01) both show a prompt with a "remember decision" option | Ask at a sensible moment (first note), with a one-line explanation |
 | WebP `toBlob` | Supported since Firefox 96 (desktop and Android) | WebP as planned |
 | Private window IndexedDB | Works since Firefox 115, wiped when the private window closes | Show a warning banner in private mode if detectable |
 | Desktop install | "Web Apps" (Taskbar Tabs) on Windows since Firefox 143, on by default | Ship a valid manifest; Windows users can pin it |

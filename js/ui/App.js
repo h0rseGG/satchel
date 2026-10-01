@@ -17,6 +17,8 @@ export function App() {
 
 function Main() {
   const pc = useLive(async () => db.entities.get(await getMeta('pc_entity_id')), [], null);
+  const entities = useLive(async () => live(await db.entities.toArray()), [], []);
+  const names = new Map(entities.map((e) => [e.id, e.name]));
   const notes = useLive(
     async () => live(await db.notes.orderBy('created_at').reverse().limit(FEED_LIMIT).toArray()).reverse(),
     [],
@@ -28,7 +30,7 @@ function Main() {
       <span class="topbar__title">${pc ? pc.name : 'Satchel'}</span>
       <span class="badge badge--err">Not backed up</span>
     </header>
-    <${Feed} notes=${notes} />
-    <${CaptureBox} onSave=${(text) => addNote({ text })} />
+    <${Feed} notes=${notes} names=${names} />
+    <${CaptureBox} entities=${entities} onSave=${(text, picked) => addNote({ text, picked })} />
   `;
 }

@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { html } from './html.js';
 import { dayKey, formatDay, formatTime } from './format.js';
+import { NoteText } from './NoteText.js';
 
 // Recent notes, oldest at top, newest just above the box (chat-style, D11).
-export function Feed({ notes }) {
+export function Feed({ notes, names }) {
   const ref = useRef(null);
 
   // Keep the newest note in view when one is added.
@@ -29,7 +30,7 @@ export function Feed({ notes }) {
     rows.push(html`
       <article class="note" key=${n.id}>
         <time class="note__time muted" datetime=${n.created_at}>${formatTime(n.created_at)}</time>
-        <p class="note__text">${n.text}</p>
+        <p class="note__text"><${NoteText} text=${n.text} names=${names} /></p>
       </article>
     `);
   }

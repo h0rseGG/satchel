@@ -26,6 +26,8 @@ async function start() {
     fatal(`Can't open the browser database: ${err.message}`);
     return;
   }
+  // Test hook: lets browser tests inspect the database. Local dev only.
+  if (location.hostname === 'localhost') window.__satchel = { db };
   root.innerHTML = '';
   render(html`<${App} />`, root);
 }
