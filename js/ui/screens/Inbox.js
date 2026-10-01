@@ -1,9 +1,9 @@
 import { useState } from 'preact/hooks';
 import { html } from '../html.js';
 import { S } from '../strings.js';
-import { useLive } from '../useLive.js';
 import { useCapture } from '../useCapture.js';
-import { inboxNotes, sortedNotes, keepAsLog, backToInbox, addToEntity, addToProfile, addAsRelationship } from '../../data/inbox.js';
+import { keepAsLog, backToInbox, addToEntity, addToProfile, addAsRelationship } from '../../data/inbox.js';
+import { inbox, sorted as sortedOf } from '../../core/notelists.js';
 import { PROFILE_SECTIONS } from '../../core/model.js';
 import { SUGGESTED } from '../../core/relationships.js';
 import { NoteRow } from '../components/NoteRow.js';
@@ -22,8 +22,8 @@ export function Inbox({ pc }) {
   const cap = useCapture();
   const [mode, setMode] = useState('all');
   const [showSorted, setShowSorted] = useState(false);
-  const notes = useLive(() => inboxNotes(mode), [mode], []);
-  const sorted = useLive(() => (showSorted ? sortedNotes(mode) : []), [mode, showSorted], []);
+  const notes = cap ? inbox(cap.notes, mode) : [];
+  const sorted = cap && showSorted ? sortedOf(cap.notes, mode) : [];
   const run = (p, msg) => p.then(() => msg && toast(msg, { kind: 'ok', ms: 3000 }), reportError);
 
   return html`

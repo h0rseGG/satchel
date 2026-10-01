@@ -32,6 +32,7 @@ export function Session({ pc, session, overview, onCloseOverview }) {
     <div class="session">
       <div class="session-feed" ref=${feed}>
         ${overview ? html`<${Overview} pc=${pc} onClose=${close} />` : html`
+          <h1 class="sr-only">${S.session.inSession}</h1>
           <section aria-label=${S.feed.label} class="feed">
             ${notes.length === 0 ? html`<p class="feed-empty muted">${S.feed.empty}</p>` : html`
               <ol class="feed-list">

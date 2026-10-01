@@ -1,10 +1,7 @@
 import { html } from '../html.js';
 import { S } from '../strings.js';
 import { useLive } from '../useLive.js';
-import { recentNotes } from '../../data/notes.js';
-import { worldCounts } from '../../data/entities.js';
-import { inboxCount } from '../../data/inbox.js';
-import { allTypes } from '../../data/types.js';
+import { newest, inboxCount, worldCounts } from '../../core/notelists.js';
 import { href } from '../app/router.js';
 import { Portrait } from '../components/Portrait.js';
 import { DndBeyondButton } from '../components/DndBeyondButton.js';
@@ -17,11 +14,12 @@ import { when } from '../format.js';
 
 // The hub. More panels arrive milestone by milestone (SPEC 5.2).
 export function Home({ pc, cap }) {
-  const notes = useLive(() => recentNotes(5), [], []);
-  const counts = useLive(worldCounts, [], { stubs: 0 });
-  const types = useLive(allTypes, [], []);
+  // From the capture store's notes in memory: no table scans on every write (M10).
+  const notes = cap ? newest(cap.notes, 5) : [];
+  const counts = cap ? worldCounts(cap.entities, pc.id) : { stubs: 0 };
+  const types = cap?.types ?? [];
   const used = types.filter((t) => counts[t.id]);
-  const inbox = useLive(inboxCount, [], 0);
+  const inbox = cap ? inboxCount(cap.notes) : 0;
   const files = useLive(() => allFiles(6), [], []);
   return html`
     <h1 class="page-title">${pc.name}</h1>

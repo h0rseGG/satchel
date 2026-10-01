@@ -1,7 +1,7 @@
 // Entities: people, places, things, stubs.
 import { db } from './db.js';
 import { save, saveMany } from './store.js';
-import { getMeta } from './meta.js';
+import { getMeta, bumpEpoch } from './meta.js';
 import { mergeEntityInto } from '../core/merge.js';
 import { addFile, UploadError } from './files.js';
 import { classifyUpload } from '../core/files-rules.js';
@@ -44,6 +44,8 @@ export async function mergeEntity(fromId, intoId, { now = isoNow() } = {}) {
   const [entities, notes, relationships, files, bundle] = await Promise.all([d.entities.toArray(), d.notes.toArray(), d.relationships.toArray(), d.files.toArray(), getMeta('bundle')]);
   const changed = mergeEntityInto({ pc_entity_id: bundle?.pc_entity_id, entities, notes, relationships, files }, fromId, intoId, now);
   await saveMany(changed, { now });
+  // Redirected notes keep their updated_at, so the capture store must reload.
+  await bumpEpoch();
 }
 
 // Live entities of a type (or stubs when typeId is null), A–Z.

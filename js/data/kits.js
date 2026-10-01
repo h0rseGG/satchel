@@ -2,7 +2,7 @@
 // everything first (core/kit.js) and writes in one transaction, so a failure leaves
 // the old data exactly as it was.
 import { db, BUNDLE_TABLES, ALL_TABLES } from './db.js';
-import { getMeta, setMeta } from './meta.js';
+import { getMeta, setMeta, bumpEpoch } from './meta.js';
 import { packKit, unpackKit } from '../core/kit.js';
 import { mergeBundles } from '../core/merge.js';
 import { recordBackup } from '../core/backup.js';
@@ -56,6 +56,7 @@ async function load(kit) {
     await setMeta('bundle', { bundle_id: kit.bundle.bundle_id, pc_entity_id: kit.bundle.pc_entity_id });
     // A freshly loaded kit is backed up as of when it was made (SPEC 7.2).
     await setMeta('backup', kit.bundle.exported_at ? recordBackup(emptyBackupMeta(), kit.bundle.exported_at) : emptyBackupMeta());
+    await bumpEpoch();
   });
 }
 
@@ -82,6 +83,7 @@ export async function importMerge(kit) {
     if (need.size) await d.blobs.bulkPut(blobRows(need, bundle.files));
     for (const f of bundle.files) if (f.deleted) await d.blobs.delete(f.id);
     if (bundle.pc_entity_id !== local.pc_entity_id) await setMeta('bundle', { bundle_id: local.bundle_id, pc_entity_id: bundle.pc_entity_id });
+    await bumpEpoch();
     return report;
   });
 }
@@ -96,5 +98,6 @@ export async function startOver(name, { now = isoNow() } = {}) {
     await d.entities.put(pc);
     await setMeta('bundle', { bundle_id: newId(), pc_entity_id: pc.id });
     await setMeta('backup', emptyBackupMeta());
+    await bumpEpoch();
   });
 }

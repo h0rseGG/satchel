@@ -88,7 +88,7 @@ export function CaptureBox({ cap, pcId, recall = false, placeholder, onSaved, bo
     try {
       // Not `onSaved?.(await addNote(...))`: optional call skips its arguments too,
       // so the note would never be saved when there's no onSaved.
-      const note = onSubmit ? await onSubmit(typed, p) : await addNote(typed, { picks: p });
+      const note = onSubmit ? await onSubmit(typed, p) : await addNote(typed, { picks: p, index: cap?.nameIndex });
       onSaved?.(note);
     } catch (err) {
       setText((t) => (t ? `${typed} ${t}` : typed));

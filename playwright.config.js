@@ -8,6 +8,9 @@ export default defineConfig({
   // 8 parallel Firefoxes overloaded the v1 PC and caused random 5 s timeouts; 4 ran clean.
   workers: 4,
   reporter: 'list',
+  // Speed checks measure the app, so they run alone (npm run speed), not beside three
+  // other Firefoxes competing for the CPU.
+  grepInvert: process.env.SPEED ? undefined : /@speed/,
   use: {
     baseURL: 'http://localhost:8123',
   },

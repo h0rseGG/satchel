@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'preact/hooks';
 import { html } from '../html.js';
 import { S } from '../strings.js';
-import { useLive } from '../useLive.js';
 import { useCapture } from '../useCapture.js';
-import { listNotes } from '../../data/notes.js';
+import { filterNotes } from '../../core/notelists.js';
 import { search } from '../../core/search.js';
 import { NoteRow } from '../components/NoteRow.js';
 import { RuledList } from '../components/ListRow.js';
@@ -26,7 +25,7 @@ export function Notes({ query, pc }) {
   useEffect(() => { setTag(query.tag ?? ''); setMode(query.mode ?? 'all'); setEntity(query.entity ?? ''); }, [query.tag, query.mode, query.entity]);
   useEffect(() => setLimit(PAGE), [text, tag, mode, entity]);
 
-  const notes = useLive(() => listNotes({ mode, tag, entity }), [mode, tag, entity], []);
+  const notes = useMemo(() => (cap ? filterNotes(cap.notes, { mode, tag, entity }) : []), [cap, mode, tag, entity]);
   const shown = useMemo(() => {
     const q = text.trim();
     if (!q || !cap) return notes;

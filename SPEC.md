@@ -1,6 +1,6 @@
 # Satchel v2: specification
 
-Status: **APPROVED 2026-10-01** (including the field-journal style). Written from everything learned building v1. Open questions in section 14 take the recommended answers unless Jake says otherwise.
+Status: **APPROVED 2026-10-01** (including the field-journal style). **Built: M0–M10 done, released as v2.12 on 2026-10-02.** Written from everything learned building v1. Open questions in section 14 take the recommended answers unless Jake says otherwise.
 This document is **self-contained**: a fresh Claude session on a new machine should be able to build Satchel v2 from this file and `CLAUDE.md` (in the same folder) alone, with no access to v1 or its history.
 
 Legend: **[NV]** = not verified; check before relying on it (milestone M0 does this). **(v1)** = proven in v1, keep as is.
@@ -549,3 +549,7 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-02 | M9: the end-of-session nudge floats like a toast ("Session over. Pack your kit before you go?" · Pack kit · Not now); it isn't a confirm, because nothing is lost |
 | 2026-10-02 | M9: persistent storage is asked once, right after a character exists (first run: name, unpack or demo); Settings shows the status and can ask again |
 | 2026-10-02 | M9: menu → New character goes to Settings' danger zone (type the new name there, then the typed-name confirm). Help is a dialog with six short sections, including moving between devices (7.4). Its install wording is deliberately general [NV: Firefox's exact menu names] |
+| 2026-10-02 | M10 speed, measured in Playwright Firefox with 5000 notes and 300 entities: rebuilding everything after each save took ~0.5 s, recall matching 43 ms a keystroke, a save 134 ms. Fixed: (1) the capture store (`js/data/captureStore.js`) keeps notes, names, tag counts and the search index in memory and applies only changed notes (database v3 indexes `updated_at`; kit imports and entity merges bump a `meta.epoch`, which triggers a full reload); (2) recall scans the text once and compares characters instead of compiling a regex per name; (3) Home, Inbox and Notes read the in-memory notes instead of scanning the table on every write. Now: save ~15 ms, catch-up after a save ~30 ms, keystroke work ~8 ms, search ~5 ms, real typing ~6 ms a key. `npm run speed` checks these alone (one worker) and is part of the push gate |
+| 2026-10-02 | M10: anything uncaught shows "Something went wrong. Your data is safe; try again." (window error and unhandled rejection handlers, same-origin only) |
+| 2026-10-02 | M10: an accessibility and phone-width audit runs over every screen and open state at 1280 and 412 px with the demo loaded: every visible control has an accessible name, images have alt text, dialogs are named, one h1 per screen (the session screen got a visually hidden one), `lang="en-AU"`, no sideways scroll. A unit test keeps HTML-injection sinks out of app code |
+| 2026-10-02 | M10: the release is **v2.12** (Jake's `2.N` scheme; no separate "1.0.0"). README written for players first, developers second |

@@ -42,3 +42,10 @@ test('sw.js pre-caches every app file (run node tools/sw-files.mjs after adding 
   const root = new URL('../../', import.meta.url).pathname;
   assert.equal(readBlock(read('sw.js')), swBlock(appFiles(root)));
 });
+
+// SPEC 10: no innerHTML (or similar) with user data. The app has no reason to use any.
+test('no HTML-injection sinks in app code', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const out = execFileSync('git', ['grep', '-nE', 'innerHTML|insertAdjacentHTML|outerHTML|document\\.write|dangerouslySetInnerHTML', '--', 'js', 'sw.js', 'index.html'], { cwd: new URL('../../', import.meta.url).pathname, encoding: 'utf8' }).split('\n').filter(Boolean);
+  assert.deepEqual(out.filter((l) => !/^\s*\/\//.test(l.split(':').slice(2).join(':'))), []);
+});

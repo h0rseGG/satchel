@@ -7,24 +7,6 @@ import { plainText } from '../core/mentions.js';
 import { day } from '../core/dates.js';
 import { relationshipRecord } from './relationships.js';
 
-const byCreated = (a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0);
-
-// Unsorted notes, oldest first. mode: 'all' | 'in' | 'out'.
-export async function inboxNotes(mode = 'all') {
-  const list = await db().notes.filter((n) => !n.deleted && !n.triaged_at && (mode === 'all' || n.mode === mode)).toArray();
-  return list.sort(byCreated);
-}
-
-// Already sorted, newest first (for "Show sorted").
-export async function sortedNotes(mode = 'all', limit = 100) {
-  const list = await db().notes.filter((n) => !n.deleted && !!n.triaged_at && (mode === 'all' || n.mode === mode)).toArray();
-  return list.sort(byCreated).reverse().slice(0, limit);
-}
-
-export async function inboxCount() {
-  return db().notes.filter((n) => !n.deleted && !n.triaged_at).count();
-}
-
 const triaged = (n, now, extra = {}) => ({ ...n, ...extra, triaged_at: now, updated_at: now });
 
 export async function keepAsLog(ids, { now = isoNow() } = {}) {

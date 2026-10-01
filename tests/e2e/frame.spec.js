@@ -91,3 +91,10 @@ test('opens offline after one online visit, styled', async ({ page, context }) =
   expect(await offline.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(246, 241, 228)');
   expect(await offline.evaluate(async () => (await document.fonts.load('20px "IM Fell English"')).length > 0)).toBe(true);
 });
+
+test('an unexpected error shows a message instead of failing silently', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('.topbar-home')).toBeVisible();
+  await page.evaluate(() => { Promise.reject(new Error('boom')); });
+  await expect(page.getByText('Something went wrong. Your data is safe; try again.')).toBeVisible();
+});

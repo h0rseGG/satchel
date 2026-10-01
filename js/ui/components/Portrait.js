@@ -32,7 +32,7 @@ export function Portrait({ entity, size = 120, editable = true }) {
         : html`<div class="portrait-empty" style=${style} aria-label=${S.portrait.none}><span aria-hidden="true">${entity.name.trim()[0] ?? ''}</span></div>`}
       ${editable && html`
         <div class="portrait-actions">
-          <input id=${id} ref=${input} type="file" class="sr-only" onChange=${pick} tabindex="-1" />
+          <input id=${id} ref=${input} type="file" class="sr-only" onChange=${pick} tabindex="-1" aria-hidden="true" />
           <button type="button" class="btn btn-quiet" onClick=${() => input.current?.click()}>${entity.portrait_file_id ? S.portrait.change : S.portrait.add}</button>
           ${entity.portrait_file_id && html`<button type="button" class="btn btn-quiet" onClick=${() => updateEntity(entity.id, { portrait_file_id: null }).catch(reportError)}>${S.portrait.remove}</button>`}
         </div>`}

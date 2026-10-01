@@ -14,10 +14,11 @@ async function nameIndex() {
 }
 
 // typed: the capture box text; picks: [{ name, id }] from autocomplete.
-export async function addNote(typed, { picks = [], now = isoNow(), mode } = {}) {
+// index: the capture store's name index, if the caller has it (saves re-reading entities).
+export async function addNote(typed, { picks = [], now = isoNow(), mode, index } = {}) {
   const text = typed.trim();
   if (!text) return null;
-  const r = resolveText(text, await nameIndex(), { picks, now });
+  const r = resolveText(text, index ?? (await nameIndex()), { picks, now });
   const note = makeRecord('notes', {
     text: r.text, mentions: r.mentions, tags: tagKeys(r.text), mode: mode ?? noteMode(await getMeta('session')),
   }, { now });
@@ -48,11 +49,6 @@ export async function deleteNote(id, { now = isoNow() } = {}) {
   if (note && !note.deleted) await saveMany([{ table: 'notes', record: tombstone(note, now) }], { now });
 }
 
-// Newest first.
-export async function recentNotes(limit = 5) {
-  return db().notes.orderBy('created_at').reverse().filter((n) => !n.deleted).limit(limit).toArray();
-}
-
 // The session feed: notes written since the session started, oldest first.
 export async function notesSince(iso) {
   return db().notes.where('created_at').aboveOrEqual(iso ?? '').filter((n) => !n.deleted).toArray();
@@ -63,15 +59,3 @@ export async function lastInSessionNoteAt() {
   return n?.created_at ?? null;
 }
 
-export async function allLiveNotes() {
-  return db().notes.filter((n) => !n.deleted).toArray();
-}
-
-// Every live note, newest first, filtered in code (SPEC 5.2 Notes).
-// filter: { mode: 'all'|'in'|'out', tag, entity }
-export async function listNotes({ mode = 'all', tag = '', entity = '' } = {}) {
-  const list = await db().notes.orderBy('created_at').reverse()
-    .filter((n) => !n.deleted && (mode === 'all' || n.mode === mode) && (!tag || (n.tags || []).includes(tag)) && (!entity || (n.mentions || []).includes(entity)))
-    .toArray();
-  return list;
-}

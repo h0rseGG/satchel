@@ -13,7 +13,14 @@ const DEFAULTS = {
   backup: emptyBackupMeta,
   session: () => outOfSession(null),
   persist: () => ({ asked: false, granted: false }),
+  epoch: () => 0,
 };
+
+// Bumped by writes that can change notes without a newer updated_at (kit imports,
+// merging entities), so the capture store knows to reload everything.
+export async function bumpEpoch() {
+  await setMeta('epoch', (await getMeta('epoch')) + 1);
+}
 
 export async function getMeta(key) {
   const row = await db().meta.get(key);

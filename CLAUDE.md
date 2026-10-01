@@ -13,6 +13,7 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 - When he says "keep going" / is away: build approved scope milestone by milestone, decide details, log them, test, push each finished step. Don't expand scope; leave design-changing questions for his return.
 - Authorised: push to `origin main` after each finished, **tested** step (it updates the live site).
 - Testing uses the demo character only until he says the app is finished. Still treat data safety as if it were real.
+- `tools/screens.mjs` seeds its own data per screen; extend its SCREENS list when adding a screen.
 
 ## Environment (Ubuntu build machine; the app targets Firefox on Windows and Android)
 - Tools:
@@ -30,7 +31,7 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 ## Run and test
 - Serve: `python3 -m http.server 8000` → http://localhost:8000 (Firefox). Tests use port 8123 (the Playwright config starts `python3 -m http.server 8123`).
 - Unit: `npm test`. Browser: `npx playwright test` (Firefox, 4 workers; 8 overloads this PC).
-- **Before every push:** unit + `npx playwright test --repeat-each=2`, and **commit/push in the same command only if all pass**, e.g. `npm test && npx playwright test --repeat-each=2 && git commit -F msg.txt && git push` (`&&` stops at the first failure). Never chain the push after tests with `;`.
+- **Before every push:** unit + `npx playwright test --repeat-each=2` + `npm run speed` (the 5000-note speed check, run alone), and **commit/push in the same command only if all pass**, e.g. `npm test && npx playwright test --repeat-each=2 && npm run speed && git commit -F msg.txt && git push` (`&&` stops at the first failure). Never chain the push after tests with `;`.
 - **After adding or removing app files:** `node tools/sw-files.mjs` (the service worker's pre-cache list; a unit test fails if it's stale). After editing the import map: `node tools/csp-hash.mjs`.
 - **After every push:** `node tools/check-live.mjs` (waits for Pages, opens the live site in Firefox, checks the version and no errors). Local tests can't see files that never got committed.
 - Flaky test = lead: read `test-results/**/error-context.md`.
@@ -40,4 +41,4 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). M4 done (World: types, fields, type lists, entity page, merge, delete). M5 done (Notes, Inbox and every sort action). M6 done (character page, portraits, D&D Beyond link). M7 done (relationships, diagram). M8 done (files grid, viewer, attach, pictures). M9 done (kits: pack, unpack New/Merge/Replace, nudge, persistence, first run with demo, Help, Settings). Next: M10 hardening and release.
+- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). M4 done (World: types, fields, type lists, entity page, merge, delete). M5 done (Notes, Inbox and every sort action). M6 done (character page, portraits, D&D Beyond link). M7 done (relationships, diagram). M8 done (files grid, viewer, attach, pictures). M9 done (kits: pack, unpack New/Merge/Replace, nudge, persistence, first run with demo, Help, Settings). M10 done: released as v2.12 (speed at 5000 notes, error toasts, accessibility audit, README). Further work is Jake's call.

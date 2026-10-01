@@ -224,10 +224,52 @@ export function applyEntityPick(text, token, entity) {
 
 // --- Recall: names typed without @ ----------------------------------------
 
-function phraseRegExp(phrase) {
-  const body = phrase.trim().split(/\s+/).map((w) => [...w].map((c) => (c === "'" || c === '’' ? "['’]" : c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('')).join('\\s+');
-  return new RegExp(`(?<![\\p{L}\\p{N}_@#])${body}(?![\\p{L}\\p{N}_])`, 'giu');
+// Names grouped by their first word: scanning the text once and checking only names
+// whose first word appears keeps recall fast with hundreds of entities. Checking is a
+// plain character comparison, not a regex per name: compiling hundreds of Unicode
+// regexes took ~250 ms in Firefox after every save (M10).
+function phraseTable(index) {
+  if (index.phraseTable) return index.phraseTable;
+  const table = new Map();
+  const add = (k, id) => {
+    const first = k.match(/^[\p{L}\p{N}_]+/u)?.[0];
+    if (!first) return;
+    if (!table.has(first)) table.set(first, []);
+    table.get(first).push({ phrase: k, id });
+  };
+  for (const [k, list] of index.exact) add(k, list[0].id);
+  for (const [k, e] of index.short) if (!index.exact.has(k)) add(k, e.id);
+  index.phraseTable = table;
+  return table;
 }
+
+const IS_WORD = /[\p{L}\p{N}_]/u;
+const IS_SPACE = /\s/u;
+
+// Does `phrase` (a key: lower case, single spaces, straight apostrophes) start at
+// text[pos], ending at a word boundary? Returns the end index or -1.
+function matchAt(text, pos, phrase) {
+  let i = pos;
+  for (let j = 0; j < phrase.length; j++) {
+    const p = phrase[j];
+    if (p === ' ') {
+      if (i >= text.length || !IS_SPACE.test(text[i])) return -1;
+      while (i < text.length && IS_SPACE.test(text[i])) i++;
+      continue;
+    }
+    const c = text[i];
+    if (c === undefined) return -1;
+    if (p === "'") {
+      if (c !== "'" && c !== '\u2019' && c !== '\u2018' && c !== '\u02BC') return -1;
+    } else if (c.toLowerCase() !== p && c.normalize('NFC').toLowerCase() !== p) {
+      return -1;
+    }
+    i++;
+  }
+  return i < text.length && IS_WORD.test(text[i]) ? -1 : i;
+}
+
+const WORD_RUN = /[\p{L}\p{N}_]+/gu;
 
 // Plain-text occurrences of exact names, aliases and short names (not inside
 // @tokens, #tags or URLs): [{ start, end, id, text }].
@@ -239,14 +281,19 @@ export function findNames(text, index) {
     ...findTyped(t).map((s) => [s.start, s.end]),
     ...findTags(t).map((s) => [s.start, s.end]),
   ];
-  const phrases = [];
-  for (const [k, list] of index.exact) phrases.push([k, list[0].id]);
-  for (const [k, e] of index.short) if (!index.exact.has(k)) phrases.push([k, e.id]);
+  const table = phraseTable(index);
   const out = [];
-  for (const [phrase, id] of phrases) {
-    for (const m of t.matchAll(phraseRegExp(phrase))) {
-      if (overlaps(m.index, m.index + m[0].length, skip)) continue;
-      out.push({ start: m.index, end: m.index + m[0].length, id, text: m[0] });
+  for (const run of t.matchAll(WORD_RUN)) {
+    // Runs are maximal, so the character before one is never a word character;
+    // a name straight after @ or # belongs to a mention or tag.
+    const pos = run.index;
+    if (pos > 0 && (t[pos - 1] === '@' || t[pos - 1] === '#')) continue;
+    const candidates = table.get(run[0].normalize('NFC').toLowerCase());
+    if (!candidates) continue;
+    for (const c of candidates) {
+      const end = matchAt(t, pos, c.phrase);
+      if (end < 0 || overlaps(pos, end, skip)) continue;
+      out.push({ start: pos, end, id: c.id, text: t.slice(pos, end) });
     }
   }
   // "lord aldric" means Lord Aldric, not also an entity called "Aldric" inside it.

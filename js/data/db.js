@@ -22,6 +22,8 @@ function open(name) {
   });
   // v2 (M3): recall cards look up notes by the entities they mention.
   db.version(2).stores({ notes: 'id, created_at, *mentions' });
+  // v3 (M10): the capture store reads only notes changed since it last looked.
+  db.version(3).stores({ notes: 'id, created_at, updated_at, *mentions' });
   return db;
 }
 
