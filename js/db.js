@@ -190,6 +190,43 @@ export async function unpackMerge(data) {
   });
 }
 
+// ---------- Replace / start over (destructive) ----------
+
+// Meta keys that describe the browser, not the character: kept on wipe.
+const DEVICE_META = ['persist_asked', 'persist_granted'];
+
+async function clearCharacter() {
+  for (const t of [...TABLES, 'blobs']) await db[t].clear();
+  const keys = await db.meta.toCollection().primaryKeys();
+  await db.meta.bulkDelete(keys.filter((k) => !DEVICE_META.includes(k)));
+}
+
+// What would be lost, for the warning: { pcName, notes, entities }.
+export async function localSummary() {
+  const pcId = await getMeta('pc_entity_id');
+  const entities = live(await db.entities.toArray());
+  const notes = live(await db.notes.toArray());
+  return {
+    pcName: entities.find((e) => e.id === pcId)?.name ?? '',
+    notes: notes.length,
+    entities: entities.length,
+  };
+}
+
+// Replace this device's character with a kit. One transaction: if loading
+// the kit fails, the old character is left exactly as it was.
+export async function replaceWithKit(data) {
+  await db.transaction('rw', DATA_TABLES(), async () => {
+    await clearCharacter();
+    await unpackNew(data);
+  });
+}
+
+// Delete this device's character; the app returns to the first-run screen.
+export async function startOver() {
+  await db.transaction('rw', DATA_TABLES(), clearCharacter);
+}
+
 // Called after a kit download starts. "Backed up" means the file was
 // downloaded, not that it's stored safely (SPEC section 6).
 export async function markBackedUp() {

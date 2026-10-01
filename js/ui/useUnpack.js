@@ -1,18 +1,26 @@
 import { useRef, useState } from 'preact/hooks';
 import { html } from './html.js';
 import { unpackKit } from '../kit.js';
-import { planUnpack, unpackMerge, unpackNew } from '../db.js';
+import { planUnpack, replaceWithKit, unpackMerge, unpackNew } from '../db.js';
 import { formatShort } from './format.js';
+import { ConfirmDelete } from './ConfirmDelete.js';
+import { countsText } from './plural.js';
 
 // Unpack kit: pick a file, show what will happen, apply on confirm.
 // Returns { choose, view }: call choose() to open the file picker, render view.
 export function useUnpack(onMessage) {
   const input = useRef(null);
   const [plan, setPlan] = useState(null);
+  const [replacing, setReplacing] = useState(false);
 
   function choose() {
     input.current.value = '';
     input.current.click();
+  }
+
+  function close() {
+    setPlan(null);
+    setReplacing(false);
   }
 
   async function onFile(e) {
@@ -27,28 +35,55 @@ export function useUnpack(onMessage) {
     }
   }
 
+  const skippedNote = (p) => (p.kitReport.skipped.length ? ` ${p.kitReport.skipped.length} damaged item(s) skipped.` : '');
+
   async function confirm() {
-    const { mode, data, kitReport } = plan;
-    setPlan(null);
+    const p = plan;
+    close();
     try {
-      const skipped = kitReport.skipped.length ? ` ${kitReport.skipped.length} damaged item(s) skipped.` : '';
-      if (mode === 'new') {
-        await unpackNew(data);
-        onMessage({ kind: 'ok', text: `Kit unpacked: ${data.notes.length} notes, ${data.entities.length} entities.${skipped}` });
+      if (p.mode === 'new') {
+        await unpackNew(p.data);
+        onMessage({ kind: 'ok', text: `Kit unpacked: ${countsText({ notes: p.data.notes.length, entities: p.data.entities.length })}.${skippedNote(p)}` });
       } else {
-        const r = await unpackMerge(data);
-        onMessage({ kind: 'ok', text: `Kit merged: ${summary(r)}.${skipped}` });
+        const r = await unpackMerge(p.data);
+        onMessage({ kind: 'ok', text: `Kit merged: ${summary(r)}.${skippedNote(p)}` });
       }
     } catch (err) {
       onMessage({ kind: 'err', text: `Unpack failed, nothing changed: ${err.message}` });
     }
   }
 
+  let dialog = null;
+  if (plan && replacing) {
+    const kitName = pcNameOf(plan.data);
+    dialog = html`<${ConfirmDelete}
+      title="Replace with kit"
+      action=${`Replace with ${kitName}`}
+      consequence=${`It is replaced by ${kitName} from ${plan.fileName}.`}
+      onConfirm=${() => replaceWithKit(plan.data)}
+      onCancel=${close}
+      onDone=${({ backup }) => {
+        close();
+        onMessage({ kind: 'ok', text: `Replaced with ${kitName}. Backup of the old character: ${backup}.${skippedNote(plan)}` });
+      }}
+      onError=${(err) => {
+        close();
+        onMessage({ kind: 'err', text: `Replace failed, nothing changed: ${err.message}` });
+      }}
+    />`;
+  } else if (plan) {
+    dialog = html`<${Dialog} plan=${plan} onConfirm=${confirm} onReplace=${() => setReplacing(true)} onCancel=${close} />`;
+  }
+
   const view = html`
     <input ref=${input} type="file" class="visually-hidden" aria-label="Kit file" tabindex="-1" onChange=${onFile} />
-    ${plan && html`<${Dialog} plan=${plan} onConfirm=${confirm} onCancel=${() => setPlan(null)} />`}
+    ${dialog}
   `;
   return { choose, view };
+}
+
+function pcNameOf(data) {
+  return data.entities.find((e) => e.id === data.pc_entity_id)?.name ?? 'Unknown character';
 }
 
 function summary(r) {
@@ -58,16 +93,16 @@ function summary(r) {
   return parts.join(', ');
 }
 
-function Dialog({ plan, onConfirm, onCancel }) {
+function Dialog({ plan, onConfirm, onReplace, onCancel }) {
   const { mode, data, kitReport, fileName } = plan;
-  const pcName = data.entities.find((e) => e.id === data.pc_entity_id)?.name ?? 'Unknown character';
+  const pcName = pcNameOf(data);
   const packed = data.exported_at ? `packed ${formatShort(data.exported_at)}` : 'pack date unknown';
 
   let body;
   let action = null;
   if (mode === 'new') {
     body = html`<p>Unpack <strong>${pcName}</strong> (${packed}) onto this device?</p>
-      <p>${data.notes.length} notes, ${data.entities.length} entities.</p>`;
+      <p>${countsText({ notes: data.notes.length, entities: data.entities.length })}.</p>`;
     action = 'Unpack';
   } else if (mode === 'merge') {
     const r = plan.report;
@@ -75,8 +110,8 @@ function Dialog({ plan, onConfirm, onCancel }) {
       <p>${summary(r)}. Nothing on this device is deleted unless the kit has a newer deletion.</p>`;
     action = 'Merge';
   } else {
-    body = html`<p>This kit is a different character: <strong>${pcName}</strong>.</p>
-      <p class="muted">Replacing the character on this device comes in a later build.</p>`;
+    body = html`<p>This kit is a different character: <strong>${pcName}</strong> (${packed}).</p>
+      <p>Characters can't be merged. You can replace the character on this device with this kit.</p>`;
   }
 
   return html`
@@ -89,8 +124,13 @@ function Dialog({ plan, onConfirm, onCancel }) {
           <p class="badge badge--warn">${kitReport.skipped.length} damaged item(s) in the kit will be skipped.</p>
         `}
         <div class="row dialog__actions">
+          ${mode !== 'new' && html`
+            <button type="button" class=${`btn${mode === 'different' ? ' btn--danger' : ''} dialog__replace`} onClick=${onReplace}>
+              ${mode === 'merge' ? 'Replace instead…' : 'Replace…'}
+            </button>
+          `}
           ${action && html`<button type="button" class="btn btn--primary" onClick=${onConfirm}>${action}</button>`}
-          <button type="button" class="btn" onClick=${onCancel}>${action ? 'Cancel' : 'OK'}</button>
+          <button type="button" class="btn" onClick=${onCancel}>Cancel</button>
         </div>
       </div>
     </div>

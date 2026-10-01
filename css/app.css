@@ -198,6 +198,15 @@ html, body {
 .dialog__file { margin: 0 0 8px; font-size: 13px; overflow-wrap: anywhere; }
 .dialog__actions { justify-content: flex-end; margin-top: 12px; }
 .btn--primary { background: var(--ok); }
+.btn--danger { background: var(--err); }
+.btn:disabled { color: var(--muted); background: var(--bg-alt); cursor: default; }
+.btn:disabled:hover { border-color: var(--border); }
+.dialog__warn { display: block; padding: 8px 10px; }
+.dialog__input { width: 100%; margin-top: 4px; }
+.dialog__actions { flex-wrap: wrap; }
+.dialog__replace { margin-right: auto; }
+.menu__sep { height: 1px; margin: 4px 0; background: var(--border); }
+.menu__item--danger:hover { background: var(--err); }
 
 .visually-hidden {
   position: absolute;

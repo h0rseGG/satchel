@@ -1,4 +1,4 @@
-﻿import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { writeFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -119,7 +119,7 @@ test('Merging the same kit twice changes nothing the second time', async ({ brow
   await expect(pc.locator('.note__text')).toHaveText(['only note']);
 });
 
-test('A different character cannot be merged', async ({ browser }) => {
+test('A different character cannot be merged; Cancel keeps it', async ({ browser }) => {
   const phone = await device(browser);
   await start(phone, 'Kael');
   const kit = await pack(phone);
@@ -129,8 +129,90 @@ test('A different character cannot be merged', async ({ browser }) => {
   const dialog = pc.getByRole('dialog');
   await expect(dialog).toContainText('different character: Kael');
   await expect(dialog.getByRole('button', { name: 'Merge' })).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'OK' }).click();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(pc.locator('.topbar__title')).toHaveText('Mira');
+});
+
+test('Replace: typed name required, backup downloads first, then the kit replaces', async ({ browser }) => {
+  const phone = await device(browser);
+  await start(phone, 'Kael');
+  await say(phone, 'kael note');
+  const kit = await pack(phone);
+
+  const pc = await device(browser);
+  await start(pc, 'Mira');
+  await say(pc, 'mira note one');
+  await say(pc, 'mira met @Grimbold');
+  await chooseKit(pc, kit);
+  await pc.getByRole('button', { name: 'Replace…' }).click();
+
+  const confirm = pc.getByRole('dialog', { name: 'Replace with kit' });
+  await expect(confirm).toContainText('This deletes Mira from this device: 2 notes, 2 entities');
+  const go = confirm.getByRole('button', { name: 'Replace with Kael' });
+  await expect(go).toBeDisabled();
+  await confirm.getByLabel(/Type Mira to confirm/).fill('Mir');
+  await expect(go).toBeDisabled();
+  await confirm.getByLabel(/Type Mira to confirm/).fill('mira');
+  await expect(go).toBeEnabled();
+
+  const [backup] = await Promise.all([pc.waitForEvent('download'), go.click()]);
+  expect(backup.suggestedFilename()).toMatch(/^mira-.*\.kit$/);
+  await expect(pc.locator('.topbar__title')).toHaveText('Kael');
+  await expect(pc.locator('.note__text')).toHaveText(['kael note']);
+  await expect(pc.getByRole('status')).toContainText('Backup of the old character: mira-');
+
+  // The backup really holds Mira: unpacking it offers to replace Kael with Mira.
+  await chooseKit(pc, await backup.path());
+  await expect(pc.getByRole('dialog')).toContainText('different character: Mira');
+});
+
+test('Replace instead of merge (same character) discards local changes', async ({ browser }) => {
+  const phone = await device(browser);
+  await start(phone);
+  await say(phone, 'shared');
+  const kit = await pack(phone);
+  const pc = await device(browser);
+  await chooseKit(pc, kit);
+  await pc.getByRole('button', { name: 'Unpack', exact: true }).click();
+  await say(pc, 'only on pc');
+  await chooseKit(pc, kit);
+  await pc.getByRole('button', { name: 'Replace instead…' }).click();
+  await pc.getByLabel(/Type Kael to confirm/).fill('Kael');
+  await Promise.all([pc.waitForEvent('download'), pc.getByRole('button', { name: 'Replace with Kael' }).click()]);
+  await expect(pc.locator('.note__text')).toHaveText(['shared']);
+});
+
+test('New character: wipes after a backup and returns to the first screen', async ({ browser }) => {
+  const pc = await device(browser);
+  await start(pc, 'Kael');
+  await say(pc, 'about to go');
+  await pc.getByRole('button', { name: 'Menu' }).click();
+  await pc.getByRole('menuitem', { name: 'New character…' }).click();
+  const confirm = pc.getByRole('dialog', { name: 'New character' });
+  await expect(confirm).toContainText('This deletes Kael from this device: 1 note, 1 entity');
+  await confirm.getByLabel(/Type Kael to confirm/).fill('KAEL');
+  const [backup] = await Promise.all([
+    pc.waitForEvent('download'),
+    confirm.getByRole('button', { name: 'Delete and start fresh' }).click(),
+  ]);
+  expect(backup.suggestedFilename()).toMatch(/^kael-.*\.kit$/);
+  await expect(pc.getByLabel('Character name')).toBeVisible();
+  const left = await pc.evaluate(async () => ({
+    notes: await window.__satchel.db.notes.count(),
+    entities: await window.__satchel.db.entities.count(),
+    bundle: await window.__satchel.db.meta.get('bundle_id'),
+  }));
+  expect(left).toEqual({ notes: 0, entities: 0, bundle: undefined });
+});
+
+test('New character: Cancel keeps everything', async ({ browser }) => {
+  const pc = await device(browser);
+  await start(pc, 'Kael');
+  await say(pc, 'stay');
+  await pc.getByRole('button', { name: 'Menu' }).click();
+  await pc.getByRole('menuitem', { name: 'New character…' }).click();
+  await pc.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+  await expect(pc.locator('.note__text')).toHaveText(['stay']);
 });
 
 test('A file that is not a kit shows an error and changes nothing', async ({ browser }) => {
