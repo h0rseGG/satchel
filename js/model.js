@@ -1,0 +1,103 @@
+// Record factories and small pure helpers. No browser or database code here,
+// so everything in this file can be unit tested with plain `node --test`.
+// Field definitions: SPEC.md section 4.
+
+export const SCHEMA_VERSION = 1;
+export const APP_VERSION = '0.1.0';
+
+export const ENTITY_TYPES = ['character', 'npc', 'faction', 'location', 'item', 'other', 'unknown'];
+export const NOTE_MODES = ['in', 'out'];
+
+export function now() {
+  return new Date().toISOString();
+}
+
+export function newId() {
+  return crypto.randomUUID();
+}
+
+// Fields every record carries (SPEC section 4).
+function base(at = now()) {
+  return { id: newId(), created_at: at, updated_at: at, deleted: false };
+}
+
+// Mark a record as changed. Returns a new object; never mutates the input.
+export function touch(record, changes = {}, at = now()) {
+  return { ...record, ...changes, updated_at: at };
+}
+
+// Tombstone instead of removing, so Merge doesn't bring it back (D8).
+export function tombstone(record, at = now()) {
+  return touch(record, { deleted: true }, at);
+}
+
+// Trim and collapse whitespace. Used for display names.
+export function cleanName(name) {
+  return String(name ?? '').trim().replace(/\s+/g, ' ');
+}
+
+// Key for case-insensitive name/alias matching.
+export function nameKey(name) {
+  return cleanName(name).toLowerCase();
+}
+
+export function makeEntity({ name, type = 'unknown', stub = type === 'unknown', summary = '', body = '', aliases = [] } = {}) {
+  const clean = cleanName(name);
+  if (!clean) throw new Error('Entity needs a name');
+  if (!ENTITY_TYPES.includes(type)) throw new Error(`Unknown entity type: ${type}`);
+  return {
+    ...base(),
+    type,
+    name: clean,
+    aliases: aliases.map(cleanName).filter(Boolean),
+    summary,
+    body,
+    stub,
+    image_ids: [],
+    merged_into: null,
+  };
+}
+
+export function makeNote({ text, mode = 'out', session_id = null, mentions = [] } = {}) {
+  const t = String(text ?? '').trim();
+  if (!t) throw new Error('Note is empty');
+  if (!NOTE_MODES.includes(mode)) throw new Error(`Unknown note mode: ${mode}`);
+  if (mode === 'in' && !session_id) throw new Error('In-session note needs a session_id');
+  return {
+    ...base(),
+    text: t,
+    original_text: null,
+    mode,
+    session_id: mode === 'in' ? session_id : null,
+    mentions: [...new Set(mentions)],
+    triaged_at: null,
+    promoted_to: [],
+  };
+}
+
+// Edit note text, keeping the very first version in original_text (D13).
+export function editNote(note, text, at = now()) {
+  const t = String(text ?? '').trim();
+  if (!t) throw new Error('Note is empty');
+  if (t === note.text) return note;
+  return touch(note, { text: t, original_text: note.original_text ?? note.text }, at);
+}
+
+export function makeSession({ number } = {}) {
+  if (!Number.isInteger(number) || number < 1) throw new Error('Session number must be a positive integer');
+  const rec = base();
+  return { ...rec, number, started_at: rec.created_at, ended_at: null, title: '', summary: '' };
+}
+
+export function makeRelationship({ from_id, to_id, type, directed = false, notes = '', source_note_ids = [] } = {}) {
+  if (!from_id || !to_id) throw new Error('Relationship needs both ends');
+  if (from_id === to_id) throw new Error('Relationship cannot point at itself');
+  const t = cleanName(type);
+  if (!t) throw new Error('Relationship needs a type');
+  return { ...base(), from_id, to_id, type: t, directed, notes, source_note_ids };
+}
+
+// Live (non-deleted) records only.
+export function live(records) {
+  return records.filter((r) => !r.deleted);
+}

@@ -1,0 +1,11 @@
+{
+  "name": "satchel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling only. The app itself has no build step and no npm dependencies.",
+  "scripts": {
+    "test": "node --test \"tests/unit/**/*.test.js\"",
+    "serve": "python -m http.server 8000"
+  }
+}
