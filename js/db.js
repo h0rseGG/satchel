@@ -147,6 +147,62 @@ export async function updateProfile(id, section, value) {
   });
 }
 
+// ---------- Inbox triage (SPEC section 7) ----------
+
+// Keep a note as plain log: it leaves the inbox.
+export async function triageKeep(noteId) {
+  return db.transaction('rw', db.notes, db.meta, async () => {
+    const n = await db.notes.get(noteId);
+    if (n && !n.triaged_at) await save('notes', touch(n, { triaged_at: now() }));
+  });
+}
+
+// Put a sorted note back in the inbox.
+export async function untriage(noteId) {
+  return db.transaction('rw', db.notes, db.meta, async () => {
+    const n = await db.notes.get(noteId);
+    if (n?.triaged_at) await save('notes', touch(n, { triaged_at: null }));
+  });
+}
+
+// Mark every inbox note (optionally only one mode) as log.
+export async function triageAll(mode = null) {
+  return db.transaction('rw', db.notes, db.meta, async () => {
+    const at = now();
+    const todo = (await db.notes.toArray())
+      .filter((n) => !n.deleted && !n.triaged_at && (!mode || n.mode === mode))
+      .map((n) => touch(n, { triaged_at: at }, at));
+    await saveMany('notes', todo);
+    return todo.length;
+  });
+}
+
+const appendPara = (existing, text) => (existing?.trim() ? `${existing.trimEnd()}\n\n${text}` : text);
+
+// Promote a note: append `text` to an entity's description, or to one
+// section of the character profile, and mark the note sorted.
+// target: { entityId } or { entityId, section } (character page).
+export async function promoteNote(noteId, target, text) {
+  return db.transaction('rw', db.notes, db.entities, db.meta, async () => {
+    const n = await db.notes.get(noteId);
+    const e = await db.entities.get(target.entityId);
+    if (!n || n.deleted) throw new Error('That note no longer exists.');
+    if (!e || e.deleted) throw new Error('That entity no longer exists.');
+    if (target.section) {
+      if (!PROFILE_SECTIONS.includes(target.section)) throw new Error(`Unknown section ${target.section}`);
+      const profile = { ...(e.profile ?? {}) };
+      profile[target.section] = appendPara(profile[target.section], text);
+      await save('entities', touch(e, { profile }));
+    } else {
+      await save('entities', touch(e, { body: appendPara(e.body, text) }));
+    }
+    await save('notes', touch(n, {
+      triaged_at: now(),
+      promoted_to: [...new Set([...(n.promoted_to ?? []), e.id])],
+    }));
+  });
+}
+
 // Delete (tombstone) an entity. Notes keep its name as plain text.
 export async function deleteEntity(id) {
   const e = await db.entities.get(id);

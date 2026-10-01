@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard.js';
 import { EntityList } from './pages/EntityList.js';
 import { Entity } from './pages/Entity.js';
 import { Character } from './pages/Character.js';
+import { Inbox } from './pages/Inbox.js';
 
 // The out-of-session screen (back layer, SPEC section 7): one page per
 // address. Unknown addresses fall back to the dashboard.
@@ -14,6 +15,7 @@ export function OutScreen({ pcId, pc, onMessage }) {
 
   switch (page) {
     case 'character': return html`<${Character} ...${props} />`;
+    case 'inbox': return html`<${Inbox} ...${props} />`;
     case 'list': return html`<${EntityList} ...${props} />`;
     case 'entity': return html`<${Entity} key=${parts[1]} ...${props} />`;
     default: return html`<${Dashboard} ...${props} />`;

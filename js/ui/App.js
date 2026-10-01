@@ -92,9 +92,11 @@ function Main() {
     </header>
     ${overview && inSession && pc && html`<${CharacterOverview} pc=${pc} onClose=${() => setOverview(false)} />`}
     ${nudge && html`<${EndNudge} status=${nudge} onMessage=${setMessage} onClose=${() => setNudge(null)} />`}
-    ${message && html`
-      <p class=${`message badge badge--${message.kind}`} role="status" onClick=${() => setMessage(null)}>${message.text}</p>
-    `}
+    <div class="message-slot">
+      ${message && html`
+        <p class=${`message badge badge--${message.kind}`} role="status" onClick=${() => setMessage(null)}>${message.text}</p>
+      `}
+    </div>
     ${inSession
       ? html`<${CaptureScreen} pcId=${pcId} onMessage=${setMessage} />`
       : html`<${OutScreen} pcId=${pcId} pc=${pc} onMessage=${setMessage} />`}

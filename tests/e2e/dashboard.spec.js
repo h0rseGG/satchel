@@ -59,6 +59,20 @@ test('the character name in the top bar leads home; unknown addresses show the d
   await expect(page.getByRole('link', { name: 'Kael' })).toHaveAttribute('href', '#/');
 });
 
+test('a status message floats under the top bar without covering it or moving the page', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 700 });
+  await start(page);
+  const before = await page.getByRole('region', { name: 'My character' }).boundingBox();
+  await quickNote(page, 'hello');
+  const msg = await page.getByRole('status').boundingBox();
+  const bar = await page.locator('.topbar').boundingBox();
+  expect(msg.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+  const after = await page.getByRole('region', { name: 'My character' }).boundingBox();
+  expect(after.y).toBe(before.y);
+  await page.getByRole('status').click();
+  await expect(page.getByRole('status')).toHaveCount(0);
+});
+
 test('dashboard works on a phone-width screen', async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 800 });
   await start(page);
