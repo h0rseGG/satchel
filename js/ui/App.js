@@ -8,6 +8,7 @@ import { FirstRun } from './FirstRun.js';
 import { Feed } from './Feed.js';
 import { Results } from './Results.js';
 import { CaptureBox } from './CaptureBox.js';
+import { BUILD } from '../version.js';
 
 const FEED_LIMIT = 200;
 const MAX_CARDS = 3;
@@ -55,6 +56,7 @@ function Main() {
   return html`
     <header class="topbar">
       <span class="topbar__title">${pc ? pc.name : 'Satchel'}</span>
+      <span class="topbar__build muted" title="Build">${BUILD}</span>
       <span class="badge badge--err">Not backed up</span>
     </header>
     ${showResults

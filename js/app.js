@@ -14,7 +14,23 @@ function fatal(message) {
   root.append(p);
 }
 
+// Fit the app to the visible area, which shrinks when the on-screen keyboard
+// opens. Skipped while pinch-zoomed, so zooming doesn't squash the layout.
+function fitToVisibleArea() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const fit = () => {
+    if (Math.abs(vv.scale - 1) > 0.01) return;
+    document.documentElement.style.setProperty('--app-height', `${vv.height}px`);
+    // The browser may have scrolled the page to reveal the box; undo that.
+    window.scrollTo(0, 0);
+  };
+  vv.addEventListener('resize', fit);
+  fit();
+}
+
 async function start() {
+  fitToVisibleArea();
   // crypto.randomUUID and the service worker need HTTPS or localhost.
   if (!window.isSecureContext) {
     fatal('Not a secure context. Open via https:// or run "python -m http.server" and use http://localhost.');

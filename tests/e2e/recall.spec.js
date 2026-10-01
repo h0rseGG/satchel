@@ -73,6 +73,26 @@ test('long text containing a name shows its card', async ({ page }) => {
   await expect(card(page, 'Mira')).toBeVisible();
 });
 
+test('short screen: card sits just above the box and is in view', async ({ page }) => {
+  await page.setViewportSize({ width: 412, height: 420 }); // roughly a Pixel with the keyboard up
+  await start(page);
+  for (const t of ['@Grimbold one', '@Grimbold two', '@Grimbold three', 'grimbold note', 'grimbold again']) {
+    await say(page, t);
+  }
+  await box(page).pressSequentially('grimbold');
+  const c = card(page, 'Grimbold');
+  await expect(c).toBeInViewport();
+  const cardBox = await c.boundingBox();
+  const footer = await page.locator('.capture').boundingBox();
+  expect(footer.y - (cardBox.y + cardBox.height)).toBeLessThan(30);
+  await expect(page.locator('.topbar')).toBeInViewport();
+});
+
+test('build label is shown', async ({ page }) => {
+  await start(page);
+  await expect(page.locator('.topbar__build')).toHaveText(/^\d{4}-\d{2}-\d{2}\.\d+$/);
+});
+
 test('clearing the box returns to the feed', async ({ page }) => {
   await start(page);
   await say(page, '@Mira is a fence');

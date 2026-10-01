@@ -24,11 +24,13 @@ html, body {
   font: 16px/1.4 var(--font);
 }
 
-/* Full-height column: top bar, scrolling results, capture box pinned to the bottom (D11) */
+/* Full-height column: top bar, scrolling results, capture box pinned to the bottom (D11).
+   --app-height is set from visualViewport in app.js, so the app shrinks to the
+   space above the on-screen keyboard; 100dvh is the fallback. */
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: var(--app-height, 100dvh);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -41,12 +43,18 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 .topbar__title { font-weight: 600; margin-right: auto; }
+.topbar__build { font-size: 12px; }
 
 .results {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
 }
+/* Live results stack from the bottom, best match nearest the box, so the
+   keyboard never hides them. (margin-top:auto rather than justify-content:
+   flex-end, which breaks scrolling to the top.) */
+.results--live { display: flex; flex-direction: column; }
+.results--live > :first-child { margin-top: auto; }
 
 .capture {
   padding: var(--gap) 12px 12px;
