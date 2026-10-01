@@ -1,0 +1,15 @@
+{
+  "name": "Satchel",
+  "short_name": "Satchel",
+  "description": "Player notes for your D&D character: capture fast at the table, tidy up later.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F5F0",
+  "theme_color": "#E6E6E1",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
