@@ -8,6 +8,7 @@ import { PLURAL, SINGULAR, listKeyOf } from '../labels.js';
 import { ChipsField, Confirm, TextField } from '../fields.js';
 import { NoteText } from '../NoteText.js';
 import { formatShort } from '../format.js';
+import { AddFiles, Portrait, ThumbGrid } from '../files.js';
 
 const TYPES = ENTITY_TYPES.filter((t) => t !== 'unknown');
 
@@ -17,6 +18,8 @@ export function Entity({ parts, pcId, onMessage }) {
   const entity = useLive(() => db.entities.get(id), [id], undefined);
   const entities = useLive(async () => live(await db.entities.toArray()), [], []);
   const notes = useLive(async () => live(await db.notes.where('mentions').equals(id).toArray()), [id], []);
+  const files = useLive(async () => live(await db.files.where('entity_id').equals(id).toArray())
+    .sort((a, b) => b.created_at.localeCompare(a.created_at)), [id], []);
   const [dialog, setDialog] = useState(null); // 'merge' | 'delete'
 
   const names = useMemo(() => new Map(entities.map((e) => [e.id, e.name])), [entities]);
@@ -71,6 +74,12 @@ export function Entity({ parts, pcId, onMessage }) {
         </section>
 
         <section class="entity__notes" aria-label="Notes mentioning this">
+          <${Portrait} entity=${entity} className="portrait portrait--entity" />
+          <div class="page__head">
+            <h2 class="panel__title">Files (${files.length})</h2>
+            <${AddFiles} entityId=${entity.id} label="Add files…" onMessage=${onMessage} />
+          </div>
+          ${files.length > 0 && html`<${ThumbGrid} files=${files} />`}
           <h2 class="panel__title">Mentioned in ${sorted.length} note${sorted.length === 1 ? '' : 's'}</h2>
           <ul class="card__mentions">
             ${sorted.map((n) => html`

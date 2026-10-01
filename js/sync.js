@@ -5,6 +5,7 @@ import { db, getMeta, setMeta, unpackMerge, currentKitData, markBackedUp } from 
 import { github, ConflictError } from './github.js';
 import { pull, push, folderFor, folderShasAfterPush, remoteChanged, MAX_TRIES, SYNC_INFO } from './syncCore.js';
 import { kitFiles, readKitFiles } from './kit.js';
+import { FILE_PATH } from './fileRules.js';
 import { APP_VERSION, now } from './model.js';
 
 const REPO = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
@@ -70,15 +71,17 @@ async function connect(fetchFn) {
 // than "now", so a sync with nothing new changes nothing online.
 function stableStamp(data) {
   let t = '1970-01-01T00:00:00.000Z';
-  for (const table of ['entities', 'notes', 'sessions', 'relationships', 'images']) {
-    for (const r of data[table]) if (r.updated_at > t) t = r.updated_at;
+  for (const table of ['entities', 'notes', 'sessions', 'relationships', 'files']) {
+    for (const r of data[table] ?? []) if (r.updated_at > t) t = r.updated_at;
   }
   return t;
 }
 
-const skipKnownImages = (have) => (path) => {
+// Don't download file bytes this device already has (file ids never change
+// contents), nor sync.json.
+const skipKnownFiles = (have) => (path) => {
   if (path === SYNC_INFO) return true;
-  const m = path.match(/^images\/(.+)\.webp$/);
+  const m = path.match(FILE_PATH);
   return Boolean(m && have.has(m[1]));
 };
 
@@ -96,7 +99,7 @@ export async function syncNow({ fetchFn } = {}) {
   const bundleId = await getMeta('bundle_id');
   for (let attempt = 1; ; attempt++) {
     const have = new Set(await db.blobs.toCollection().primaryKeys());
-    const pulled = await pull(gh, branch, folder, skipKnownImages(have));
+    const pulled = await pull(gh, branch, folder, skipKnownFiles(have));
     let report = null;
     if (pulled.files['character.json']) {
       const { data } = readKitFiles(pulled.files);

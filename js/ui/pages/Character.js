@@ -1,8 +1,10 @@
 import { html } from '../html.js';
 import { useLive } from '../useLive.js';
-import { db, updateEntity, updateProfile } from '../../db.js';
+import { db, setPortrait, updateEntity, updateProfile } from '../../db.js';
+import { live } from '../../model.js';
 import { href } from '../router.js';
 import { TextField } from '../fields.js';
+import { AddFiles, Portrait, ThumbGrid } from '../files.js';
 
 // Section labels and hints, in page order (after the one-line concept).
 export const SECTIONS = [
@@ -17,8 +19,10 @@ export const SECTIONS = [
 ];
 
 // #/character: your character's roleplay page. No stats (D&D Beyond does those).
-export function Character({ pcId }) {
+export function Character({ pcId, onMessage }) {
   const pc = useLive(() => (pcId ? db.entities.get(pcId) : undefined), [pcId], undefined);
+  const files = useLive(async () => (pcId ? live(await db.files.where('entity_id').equals(pcId).toArray())
+    .sort((a, b) => b.created_at.localeCompare(a.created_at)) : []), [pcId], []);
   if (!pc) return null;
   const profile = pc.profile ?? {};
 
@@ -26,6 +30,14 @@ export function Character({ pcId }) {
     <main class="page character">
       <p class="crumb"><a href=${href('/')}>← Dashboard</a></p>
       <div class="page__head"><h1 class="page__title">${pc.name}</h1></div>
+      <div class="character__portrait">
+        <${Portrait} entity=${pc} />
+        <div class="row">
+          <${AddFiles} entityId=${pc.id} imagesOnly label=${pc.portrait_file_id ? 'Change portrait…' : 'Set portrait…'}
+            onMessage=${onMessage} onAdded=${([f]) => setPortrait(pc.id, f.id)} />
+          ${pc.portrait_file_id && html`<button type="button" class="btn" onClick=${() => setPortrait(pc.id, null)}>Remove portrait</button>`}
+        </div>
+      </div>
       <div class="character__body">
         <${TextField} id="pc-name-field" label="Name" value=${pc.name} onSave=${(v) => updateEntity(pc.id, { name: v })} />
         <${TextField} id="pc-concept" label="Concept" value=${profile.concept}
@@ -35,6 +47,11 @@ export function Character({ pcId }) {
           <${TextField} key=${key} id=${`pc-${key}`} label=${label} value=${profile[key]} hint=${hint} multiline
             onSave=${(v) => updateProfile(pc.id, key, v)} />
         `)}
+        <div class="page__head">
+          <h2 class="panel__title">Files (${files.length})</h2>
+          <${AddFiles} entityId=${pc.id} onMessage=${onMessage} />
+        </div>
+        ${files.length > 0 && html`<${ThumbGrid} files=${files} />`}
       </div>
     </main>
   `;
@@ -53,6 +70,7 @@ export function CharacterOverview({ pc, onClose }) {
     <div class="overlay" onClick=${(e) => e.target === e.currentTarget && close()}
       onKeyDown=${(e) => e.key === 'Escape' && close()}>
       <div class="dialog overview" role="dialog" aria-modal="true" aria-label=${`${pc.name} overview`}>
+        <${Portrait} entity=${pc} className="portrait portrait--overview" />
         <h2 class="dialog__title">${pc.name}</h2>
         ${profile.concept && html`<p class="overview__concept">${profile.concept}</p>`}
         ${filled.length

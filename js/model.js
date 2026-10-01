@@ -2,7 +2,8 @@
 // so everything in this file can be unit tested with plain `node --test`.
 // Field definitions: SPEC.md section 4.
 
-export const SCHEMA_VERSION = 1;
+// Kit file format version. 2 (2026-10-01): files/ replaces images/.
+export const SCHEMA_VERSION = 2;
 export const APP_VERSION = '0.1.0';
 
 export const ENTITY_TYPES = ['character', 'npc', 'faction', 'location', 'item', 'other', 'unknown'];
@@ -112,6 +113,15 @@ export function editNote(note, text, at = now()) {
   if (!t) throw new Error('Note is empty');
   if (t === note.text) return note;
   return touch(note, { text: t, original_text: note.original_text ?? note.text }, at);
+}
+
+// An attached file's record. The bytes live separately (db `blobs`, kit
+// `files/<id>.<ext>`). entity_id: what it's attached to, or null.
+export function makeFile({ name, kind, mime, size, width = null, height = null, entity_id = null } = {}) {
+  const clean = cleanName(name);
+  if (!clean) throw new Error('A file needs a name');
+  if (!['image', 'text'].includes(kind)) throw new Error(`Unknown file kind: ${kind}`);
+  return { ...base(), entity_id, name: clean, kind, mime, size, width, height, caption: '' };
 }
 
 export function makeSession({ number } = {}) {

@@ -11,9 +11,9 @@
 
 import { cleanTags, nameKey, now } from './model.js';
 
-export const TABLES = ['entities', 'notes', 'sessions', 'relationships', 'images'];
+export const TABLES = ['entities', 'notes', 'sessions', 'relationships', 'files'];
 
-// local, incoming: { entities, notes, sessions, relationships, images } (arrays)
+// local, incoming: { entities, notes, sessions, relationships, files } (arrays)
 // Returns { tables, writes, report }:
 //   tables: the merged result, per table
 //   writes: only records that differ from local (what to save), per table

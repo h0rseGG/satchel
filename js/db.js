@@ -3,7 +3,7 @@
 
 import Dexie from 'dexie';
 import {
-  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, live, makeEntity, makeNote, newId, now, setType, tombstone, touch,
+  ENTITY_TYPES, PROFILE_SECTIONS, cleanName, cleanTags, live, makeEntity, makeFile, makeNote, newId, now, setType, tombstone, touch,
 } from './model.js';
 import { findTyped, resolveMentions } from './mentions.js';
 import { KitError, kitFilename, packKit } from './kit.js';
@@ -15,26 +15,31 @@ export const db = new Dexie('satchel');
 // IndexedDB can't index booleans or nulls, so `deleted` and `triaged_at`
 // are filtered in JS instead. Changing this list needs a new db.version().
 // This is the local browser database version, not the kit file's schema_version.
-export const STORES = {
+const STORES_V1 = {
   entities: 'id, type, updated_at',
   notes: 'id, created_at, session_id, *mentions',
   sessions: 'id, number',
   relationships: 'id, from_id, to_id',
   images: 'id, entity_id',
-  blobs: 'id',   // image bytes, kept apart so listing images stays fast
+  blobs: 'id',   // file bytes, kept apart so listing files stays fast
   meta: 'key',   // local-only settings: bundle_id, pc_entity_id, backup and sync status
 };
 
-db.version(1).stores(STORES);
+db.version(1).stores(STORES_V1);
 
 // v2: notes saved before @mentions existed (build step 5) still hold plain
 // "@Name" text. Link them now, using the same rules as a new note.
-db.version(2).stores(STORES).upgrade(relinkTypedMentions);
+db.version(2).stores(STORES_V1).upgrade(relinkTypedMentions);
 
 // v3: entities gained `tags`. Fill in an empty list; not a user edit, so
 // updated_at is left alone (no false "changes" or merge wins).
-db.version(3).stores(STORES).upgrade((tx) =>
+db.version(3).stores(STORES_V1).upgrade((tx) =>
   tx.table('entities').toCollection().modify((e) => { if (!Array.isArray(e.tags)) e.tags = []; }));
+
+// v4: attached files (SPEC section 7). `files` replaces the never-used
+// `images` table (null deletes it).
+export const STORES = { ...STORES_V1, images: null, files: 'id, entity_id, updated_at' };
+db.version(4).stores(STORES);
 
 export async function relinkTypedMentions(tx) {
   const entities = tx.table('entities');
@@ -203,6 +208,65 @@ export async function promoteNote(noteId, target, text) {
   });
 }
 
+// ---------- Files (SPEC section 7) ----------
+
+// Store a prepared upload (js/upload.js). Returns the file record.
+// entityId: attach to an entity, or null for unattached.
+export async function addFile(prepared, entityId = null) {
+  const file = makeFile({ ...prepared, entity_id: entityId });
+  try {
+    await db.transaction('rw', db.files, db.blobs, db.meta, async () => {
+      await db.blobs.put({ id: file.id, data: new Blob([prepared.bytes], { type: prepared.mime }) });
+      await save('files', file);
+    });
+  } catch (err) {
+    if (err?.name === 'QuotaExceededError' || err?.inner?.name === 'QuotaExceededError') {
+      throw new Error('This device is out of storage space for Satchel.');
+    }
+    throw err;
+  }
+  return file;
+}
+
+// Edit a file record: { name }, { entity_id } (null = unattached), { caption }.
+export async function updateFile(id, changes) {
+  return db.transaction('rw', db.files, db.meta, async () => {
+    const f = await db.files.get(id);
+    if (!f || f.deleted) throw new Error('That file no longer exists.');
+    const next = { ...changes };
+    if ('name' in next) {
+      next.name = cleanName(next.name);
+      if (!next.name) throw new Error('A file needs a name.');
+    }
+    if (Object.entries(next).every(([k, v]) => f[k] === v)) return f;
+    return save('files', touch(f, next));
+  });
+}
+
+// Delete a file: tombstone the record (so other devices delete it too when
+// they sync) and free its bytes. Anything using it as a picture lets go.
+export async function deleteFile(id) {
+  return db.transaction('rw', db.files, db.blobs, db.entities, db.meta, async () => {
+    const f = await db.files.get(id);
+    if (!f || f.deleted) return;
+    await save('files', tombstone(f));
+    await db.blobs.delete(id);
+    for (const e of await db.entities.toArray()) {
+      if (e.portrait_file_id === id) await save('entities', touch(e, { portrait_file_id: null }));
+    }
+  });
+}
+
+// Use an image as an entity's picture (the character's portrait), or clear it.
+export async function setPortrait(entityId, fileId) {
+  return db.transaction('rw', db.entities, db.meta, async () => {
+    const e = await db.entities.get(entityId);
+    if (!e || e.deleted) throw new Error('Not found.');
+    if ((e.portrait_file_id ?? null) === fileId) return e;
+    return save('entities', touch(e, { portrait_file_id: fileId }));
+  });
+}
+
 // Delete (tombstone) an entity. Notes keep its name as plain text.
 export async function deleteEntity(id) {
   const e = await db.entities.get(id);
@@ -216,15 +280,16 @@ export async function mergeEntities(loserId, survivorId) {
   if ([loserId, survivorId].includes(await getMeta('pc_entity_id'))) {
     throw new Error('Your own character can’t be merged.');
   }
-  return db.transaction('rw', db.entities, db.notes, db.relationships, db.meta, async () => {
+  return db.transaction('rw', db.entities, db.notes, db.relationships, db.files, db.meta, async () => {
     const before = {
       entities: await db.entities.toArray(),
       notes: await db.notes.toArray(),
       relationships: await db.relationships.toArray(),
+      files: await db.files.toArray(),
     };
     const tables = { ...before };
     const survivor = mergeEntityInto(tables, loserId, survivorId);
-    for (const t of ['entities', 'notes', 'relationships']) {
+    for (const t of ['entities', 'notes', 'relationships', 'files']) {
       const old = new Map(before[t].map((r) => [r.id, r]));
       await saveMany(t, tables[t].filter((r) => old.get(r.id) !== r));
     }
@@ -275,23 +340,26 @@ export async function packCurrentKit() {
 }
 
 // A consistent snapshot of this character, in the shape packKit/kitFiles
-// take: records plus imageFiles (Map of image id -> bytes).
+// take: records plus fileBytes (Map of file id -> bytes, live files only).
 export async function currentKitData() {
-  const snap = await db.transaction('r', [db.entities, db.notes, db.sessions, db.relationships, db.images, db.blobs, db.meta], async () => ({
+  const snap = await db.transaction('r', [db.entities, db.notes, db.sessions, db.relationships, db.files, db.blobs, db.meta], async () => ({
     bundle_id: await getMeta('bundle_id'),
     pc_entity_id: await getMeta('pc_entity_id'),
     entities: await db.entities.toArray(),
     notes: await db.notes.toArray(),
     sessions: await db.sessions.toArray(),
     relationships: await db.relationships.toArray(),
-    images: await db.images.toArray(),
+    files: await db.files.toArray(),
     blobs: await db.blobs.toArray(),
   }));
-  // Image bytes (week 3): blobs rows are { id, data: Blob }.
-  const imageFiles = new Map();
-  for (const b of snap.blobs) imageFiles.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
+  // blobs rows are { id, data: Blob }; read them outside the transaction.
+  const liveIds = new Set(snap.files.filter((f) => !f.deleted).map((f) => f.id));
+  const fileBytes = new Map();
+  for (const b of snap.blobs) {
+    if (liveIds.has(b.id)) fileBytes.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
+  }
   delete snap.blobs;
-  return { ...snap, imageFiles };
+  return { ...snap, fileBytes };
 }
 
 // ---------- In / Out of session (local to this device) ----------
@@ -314,7 +382,7 @@ export async function lastInNoteAt() {
 
 // ---------- Unpack kit ----------
 
-const DATA_TABLES = () => [db.entities, db.notes, db.sessions, db.relationships, db.images, db.blobs, db.meta];
+const DATA_TABLES = () => [db.entities, db.notes, db.sessions, db.relationships, db.files, db.blobs, db.meta];
 
 async function readLocal() {
   const out = {};
@@ -322,9 +390,11 @@ async function readLocal() {
   return out;
 }
 
-async function putImageFiles(imageFiles) {
-  for (const [id, bytes] of imageFiles) {
-    await db.blobs.put({ id, data: new Blob([bytes], { type: 'image/webp' }) });
+// Store file bytes from a kit or the sync repo. `files` gives each one's mime.
+async function putFileBytes(fileBytes, files) {
+  const mime = new Map(files.map((f) => [f.id, f.mime]));
+  for (const [id, bytes] of fileBytes) {
+    await db.blobs.put({ id, data: new Blob([bytes], { type: mime.get(id) ?? 'application/octet-stream' }) });
   }
 }
 
@@ -344,7 +414,7 @@ export async function unpackNew(data) {
   await db.transaction('rw', DATA_TABLES(), async () => {
     if (await getMeta('bundle_id')) throw new KitError('This device already has a character. Use Merge instead.');
     for (const t of TABLES) await db[t].bulkPut(data[t]);
-    await putImageFiles(data.imageFiles);
+    await putFileBytes(data.fileBytes, data.files);
     await setMeta('bundle_id', data.bundle_id);
     await setMeta('pc_entity_id', data.pc_entity_id);
     await setMeta('created_at', now());
@@ -368,7 +438,9 @@ export async function unpackMerge(data) {
     const { writes, report } = mergeData(await readLocal(), data);
     for (const t of TABLES) await db[t].bulkPut(writes[t]);
     const have = new Set(await db.blobs.toCollection().primaryKeys());
-    await putImageFiles([...data.imageFiles].filter(([id]) => !have.has(id)));
+    await putFileBytes(new Map([...data.fileBytes].filter(([id]) => !have.has(id))), data.files);
+    // Files deleted on the other device: free their bytes here too.
+    await db.blobs.bulkDelete(writes.files.filter((f) => f.deleted).map((f) => f.id));
     return report;
   });
 }

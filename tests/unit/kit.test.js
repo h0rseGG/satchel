@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../../vendor/fflate.mjs';
 import { packKit, unpackKit, kitFilename, kitFiles, KitError, FORMAT } from '../../js/kit.js';
-import { makeEntity, makeNote, makeSession, makeRelationship, tombstone, newId, SCHEMA_VERSION } from '../../js/model.js';
+import { makeEntity, makeFile, makeNote, makeSession, makeRelationship, tombstone, newId, SCHEMA_VERSION } from '../../js/model.js';
 
 function sample() {
   const pc = makeEntity({ name: 'Kael', type: 'character' });
@@ -16,7 +16,7 @@ function sample() {
     notes: [makeNote({ text: 'first' }), tombstone(makeNote({ text: 'deleted' })), makeNote({ text: 'emoji 🐉 ok' })],
     sessions: [s1],
     relationships: [makeRelationship({ from_id: pc.id, to_id: grim.id, type: 'ally' })],
-    images: [],
+    files: [],
   };
 }
 
@@ -35,7 +35,7 @@ test('round trip: pack then unpack gives the same data, tombstones included', ()
   assert.equal(data.pc_entity_id, d.pc_entity_id);
   assert.equal(data.exported_at, '2026-10-01T11:30:00.000Z');
   assert.equal(data.schema_version, SCHEMA_VERSION);
-  for (const t of ['entities', 'sessions', 'relationships', 'images']) assert.deepEqual(data[t], d[t], t);
+  for (const t of ['entities', 'sessions', 'relationships', 'files']) assert.deepEqual(data[t], d[t], t);
   assert.deepEqual(new Set(data.notes.map((n) => n.id)), new Set(d.notes.map((n) => n.id)));
   assert.ok(data.notes.some((n) => n.deleted), 'tombstoned note kept');
   assert.equal(data.notes.find((n) => n.text.includes('🐉')).text, 'emoji 🐉 ok');
@@ -59,7 +59,7 @@ test('a record that went through unpack packs to the same bytes as the original'
   assert.deepEqual(kitFiles(data, '2026-10-01T00:00:00.000Z'), first);
 });
 
-test('kit holds only character.json and notes.jsonl when there are no images', () => {
+test('kit holds only character.json and notes.jsonl when there are no files', () => {
   assert.deepEqual(files(packKit(sample())), ['character.json', 'notes.jsonl']);
 });
 
@@ -74,13 +74,45 @@ test('character.json is readable and has the format marker; notes are one per li
   lines.forEach((l) => JSON.parse(l));
 });
 
-test('images are stored under images/<id>.webp and come back byte-identical', () => {
-  const id = newId();
-  const bytes = new Uint8Array([82, 73, 70, 70, 1, 2, 3]);
-  const d = { ...sample(), imageFiles: new Map([[id, bytes]]) };
-  const packed = packKit(d);
-  assert.ok(files(packed).includes(`images/${id}.webp`));
-  assert.deepEqual(unpackKit(packed).data.imageFiles.get(id), bytes);
+test('files are stored under files/<id>.<ext> and come back byte-identical', () => {
+  const img = makeFile({ name: 'map.png', kind: 'image', mime: 'image/webp', size: 7 });
+  const md = makeFile({ name: 'lore.md', kind: 'text', mime: 'text/markdown', size: 5 });
+  const txt = makeFile({ name: 'list', kind: 'text', mime: 'text/plain', size: 2 });
+  const gone = tombstone(makeFile({ name: 'old.txt', kind: 'text', mime: 'text/plain', size: 1 }));
+  const bytes = new Map([[img.id, new Uint8Array([82, 73, 70, 70, 1, 2, 3])], [md.id, strToU8('# Hi\n')],
+    [txt.id, strToU8('ok')], [gone.id, strToU8('x')]]);
+  const packed = packKit({ ...sample(), files: [img, md, txt, gone], fileBytes: bytes });
+  const names = files(packed);
+  assert.ok(names.includes(`files/${img.id}.webp`));
+  assert.ok(names.includes(`files/${md.id}.md`));
+  assert.ok(names.includes(`files/${txt.id}.txt`));
+  assert.ok(!names.some((n) => n.includes(gone.id)), 'deleted file: record only, no bytes');
+  const { data } = unpackKit(packed);
+  assert.deepEqual(data.fileBytes.get(img.id), bytes.get(img.id));
+  assert.equal(strFromU8(data.fileBytes.get(md.id)), '# Hi\n');
+  assert.ok(data.files.find((f) => f.id === gone.id).deleted);
+});
+
+test('schema 1 fixture kit (images/) unpacks under schema 2 as files', async () => {
+  // tests/fixtures/schema-1.kit is kept forever (SPEC test plan): a real v1 kit.
+  const { readFile } = await import('node:fs/promises');
+  const bytes = new Uint8Array(await readFile(new URL('../fixtures/schema-1.kit', import.meta.url)));
+  const { data, report } = unpackKit(bytes);
+  assert.equal(report.migratedFrom, 1);
+  assert.equal(data.schema_version, 1, 'reports the version it was read from');
+  assert.ok(!('images' in data));
+  assert.equal(data.files.length, 1);
+  const f = data.files[0];
+  assert.equal(f.kind, 'image');
+  assert.equal(f.mime, 'image/webp');
+  assert.deepEqual(data.fileBytes.get(f.id), new Uint8Array([82, 73, 70, 70]));
+  assert.ok(data.entities.find((e) => e.name === 'Kael'));
+  assert.deepEqual(data.entities[0].tags, []);
+  assert.equal(data.notes.length, 1);
+  // Packing it again writes schema 2 with files/.
+  const repacked = files(packKit(data));
+  assert.ok(repacked.includes(`files/${f.id}.webp`));
+  assert.ok(!repacked.some((n) => n.startsWith('images/')));
 });
 
 test('kitFilename: slug plus local timestamp, .kit extension', () => {
@@ -135,7 +167,9 @@ test('unexpected and path-traversal entries are ignored', () => {
     'character.json': manifest(),
     '../evil.js': 'alert(1)',
     'images/not-a-uuid.webp': new Uint8Array([1]),
+    'files/also-not-a-uuid.txt': 'x',
+    'files/11111111-1111-4111-8111-111111111111.exe': 'x',
     'extra.txt': 'hi',
   }));
-  assert.equal(data.imageFiles.size, 0);
+  assert.equal(data.fileBytes.size, 0);
 });

@@ -2,13 +2,15 @@
 // Pure functions, unit tested with node. Format: SPEC.md section 5.
 //
 //   kael-2026-10-01-2130.kit   (a zip)
-//   ├── character.json   manifest + entities, relationships, sessions, image metadata
+//   ├── character.json   manifest + entities, relationships, sessions, file records
 //   ├── notes.jsonl      one note per line, tombstones included
-//   └── images/<id>.webp
+//   └── files/<id>.<webp|jpg|txt|md>
 //
+// Schema 1 had images/<id>.webp instead of files/; MIGRATIONS[1] upgrades it.
 // Imports fflate by relative path so the same file loads in node tests.
 import { zipSync, unzipSync, strToU8, strFromU8 } from '../vendor/fflate.mjs';
 import { APP_VERSION, SCHEMA_VERSION, now, withEntityDefaults } from './model.js';
+import { FILE_PATH, fileExt } from './fileRules.js';
 
 export const FORMAT = 'satchel';
 export const EXTENSION = '.kit';
@@ -19,14 +21,14 @@ export class KitError extends Error {}
 // ---------- Pack ----------
 
 // data: { bundle_id, pc_entity_id, entities, notes, sessions, relationships,
-//         images (metadata), imageFiles: Map(id -> Uint8Array) }
+//         files (records), fileBytes: Map(id -> Uint8Array) }
 // Everything is included, tombstones too, so Merge can carry deletions.
 // Local-only settings (backup/sync status, tokens) are never passed in.
 export function packKit(data, exportedAt = now()) {
   const files = {};
   for (const [path, bytes] of Object.entries(kitFiles(data, exportedAt))) {
     // Images are already compressed: store them as-is (level 0).
-    files[path] = [bytes, { level: path.startsWith('images/') ? 0 : 6 }];
+    files[path] = [bytes, { level: /\.(webp|jpg)$/.test(path) ? 0 : 6 }];
   }
   return zipSync(files);
 }
@@ -44,14 +46,18 @@ export function kitFiles(data, exportedAt = now()) {
     entities: data.entities ?? [],
     relationships: data.relationships ?? [],
     sessions: data.sessions ?? [],
-    images: data.images ?? [],
+    files: data.files ?? [],
   };
   const notes = [...(data.notes ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const files = {
     'character.json': strToU8(canonicalJson(character, 2)),
     'notes.jsonl': strToU8(notes.map((n) => canonicalJson(n)).join('\n') + (notes.length ? '\n' : '')),
   };
-  for (const [id, bytes] of data.imageFiles ?? []) files[`images/${id}.webp`] = bytes;
+  // Bytes only for live files; a deleted file's record (tombstone) is enough.
+  for (const f of data.files ?? []) {
+    const bytes = data.fileBytes?.get(f.id);
+    if (!f.deleted && bytes) files[`files/${f.id}.${fileExt(f)}`] = bytes;
+  }
   return files;
 }
 
@@ -83,15 +89,32 @@ export function kitFilename(pcName, at = new Date()) {
 // ---------- Unpack ----------
 
 // Upgrades from older schema versions, applied in order to the parsed data.
-// MIGRATIONS[n] turns version n into version n + 1. None yet: v1 is current.
-export const MIGRATIONS = {};
+// MIGRATIONS[n] turns version n into version n + 1.
+export const MIGRATIONS = {
+  // 1 -> 2: `images` records become `files` (kind image, WebP). Their bytes
+  // were at images/<id>.webp; readKitFiles collects both folders by id.
+  1: (data) => {
+    const { images, ...rest } = data;
+    return {
+      ...rest,
+      files: (images ?? []).map((img) => ({
+        ...img,
+        kind: 'image',
+        mime: 'image/webp',
+        name: img.name ?? `${img.id}.webp`,
+        size: img.size ?? img.bytes ?? null,
+        entity_id: img.entity_id ?? null,
+      })),
+    };
+  },
+};
 
-const IMAGE_PATH = /^images\/([0-9a-f-]{36})\.webp$/;
+const LEGACY_IMAGE_PATH = /^images\/([0-9a-f-]{36})\.webp$/;
 
 // The only paths a kit may contain. Anything else (including "../" tricks)
 // is ignored when reading.
 export function isKitPath(path) {
-  return path === 'character.json' || path === 'notes.jsonl' || IMAGE_PATH.test(path);
+  return path === 'character.json' || path === 'notes.jsonl' || FILE_PATH.test(path) || LEGACY_IMAGE_PATH.test(path);
 }
 
 // Read and validate a kit file. Returns the data plus a report of anything
@@ -148,7 +171,7 @@ export function readKitFiles(files) {
     entities: character.entities ?? [],
     relationships: character.relationships ?? [],
     sessions: character.sessions ?? [],
-    images: character.images ?? [],
+    ...(version < 2 ? { images: character.images ?? [] } : { files: character.files ?? [] }),
     notes,
   };
 
@@ -159,16 +182,17 @@ export function readKitFiles(files) {
 
   if (typeof data.bundle_id !== 'string' || !data.bundle_id) throw new KitError('The kit has no bundle id.');
 
-  for (const table of ['entities', 'relationships', 'sessions', 'images', 'notes']) {
+  for (const table of ['entities', 'relationships', 'sessions', 'files', 'notes']) {
     data[table] = cleanRecords(data[table], table, report);
   }
   // Optional fields added after schema 1 shipped (e.g. tags): fill them in.
   data.entities = data.entities.map(withEntityDefaults);
 
-  data.imageFiles = new Map();
-  for (const [name, fileBytes] of Object.entries(entries)) {
-    const m = name.match(IMAGE_PATH);
-    if (m) data.imageFiles.set(m[1], fileBytes);
+  // File bytes by id, from files/ (or images/ in a schema 1 kit).
+  data.fileBytes = new Map();
+  for (const [name, bytes] of Object.entries(entries)) {
+    const m = name.match(FILE_PATH) ?? name.match(LEGACY_IMAGE_PATH);
+    if (m) data.fileBytes.set(m[1], bytes);
   }
 
   return { data, report };

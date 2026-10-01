@@ -6,7 +6,7 @@
 // overwrites another one.
 //   characters/<bundle_id>/character.json
 //   characters/<bundle_id>/notes.jsonl
-//   characters/<bundle_id>/images/<id>.webp
+//   characters/<bundle_id>/files/<id>.<webp|jpg|txt|md>
 //   characters/<bundle_id>/sync.json      who synced last, and when
 
 import { gitBlobSha } from './github.js';
@@ -19,7 +19,7 @@ export function folderFor(bundleId) {
 }
 
 // Read this character's folder at the branch head.
-// skip(path): true for files we don't need to download (images we already have).
+// skip(path): true for files we don't need to download (file bytes we already have).
 // Returns { head, treeSha, shas: Map(path -> blob sha), files: { path: bytes } }.
 export async function pull(gh, branch, folder, skip = () => false) {
   const head = await gh.headSha(branch);
