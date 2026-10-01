@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { html } from './html.js';
-import { activeQuery, matchByName, suggest, typedForm } from '../mentions.js';
+import { activeQuery, linkPlainName, matchByName, suggest, typedForm } from '../mentions.js';
 import { nameKey } from '../model.js';
 
 // The one box (D1). Enter saves, Shift+Enter is a new line, Esc clears.
 // While typing an @name: Tab or tap picks a suggestion, arrows move,
 // Esc closes the list. Enter always saves (SPEC section 6).
-export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = () => {} }) {
+// linkRequest: { entity } set by tapping a recall card; turns the plain
+// name in the box into a mention of that exact entity.
+export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = () => {}, linkRequest = null }) {
   const ref = useRef(null);
   const caretAfterRender = useRef(null);
   const [text, setText] = useState('');
@@ -38,6 +40,24 @@ export function CaptureBox({ entities, onSave, onDraft = () => {}, onPreview = (
   }, [text]);
 
   useEffect(() => ref.current.focus(), []);
+
+  // A recall card was tapped: link the plain name, keep the caret in place.
+  useEffect(() => {
+    if (!linkRequest) return;
+    const { entity } = linkRequest;
+    const r = linkPlainName(text, entity);
+    if (!r) return;
+    let next = r.text;
+    // Name was at the very end: add a space so the @suggestion list stays shut.
+    if (r.start + r.inserted === next.length) next += ' ';
+    const delta = next.length - text.length;
+    const pos = caret >= r.start + r.removed ? caret + delta : caret;
+    caretAfterRender.current = pos;
+    setText(next);
+    setCaret(pos);
+    setPicked({ ...picked, [nameKey(entity.name)]: entity.id });
+    ref.current.focus();
+  }, [linkRequest]);
 
   // Caret moves (arrows, clicks) change which @token is active.
   function syncCaret(e) {

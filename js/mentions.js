@@ -5,7 +5,7 @@
 // Stored form (inside note.text):         @[Grimbold](<entity-id>)
 //   the label is a readable fallback; the app shows the entity's current name.
 
-import { makeEntity, nameKey } from './model.js';
+import { cleanName, makeEntity, nameKey } from './model.js';
 
 // A mention starts with @ at the start of the text or after a non-word
 // character (so emails like a@b.com don't count). Names may contain letters,
@@ -123,6 +123,35 @@ export function resolveMentions(text, entities, picked = {}) {
   }
   const stored = tokenise(text, resolved);
   return { text: stored, mentions: storedIds(stored), created };
+}
+
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Turn the last plain (un-@'d) occurrence of an entity's name or alias in
+// the box into its typed mention: "found the sunblade" -> "found the @Sunblade".
+// Returns { text, start, removed, inserted } or null if there's nothing to link.
+export function linkPlainName(text, entity) {
+  let best = null;
+  for (const n of [entity.name, ...entity.aliases]) {
+    const clean = cleanName(n);
+    if (!clean) continue;
+    const pattern = clean.split(' ').map(escapeRe).join('\\s+');
+    // Not already part of a mention (@Name or the _Aldric in @Lord_Aldric).
+    const re = new RegExp(`(?<![\\p{L}\\p{N}_@])${pattern}(?![\\p{L}\\p{N}_])`, 'giu');
+    for (const m of text.matchAll(re)) {
+      if (!best || m.index > best.start) best = { start: m.index, removed: m[0].length };
+    }
+  }
+  if (!best) return null;
+  const insert = typedForm(entity.name);
+  return {
+    text: text.slice(0, best.start) + insert + text.slice(best.start + best.removed),
+    start: best.start,
+    removed: best.removed,
+    inserted: insert.length,
+  };
 }
 
 // Autocomplete: names starting with the query first, then containing it.

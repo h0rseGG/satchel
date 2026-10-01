@@ -3,6 +3,7 @@ import { html } from './html.js';
 import { useLive } from './useLive.js';
 import { db, getMeta, addNote } from '../db.js';
 import { live } from '../model.js';
+import { linkPlainName } from '../mentions.js';
 import { buildIndex, exactMatches, looksLikeQuery, search, searchQuery } from '../search.js';
 import { FirstRun } from './FirstRun.js';
 import { Feed } from './Feed.js';
@@ -53,6 +54,14 @@ function Main() {
 
   const showResults = draft.trim() && (cards.length || querying);
 
+  // Cards for names typed without @ can be tapped to link them. The
+  // highlighted @suggestion's card is left alone: tap the suggestion instead.
+  const [linkRequest, setLinkRequest] = useState(null);
+  const linkState = (e) => {
+    if (e.id === previewId) return null;
+    return linkPlainName(draft, e) ? 'linkable' : 'linked';
+  };
+
   return html`
     <header class="topbar">
       <span class="topbar__title">${pc ? pc.name : 'Satchel'}</span>
@@ -61,13 +70,15 @@ function Main() {
     </header>
     ${showResults
       ? html`<${Results} cards=${cards} hits=${hits} notes=${notes} notesById=${notesById}
-          entitiesById=${entitiesById} names=${names} sessionNumbers=${sessionNumbers} />`
+          entitiesById=${entitiesById} names=${names} sessionNumbers=${sessionNumbers}
+          linkState=${linkState} onLink=${(entity) => setLinkRequest({ entity })} />`
       : html`<${Feed} notes=${notes.slice(-FEED_LIMIT)} names=${names} />`}
     <${CaptureBox}
       entities=${entities}
       onSave=${(text, picked) => addNote({ text, picked })}
       onDraft=${setDraft}
       onPreview=${setPreviewId}
+      linkRequest=${linkRequest}
     />
   `;
 }

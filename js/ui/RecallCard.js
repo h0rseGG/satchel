@@ -6,7 +6,8 @@ const RECENT = 3;
 
 // Short recall card: one-line summary plus the last 3 mentions (SPEC 6).
 // notes: all live notes; sessionNumbers: Map of session id -> number.
-export function RecallCard({ entity, notes, names, sessionNumbers }) {
+// link: 'linkable' (name typed without @: tap to link), 'linked', or null.
+export function RecallCard({ entity, notes, names, sessionNumbers, link = null, onLink }) {
   const mentions = notes
     .filter((n) => n.mentions.includes(entity.id))
     .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -18,12 +19,22 @@ export function RecallCard({ entity, notes, names, sessionNumbers }) {
   else if (mentions.length > RECENT) summary = html`First mention: <${NoteText} text=${first.text} names=${names} />`;
   else summary = html`<span class="muted">No summary yet.</span>`;
 
+  const linkable = link === 'linkable';
+  // pointerdown + preventDefault: keeps focus (and the phone keyboard) in the box.
+  // The whole card is the tap target; the label inside is a real button so
+  // the card keeps its "region" role for screen readers.
+  const tap = linkable
+    ? { onPointerDown: (e) => { e.preventDefault(); onLink(entity); } }
+    : {};
+
   return html`
-    <section class="card" aria-label=${`Recall: ${entity.name}`}>
+    <section class=${`card${linkable ? ' card--linkable' : ''}`} aria-label=${`Recall: ${entity.name}`} ...${tap}>
       <header class="card__head">
         <strong>${entity.name}</strong>
         <span class="muted">${entity.stub ? 'stub' : entity.type}</span>
         <span class="muted card__count">${mentions.length} mention${mentions.length === 1 ? '' : 's'}</span>
+        ${linkable && html`<button type="button" class="card__link" tabindex="-1">Tap to link</button>`}
+        ${link === 'linked' && html`<span class="card__link muted">Linked</span>`}
       </header>
       <p class="card__summary">${summary}</p>
       ${recent.length > 0 && html`

@@ -88,6 +88,34 @@ test('short screen: card sits just above the box and is in view', async ({ page 
   await expect(page.locator('.topbar')).toBeInViewport();
 });
 
+test('tap a card to link a name typed without @', async ({ page }) => {
+  await start(page);
+  await say(page, 'found the @Sunblade in a crypt');
+  await box(page).pressSequentially('the sunblade glows');
+  const c = card(page, 'Sunblade');
+  await expect(c.locator('.card__link')).toHaveText('Tap to link');
+  await c.dispatchEvent('pointerdown');
+  await expect(box(page)).toHaveValue('the @Sunblade glows');
+  await expect(box(page)).toBeFocused();
+  await expect(c.locator('.card__link')).toHaveText('Linked');
+  await box(page).press('Enter');
+  await expect(page.locator('.note .mention')).toHaveText(['Sunblade', 'Sunblade']);
+  const blades = await page.evaluate(async () =>
+    (await window.__satchel.db.entities.toArray()).filter((e) => e.name === 'Sunblade'));
+  expect(blades).toHaveLength(1);
+});
+
+test('linking a name at the end adds a space and keeps typing smooth', async ({ page }) => {
+  await start(page);
+  await say(page, '@Lord_Aldric owns the mill');
+  await box(page).pressSequentially('bowed to lord aldric');
+  await card(page, 'Lord Aldric').dispatchEvent('pointerdown');
+  await expect(box(page)).toHaveValue('bowed to @Lord_Aldric ');
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await box(page).pressSequentially('today');
+  await expect(box(page)).toHaveValue('bowed to @Lord_Aldric today');
+});
+
 test('build label is shown', async ({ page }) => {
   await start(page);
   await expect(page.locator('.topbar__build')).toHaveText(/^\d{4}-\d{2}-\d{2}\.\d+$/);

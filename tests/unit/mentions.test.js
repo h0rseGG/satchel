@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   findTyped, tokenise, storedIds, parts, plain, activeQuery, typedForm, matchByName, suggest, token,
-  resolveMentions,
+  resolveMentions, linkPlainName,
 } from '../../js/mentions.js';
 import { makeEntity, touch } from '../../js/model.js';
 
@@ -110,6 +110,29 @@ test('resolveMentions is idempotent on already-linked text', () => {
   const twice = resolveMentions(once.text, [grim]);
   assert.equal(twice.text, once.text);
   assert.deepEqual(twice.created, []);
+});
+
+test('linkPlainName: links the last plain occurrence, any case', () => {
+  const blade = makeEntity({ name: 'Sunblade', type: 'item' });
+  const r = linkPlainName('sunblade? yes, the SUNBLADE glows', blade);
+  assert.equal(r.text, 'sunblade? yes, the @Sunblade glows');
+  assert.equal(r.start, 19);
+  assert.equal(r.removed, 8);
+  assert.equal(r.inserted, 9);
+});
+
+test('linkPlainName: multi-word names and aliases become typed form', () => {
+  const lord = makeEntity({ name: 'Lord Aldric', type: 'npc', aliases: ['The Miller'] });
+  assert.equal(linkPlainName('bowed to lord  aldric', lord).text, 'bowed to @Lord_Aldric');
+  assert.equal(linkPlainName('paid the miller', lord).text, 'paid @Lord_Aldric');
+});
+
+test('linkPlainName: ignores names already mentioned or inside other words', () => {
+  const lord = makeEntity({ name: 'Lord Aldric', type: 'npc' });
+  const al = makeEntity({ name: 'Al', type: 'npc' });
+  assert.equal(linkPlainName('met @Lord_Aldric', lord), null);
+  assert.equal(linkPlainName('met @Al and Alder', al), null);
+  assert.equal(linkPlainName('nobody here', al), null);
 });
 
 test('suggest: prefix matches before substring matches, limited', () => {
