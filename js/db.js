@@ -114,6 +114,14 @@ export async function addNote({ text, mode = null, session_id = null, picked = {
 // Pack everything into a kit. Returns { bytes, filename }.
 // Reads in one transaction so the kit is a consistent snapshot.
 export async function packCurrentKit() {
+  const data = await currentKitData();
+  const pc = data.entities.find((e) => e.id === data.pc_entity_id);
+  return { bytes: packKit(data), filename: kitFilename(pc?.name) };
+}
+
+// A consistent snapshot of this character, in the shape packKit/kitFiles
+// take: records plus imageFiles (Map of image id -> bytes).
+export async function currentKitData() {
   const snap = await db.transaction('r', [db.entities, db.notes, db.sessions, db.relationships, db.images, db.blobs, db.meta], async () => ({
     bundle_id: await getMeta('bundle_id'),
     pc_entity_id: await getMeta('pc_entity_id'),
@@ -127,8 +135,8 @@ export async function packCurrentKit() {
   // Image bytes (week 3): blobs rows are { id, data: Blob }.
   const imageFiles = new Map();
   for (const b of snap.blobs) imageFiles.set(b.id, new Uint8Array(await b.data.arrayBuffer()));
-  const pc = snap.entities.find((e) => e.id === snap.pc_entity_id);
-  return { bytes: packKit({ ...snap, imageFiles }), filename: kitFilename(pc?.name) };
+  delete snap.blobs;
+  return { ...snap, imageFiles };
 }
 
 // ---------- In / Out of session (local to this device) ----------
@@ -213,7 +221,8 @@ export async function unpackMerge(data) {
 // ---------- Replace / start over (destructive) ----------
 
 // Meta keys that describe the browser, not the character: kept on wipe.
-const DEVICE_META = ['persist_asked', 'persist_granted'];
+// Sync settings stay too: the repo holds one folder per character.
+const DEVICE_META = ['persist_asked', 'persist_granted', 'sync_repo', 'sync_token', 'sync_device', 'sync_branch'];
 
 async function clearCharacter() {
   for (const t of [...TABLES, 'blobs']) await db[t].clear();

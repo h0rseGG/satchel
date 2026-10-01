@@ -205,6 +205,11 @@ html, body {
 .dialog__input { width: 100%; margin-top: 4px; }
 .dialog__actions { flex-wrap: wrap; }
 .dialog__replace { margin-right: auto; }
+.dialog label { display: block; margin-top: 10px; }
+.dialog__hint { margin: 4px 0 0; font-size: 13px; }
+.dialog__more { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--border); }
+.dialog__more summary { cursor: pointer; }
+.dialog { max-height: calc(var(--app-height, 100dvh) - 32px); overflow-y: auto; }
 .menu__sep { height: 1px; margin: 4px 0; background: var(--border); }
 .menu__item--danger:hover { background: var(--err); }
 

@@ -23,6 +23,17 @@ export class KitError extends Error {}
 // Everything is included, tombstones too, so Merge can carry deletions.
 // Local-only settings (backup/sync status, tokens) are never passed in.
 export function packKit(data, exportedAt = now()) {
+  const files = {};
+  for (const [path, bytes] of Object.entries(kitFiles(data, exportedAt))) {
+    // Images are already compressed: store them as-is (level 0).
+    files[path] = [bytes, { level: path.startsWith('images/') ? 0 : 6 }];
+  }
+  return zipSync(files);
+}
+
+// The files that make up a kit, as { path: bytes }. Shared by packKit (which
+// zips them) and sync (which commits them to GitHub as separate files).
+export function kitFiles(data, exportedAt = now()) {
   const character = {
     format: FORMAT,
     schema_version: SCHEMA_VERSION,
@@ -37,14 +48,11 @@ export function packKit(data, exportedAt = now()) {
   };
   const notes = [...(data.notes ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const files = {
-    'character.json': [strToU8(JSON.stringify(character, null, 2)), { level: 6 }],
-    'notes.jsonl': [strToU8(notes.map((n) => JSON.stringify(n)).join('\n') + (notes.length ? '\n' : '')), { level: 6 }],
+    'character.json': strToU8(JSON.stringify(character, null, 2)),
+    'notes.jsonl': strToU8(notes.map((n) => JSON.stringify(n)).join('\n') + (notes.length ? '\n' : '')),
   };
-  // Images are already compressed: store them as-is (level 0).
-  for (const [id, bytes] of data.imageFiles ?? []) {
-    files[`images/${id}.webp`] = [bytes, { level: 0 }];
-  }
-  return zipSync(files);
+  for (const [id, bytes] of data.imageFiles ?? []) files[`images/${id}.webp`] = bytes;
+  return files;
 }
 
 // "Lord Aldric" + 2026-10-01 21:30 local -> "lord-aldric-2026-10-01-2130.kit"
@@ -66,18 +74,28 @@ export const MIGRATIONS = {};
 
 const IMAGE_PATH = /^images\/([0-9a-f-]{36})\.webp$/;
 
-// Read and validate a kit. Returns the data plus a report of anything skipped.
-// Throws KitError for files that can't be used at all.
+// The only paths a kit may contain. Anything else (including "../" tricks)
+// is ignored when reading.
+export function isKitPath(path) {
+  return path === 'character.json' || path === 'notes.jsonl' || IMAGE_PATH.test(path);
+}
+
+// Read and validate a kit file. Returns the data plus a report of anything
+// skipped. Throws KitError for files that can't be used at all.
 export function unpackKit(bytes) {
   let entries;
   try {
-    // Only read the files we expect: anything else (including "../" tricks) is ignored.
-    entries = unzipSync(bytes, {
-      filter: (f) => f.name === 'character.json' || f.name === 'notes.jsonl' || IMAGE_PATH.test(f.name),
-    });
+    entries = unzipSync(bytes, { filter: (f) => isKitPath(f.name) });
   } catch {
     throw new KitError("This isn't a kit file (it's not a valid zip).");
   }
+  return readKitFiles(entries);
+}
+
+// Read and validate kit contents given as { path: bytes } (from a zip, or
+// from the sync repo). Same checks either way.
+export function readKitFiles(files) {
+  const entries = Object.fromEntries(Object.entries(files).filter(([p]) => isKitPath(p)));
   if (!entries['character.json']) throw new KitError("This isn't a kit file (no character.json inside).");
 
   let character;

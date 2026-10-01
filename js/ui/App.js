@@ -5,6 +5,8 @@ import { db, getMeta, addNote, backupMeta, lastInNoteAt, sessionMeta, setMode } 
 import { backupStatus } from '../backup.js';
 import { shouldAutoEnd } from '../session.js';
 import { EndNudge } from './EndNudge.js';
+import { checkRemote } from '../sync.js';
+import { formatShort } from './format.js';
 import { live } from '../model.js';
 import { linkPlainName } from '../mentions.js';
 import { buildIndex, exactMatches, looksLikeQuery, search, searchQuery } from '../search.js';
@@ -51,6 +53,15 @@ function Main() {
       await setMode('in');
     }
   }
+
+  // On open: tell me if another device has synced since this one did.
+  useEffect(() => {
+    checkRemote().then((r) => {
+      if (!r?.changed) return;
+      const who = r.device ? ` (synced from ${r.device}${r.syncedAt ? `, ${formatShort(r.syncedAt)}` : ''})` : '';
+      setMessage({ kind: 'warn', text: `Online copy changed${who}. Menu → Sync now.` });
+    });
+  }, []);
 
   // Auto-end after 12 h idle (checked on open and every minute).
   useEffect(() => {
