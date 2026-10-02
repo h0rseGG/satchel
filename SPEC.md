@@ -51,7 +51,7 @@ Jake, on Windows 11 (mostly the Framework laptop). Single user, single machine a
 | Env / run | **uv** | `uv sync`, `uv run ...` |
 | Lint | **ruff** | `uv run ruff check` |
 | Tests | **pytest + Hypothesis** (+ pytest-qt from P1) | |
-| Storage | stdlib **`sqlite3`**, one file per character, **FTS5** search, numbered SQL migrations via `PRAGMA user_version`. No ORM | [NV] FTS5 present in the Windows Python build (check at P1 on Windows; present on the Ubuntu build machine) |
+| Storage | stdlib **`sqlite3`**, one file per character, **FTS5** search, numbered SQL migrations via `PRAGMA user_version`. No ORM | Verified 2026-10-02 on the Windows 11 laptop (uv-managed Python 3.14): SQLite 3.53.1, FTS5 and STRICT work; full test suite passes |
 | Images | **Pillow**, re-encoded to WebP, stored as BLOBs in the same file | P2 |
 | Global hotkey | Win32 `RegisterHotKey` via ctypes + `QAbstractNativeEventFilter` | P1, Windows only |
 | Fonts | IM Fell English / IM Fell English SC (OFL) for headings, Segoe UI Variable for everything else | See 5.3 |
@@ -391,3 +391,4 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | Fonts: `tools/convert_fonts.py` reads the woff2 from tag `v2-final` and writes `src/satchel/ui/fonts/IMFellEnglish-Regular.ttf`, `IMFellEnglishSC-Regular.ttf` and `OFL.txt` (format conversion only; the OFL header declares no Reserved Font Name). Loading via `QFontDatabase.addApplicationFont` is checked at P1 on Windows. The built wheel includes the migrations and fonts (checked with `uv build`) |
 | 2026-10-02 | Search (4.5) on FTS5 without a fuzzy library: each typed word matches as a prefix OR any indexed word within the typo limit (plain Levenshtein, swap = 2). The indexed words come from a per-connection `temp` fts5vocab table (no migration). Pure rules in `core/search.py`; a length + letter-set filter (proved safe by a Hypothesis test against brute force) keeps it at ~7 ms for a 5000-note vocabulary |
 | 2026-10-02 | Note search text indexes a mention by its label and the entity's full name (v2), so "vane" finds a note that says "mira" |
+| 2026-10-02 | Windows check (Framework laptop, uv-managed Python 3.14): all tests pass; SQLite 3.53.1 with FTS5 and STRICT tables. Qt font loading still to confirm |
