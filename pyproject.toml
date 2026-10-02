@@ -3,7 +3,9 @@ name = "satchel"
 version = "3.0.0.dev0"
 description = "Player-side D&D character companion (one SQLite file per character)"
 requires-python = ">=3.14,<3.15"
-dependencies = []
+dependencies = [
+    "pyside6-essentials>=6.11.2",
+]
 
 [dependency-groups]
 dev = [
@@ -11,6 +13,7 @@ dev = [
     "hypothesis>=6.168",
     "ruff>=0.16",
     "fonttools[woff]>=4.60",
+    "pytest-qt>=4.5.0",
 ]
 
 [build-system]

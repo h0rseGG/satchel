@@ -184,7 +184,8 @@ Sections 4.1–4.5 above are v2's text, kept word for word as the reference. v3 
 ### 5.1 Views (P1 unless noted)
 | View | Contents |
 |---|---|
-| **Table** (P1) | The capture box (one line, Enter saves), live highlighting of links and tags as you type, autocomplete for `@` and `#`, the recall panel (4.5), the current session's notes. Session strip: number, date, title; Start session / End session |
+| **Table** (P1) | The capture box (one line, Enter saves), live highlighting of links and tags as you type, autocomplete for `@` and `#`, the recall panel (4.5), the current session's notes (newest at the bottom). Click a note to edit it in the capture box (Enter saves, Esc cancels); no delete until Review. Session strip: number, date, title; Start session / End session |
+| **Characters** (P1) | Start opens the last character (`local.json`). First run: a small "New character / Unpack kit" screen. *File › Open character* lists `%LOCALAPPDATA%\Satchel\*.satchel` |
 | **Quick capture** (P1) | Global hotkey opens a small always-on-top capture box; Enter saves into the current (or no) session; Esc closes. Tray icon: open, quick capture, pack kit, quit |
 | **Review** (P2) | Replaces v2's Inbox. Per session: unreviewed notes, auto links to confirm or remove, candidates to accept/dismiss. Mark session reviewed. Target: < 2 min per session |
 | **Entity page** (P2) | Name, type, aliases, tags, summary, body, fields, thread state, relationships, files, **pinned notes**, **backlinks** (every note linking it, newest first) |
@@ -233,7 +234,7 @@ An adventurer's field journal: ink on aged paper, ruled lines, a red margin, spa
 - **Ruled lines:** lists and the notes feed have a 1 px `rule` line under each row.
 - **Red margin:** a 1 px `red` vertical line down the left of the page content.
 - **Buttons:** primary = `ink` fill, paper text; secondary = ink outline; quiet = text only, underlined on hover; danger = `red` outline (`red` fill inside the confirm dialog).
-- **Links** show as a `highlight` chip; **tags** as small `ink-muted` text with a leading `#`. Auto links may show lighter until confirmed (P1 decision).
+- **Links:** typed and confirmed links show as a `highlight` chip; auto links have no fill, only a 1 px `ink-muted` underline; a missing entity's token is `ink-muted` italic. **Tags** are small `ink-muted` text with a leading `#`.
 - **Focus:** 2 px `red` outline. **Icons:** few, line style in `ink`. No emoji in the chrome.
 - **Spacing:** 4/8/12/16/24 px.
 
@@ -301,6 +302,7 @@ pyproject.toml  .python-version  uv.lock  SPEC.md  CLAUDE.md
 src/satchel/
   core/     pure logic: no Qt, no sqlite. text.py tags.py shortnames.py mentions.py display.py autocomplete.py matcher.py model.py
   db/       the only code that touches SQLite: connection.py migrate.py entities.py notes.py migrations/NNNN_*.sql
+  files/    (P1) plain file I/O outside the database: local.json, kit zips
   ui/       (P1) Qt Widgets; palette.py strings.py satchel.qss fonts/
 tests/      unit tests per core module, db tests, property tests, perf tests; fixtures/demo.py
 tools/      one-off scripts (font conversion, frozen schema fixtures)
@@ -398,3 +400,6 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | **Option B (Jake):** titles never become short names (4.6.11, `TITLE_WORDS`); aliases are the deliberate override. Rejected: A, keep the v2 rule (false stored links, and dismissals aren't sticky until P2); C, short names for suggestions only (loses most auto links). Demo: Hollow King gets the alias "King" after session 3, so "the King" still links; "my lord daddy" no longer links Aldric. New `db.entities.add_alias` (bumps `updated_at`, rewrites the search row) |
 | 2026-10-02 | **SPEC approved** by Jake; it now supersedes `V3-KICKOFF.md`. P0 closed at G0 |
 | 2026-10-02 | Build machine moves to the Windows 11 laptop (`C:\Users\h0rse\playground\satchel`) from P1 on, so Claude can run the real UI, tray and hotkey. `.gitattributes` added: LF line endings in the repo on both machines, binaries never converted |
+| 2026-10-02 | **P1 plan approved (Jake).** Tasks: deps; session/recall/kit data in `satchel.db`; kits without UI; UI foundation; main window; CaptureBox; notes feed; recall panel; session strip; tray + hotkey + Quick capture; Pack/Unpack UI + nudge; G1. UI system: a `CharacterStore` QObject is the only owner of the connection and emits change signals; one component per job (`kind` property buttons, fixed-height `MessageBar`, `confirm_destructive`, `CaptureBox` shared by Table and Quick capture, overlay `SuggestionList`, `note_html` renderer, `RecallCard`, `AutosaveLineEdit`) |
+| 2026-10-02 | Approved with the plan: characters open/create flow (5.1); minimal note edit in P1, no delete; auto-link look (5.3); window close hides to the tray; default hotkey Ctrl+Alt+N kept in `local.json` ([NV] clashes; a failed registration is reported in the message bar); caret moves are synchronous, never on a timer (lesson 9); `last_packed_at` is recorded only after the kit is written and re-read (lesson 7) |
+| 2026-10-02 | Deps: `pyside6-essentials` 6.11.2 (QtCore/Gui/Widgets/Network; the full `pyside6` adds the large Addons, e.g. WebEngine, which Satchel doesn't use) and `pytest-qt` 4.5.0 (dev) |
