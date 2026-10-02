@@ -43,6 +43,8 @@ class CharacterStore(QObject):
         self.conn = open_db(self.path)
         self.character_id = get_meta(self.conn, "character_id") or ""
         self.character_name = get_meta(self.conn, "character_name") or self.path.stem
+        # Never auto-linked or shown in recall (SPEC 4.5, 4.6.2).
+        self.pc_entity_id = get_meta(self.conn, "pc_entity_id") or ""
         self.index: NameIndex = load_index(self.conn)
         self.tag_counts: Counter[str] = db_notes.note_tag_counts(self.conn)
 

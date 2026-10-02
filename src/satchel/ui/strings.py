@@ -37,6 +37,13 @@ OPEN_TOO_NEW = "{file_name} was made by a newer Satchel, so it wasn't opened."
 OPEN_FAILED = "{file_name} couldn't be opened."
 LAST_CHARACTER_MISSING = "{file_name} isn't in the Satchel folder any more."
 
+# --- Capture ---------------------------------------------------------------------------------
+CAPTURE_PLACEHOLDER = "Type a note and press Enter. @ for a new name, # for a tag."
+NEW_CANDIDATE = "New name: {name}"
+CANDIDATE = "new name"
+EDITING_NOTE = "Editing a note. Enter saves, Esc cancels."
+SAVE_FAILED = "That note wasn't saved: {error}. It's still in the box."
+
 # --- Sessions -------------------------------------------------------------------------------
 SESSION_HEADING = "Session {number}"
 BETWEEN_SESSIONS = "Between sessions"

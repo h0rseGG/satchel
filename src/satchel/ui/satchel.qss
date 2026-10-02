@@ -142,6 +142,30 @@ QLineEdit:focus, QPlainTextEdit:focus {
     padding: 4px;
 }
 
+/* --- Capture suggestions (@ and #): floats above the capture box ---------------------- */
+
+QListWidget[role="suggestions"] {
+    background: @paper-alt;
+    border: 1px solid @rule;
+    border-radius: 3px;
+    padding: 2px;
+    outline: none;
+}
+
+QListWidget[role="suggestions"]::item {
+    padding: 4px 8px;
+    color: @ink;
+}
+
+QListWidget[role="suggestions"]::item:disabled {
+    color: @ink-muted;
+}
+
+QListWidget[role="suggestions"]::item:selected {
+    background: @highlight;
+    color: @ink;
+}
+
 /* --- Message bar (SPEC 5.2.7): washes with ink text, never ink-muted ------------------------- */
 
 QFrame[role="message"][tone="ok"] { background: @wash-ok; }

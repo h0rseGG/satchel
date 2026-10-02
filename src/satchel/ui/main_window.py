@@ -16,8 +16,9 @@ from satchel.files.kits import list_characters
 from satchel.files.local_state import LocalState, load_state, save_state
 from satchel.ui import strings
 from satchel.ui.dialogs import NameDialog
-from satchel.ui.pages import TablePage, WelcomePage
+from satchel.ui.pages import WelcomePage
 from satchel.ui.store import CharacterStore, Clock, create_character_file, system_clock
+from satchel.ui.table import TableView
 
 
 class MainWindow(QMainWindow):
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow):
 
         self.welcome = WelcomePage()
         self.welcome.new_character.connect(self.new_character)
-        self.table = TablePage()
+        self.table = TableView()
         self.pages = QStackedWidget()
         self.pages.addWidget(self.welcome)
         self.pages.addWidget(self.table)
@@ -101,8 +102,10 @@ class MainWindow(QMainWindow):
         self.state.last_character = path.name
         save_state(self.data_dir, self.state)
         self.setWindowTitle(f"{self.store.character_name} — {strings.APP_NAME}")
+        self.table.set_store(self.store)
         self.pages.setCurrentWidget(self.table)
         self.messages().clear()
+        self.table.capture.setFocus()
         return True
 
     def _open_failed(self, message: str) -> bool:
@@ -140,6 +143,7 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _close_store(self) -> None:
+        self.table.set_store(None)
         if self.store:
             self.store.close()
             self.store.deleteLater()
