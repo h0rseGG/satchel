@@ -1,0 +1,9 @@
+# Same bytes on Windows and Linux: text files are LF in the repo and the working tree.
+* text=auto eol=lf
+# Never touch binaries.
+*.satchel binary
+*.ttf binary
+*.woff2 binary
+*.png binary
+*.webp binary
+*.kit binary

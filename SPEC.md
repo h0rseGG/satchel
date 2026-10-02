@@ -1,6 +1,6 @@
 # Satchel v3: specification
 
-Status: **DRAFT 2026-10-02**, from the approved kickoff brief (`V3-KICKOFF.md`). Where this file and the brief differ, the brief wins until Jake approves this file.
+Status: **APPROVED 2026-10-02** by Jake. This file is now the source of truth; it supersedes the kickoff brief (`V3-KICKOFF.md`, kept for history). Change it only with Jake, and log every change in section 15.
 v2 is kept at git tag `v2-final` (read-only reference via `git show`). Sections 4 and 13 are ported from v2 word for word; v3 changes to them are in 4.6 and in the notes under 13.
 
 Legend: **[NV]** = not verified; check before relying on it. **(v2)** = proven in v2, keep as is.
@@ -396,3 +396,5 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | Windows check (Framework laptop, uv-managed Python 3.14): all tests pass; SQLite 3.53.1 with FTS5 and STRICT tables. Qt font loading still to confirm |
 | 2026-10-02 | Windows font check (`tools/check_qt_fonts.py`): Qt loads both TTF heading fonts (`IM FELL English`, `IM FELL English SC`); Segoe UI Variable present in Text/Small/Display optical sizes. Body uses `Segoe UI Variable Text`, small labels `Segoe UI Variable Small` (5.3). All P0 Windows [NV]s cleared |
 | 2026-10-02 | **Option B (Jake):** titles never become short names (4.6.11, `TITLE_WORDS`); aliases are the deliberate override. Rejected: A, keep the v2 rule (false stored links, and dismissals aren't sticky until P2); C, short names for suggestions only (loses most auto links). Demo: Hollow King gets the alias "King" after session 3, so "the King" still links; "my lord daddy" no longer links Aldric. New `db.entities.add_alias` (bumps `updated_at`, rewrites the search row) |
+| 2026-10-02 | **SPEC approved** by Jake; it now supersedes `V3-KICKOFF.md`. P0 closed at G0 |
+| 2026-10-02 | Build machine moves to the Windows 11 laptop (`C:\Users\h0rse\playground\satchel`) from P1 on, so Claude can run the real UI, tray and hotkey. `.gitattributes` added: LF line endings in the repo on both machines, binaries never converted |

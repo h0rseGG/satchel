@@ -1,7 +1,7 @@
 # Satchel v3: working notes for Claude
 
 Player-side D&D character companion. Native Windows 11 desktop app: Python + PySide6 (Qt Widgets), one SQLite file per character, no server, no sync. Repo: github.com/h0rseGG/satchel.
-**SPEC.md is the source of truth.** Read section 13 (lessons) before coding. Log every build decision in SPEC section 15 with the date.
+**SPEC.md is the source of truth (approved 2026-10-02).** Read section 13 (lessons) before coding. Log every build decision in SPEC section 15 with the date.
 Owner: Jake. Electrician, Python-first. Personal project (not Cablewise work). He wants to understand the code.
 
 ## Working style
@@ -16,10 +16,13 @@ Owner: Jake. Electrician, Python-first. Personal project (not Cablewise work). H
 - Tests use fixtures and the demo only, never Jake's data.
 - Treat any `.satchel` file on his machines as real data: schema changes only via new numbered migrations; never edit a shipped one.
 - Colours: only the SPEC 5.3 palette. Fonts: IM Fell for headings, Segoe UI Variable for the rest, numbers never in the serif.
-- Don't start P1 (UI, tray, hotkey) on the Ubuntu machine; those need Windows.
+- UI, tray and hotkey work (P1+) is built and tested on Windows only.
 
 ## Environment
-- Build/test machine: Ubuntu. Target: Windows 11 (Framework laptop).
+- Build, test and target machine: Windows 11 (Framework laptop), repo at `C:\Users\h0rse\playground\satchel`. The old Ubuntu build machine (P0) is retired for this project.
+- Shell: the commit gate needs `&&`, which works in Git Bash (Claude Code's shell on Windows) and PowerShell 7+, but **not** Windows PowerShell 5.1. In 5.1, run the steps one at a time and stop on the first failure.
+- Line endings: `.gitattributes` keeps LF in the repo; don't change `core.autocrlf` per machine to work around it.
+- Paths in code: always `pathlib`; never hard-code `\` or `/`. Live data goes under `%LOCALAPPDATA%\Satchel` (SPEC 2); tests only ever use `tmp_path`.
 - `uv` manages Python (pinned in `.python-version`) and dependencies. `uv sync` after pulling.
 - Commit identity is repo-local: `h0rse` / `189693150+h0rseGG@users.noreply.github.com`. Never a work email.
 - Commit messages via heredoc or `git commit -F <file>`; end with the attribution line the harness provides.
@@ -32,4 +35,6 @@ Owner: Jake. Electrician, Python-first. Personal project (not Cablewise work). H
 
 ## Status
 - v1 at tag `v1-final`, v2 at tag `v2-final` (reference: `git show v2-final:<path>`).
-- v3: P0 (foundations) built and at gate G0, awaiting Jake's review (2026-10-02). P1 needs the Windows machine.
+- v3: **P0 done** (gate G0 passed 2026-10-02; Windows-verified: tests pass, SQLite 3.53.1 with FTS5 + STRICT, Qt loads the TTF fonts).
+- **Next: P1 Table MVP** (SPEC 12): main window, Table view, capture bar, live highlighting + autocomplete, recall panel, sessions, tray + hotkey, Pack/Unpack kit + end-of-session nudge. Gate G1: one real session, no lost notes, save < 50 ms. Start by showing Jake a P1 task list and the UI system plan (lesson 1) before writing UI code.
+- Open for P2 (don't solve in P1 unless needed): a Review-dismissed auto link comes back when the note is edited; renaming an entity leaves old labels in note search rows until the note is re-saved; whether reviewing a note confirms its links.
