@@ -36,5 +36,5 @@ Owner: Jake. Electrician, Python-first. Personal project (not Cablewise work). H
 ## Status
 - v1 at tag `v1-final`, v2 at tag `v2-final` (reference: `git show v2-final:<path>`).
 - v3: **P0 done** (gate G0 passed 2026-10-02; Windows-verified: tests pass, SQLite 3.53.1 with FTS5 + STRICT, Qt loads the TTF fonts).
-- **Next: P1 Table MVP** (SPEC 12): main window, Table view, capture bar, live highlighting + autocomplete, recall panel, sessions, tray + hotkey, Pack/Unpack kit + end-of-session nudge. Gate G1: one real session, no lost notes, save < 50 ms. Start by showing Jake a P1 task list and the UI system plan (lesson 1) before writing UI code.
+- **Next: P1 Table MVP** (SPEC 12): main window, Table view, capture bar, live highlighting + autocomplete, recall panel, sessions, tray + hotkey, Pack/Unpack kit + end-of-session nudge. Gate G1: one real session, no lost notes, save < 50 ms. P1 task list and UI system plan approved 2026-10-02 (SPEC 15). Tasks 1–3 done (deps; session/recall data in `satchel.db`; kits without UI in `core/kit.py`, `db/kit.py`, `satchel/files/`). Next: task 4, UI foundation.
 - Open for P2 (don't solve in P1 unless needed): a Review-dismissed auto link comes back when the note is edited; renaming an entity leaves old labels in note search rows until the note is re-saved; whether reviewing a note confirms its links.
