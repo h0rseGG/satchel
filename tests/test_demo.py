@@ -78,7 +78,7 @@ def test_names_link_themselves(demo):
 
 def test_hollow_king_collects_every_mention(demo):
     # Two typed @Hollow_King (the second matched the candidate, no duplicate), two plain
-    # "hollow king", and "the King" once "hollow" belonged to Hollow Barrow too.
+    # "hollow king", and "the King" through the alias added after session 3.
     hk = stable_id("candidate:hollow king")
     assert len(backlinks(demo, hk)) == 5
 
@@ -96,7 +96,7 @@ def test_short_names_in_the_demo(demo):
     short = load_index(demo).short
     for w in ["grimbold", "aldric", "caldra", "lyra", "mira", "rook", "kael", "oswin"]:
         assert w in short, w
-    for w in ["ashdown", "sister", "hollow"]:
+    for w in ["ashdown", "sister", "hollow", "lord", "king", "brother", "captain"]:
         assert w not in short, w
 
 
@@ -138,3 +138,9 @@ def test_rebuilding_gives_identical_rows(demo_path, tmp_path):
     ]
     for t in tables:
         assert sorted(a.execute(f"SELECT * FROM {t}")) == sorted(b.execute(f"SELECT * FROM {t}")), t
+
+
+def test_titles_only_link_through_an_alias(demo):
+    # "my lord daddy" no longer links Lord Aldric: titles aren't short names (4.6.11).
+    assert links_of(demo, "my lord daddy") == {"Kael Brightwater": "auto"}
+    assert links_of(demo, "cold moon") == {"Hollow King": "auto"}, "alias King"

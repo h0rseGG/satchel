@@ -17,15 +17,15 @@ def test_four_plus_letters_unique_words_people_only():
         ent("Iron Mill", type_id="type-location"),
     ]
     got = sorted(short_names(es, TYPES_BY_ID))
-    # No "sister" (shared title), "ashdown" (shared surname), "thorne" (part of Thorne
-    # Keep), "old" (3 letters), "keep"/"mill"/"iron" (not people).
+    # No "sister" (title, and shared), "ashdown" (shared surname), "thorne" (part of Thorne
+    # Keep), "old" (3 letters), "keep"/"mill"/"iron" (not people). v3: "lord" is a title,
+    # so unlike v2 it doesn't count even though only one person has it.
     assert got == [
         "aldric",
         "bess",
         "caldra",
         "grimbold",
         "ironhand",
-        "lord",
         "lyra",
         "morwen",
         "wren",
@@ -46,3 +46,16 @@ def test_possessive_word_is_its_own_word():
     # "Lyra’s Locket" doesn't take "lyra" from Lyra Ashdown (v2 demo behaviour).
     es = [ent("Lyra Ashdown"), ent("Lyra’s Locket", type_id="type-item")]
     assert short_names(es, TYPES_BY_ID)["lyra"].name == "Lyra Ashdown"
+
+
+def test_titles_never_count_even_when_unique():
+    es = [ent("Captain Rook Harlow"), ent("Brother Oswin"), candidate("Hollow King")]
+    got = short_names(es, TYPES_BY_ID)
+    assert sorted(got) == ["harlow", "hollow", "oswin", "rook"]
+
+
+def test_an_alias_makes_a_title_link_on_purpose():
+    from satchel.core.mentions import build_name_index, lookup_name
+
+    hk = candidate("Hollow King", aliases=["King"])
+    assert lookup_name("king", build_name_index([hk], TYPES_BY_ID)) == hk

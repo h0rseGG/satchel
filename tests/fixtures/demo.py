@@ -16,6 +16,7 @@ from satchel.core.model import Entity, EntityType, iso_now, stable_id
 from satchel.core.text import key
 from satchel.db.connection import open_db
 from satchel.db.entities import (
+    add_alias,
     add_entity,
     add_field,
     add_relationship,
@@ -170,6 +171,7 @@ Things to poke at:
 - Deity and Ship are custom types; a ship's Captain is a link field.
 - One note was edited after the session; its first version is kept.
 - Names link themselves: "aldric", "the fox", "pip" were typed without @.
+- Titles never link on their own; Hollow King has the alias "King" so "the King" does.
 - Search with a typo: "grimbld", "lantren".
 - Tags: #debts, #do_NOT_trust, #fuck_this_guy.""",
 }  # fmt: skip
@@ -245,6 +247,15 @@ def build_demo(path: Path) -> Path:
                     lambda nid=nid, ew=edit_when, a=appended: _edit(conn, nid, a, at(ew)),
                 )
             )
+    # Tidying up after session 3: titles never link on their own (SPEC 4.6.11), so Wren
+    # gives the Hollow King the alias "King" on purpose. Session 4's "the King" links.
+    events.append(
+        (
+            at("2026-09-20 10:00"),
+            2,
+            lambda: add_alias(conn, candidate_id("Hollow King"), "King", at("2026-09-20 10:00")),
+        )
+    )
     events.sort(key=lambda ev: (ev[0], ev[1]))
     for _, _, action in events:
         action()

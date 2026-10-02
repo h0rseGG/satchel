@@ -162,6 +162,18 @@ def add_entity(conn: sqlite3.Connection, e: Entity) -> None:
         _insert_entity(conn, e)
 
 
+def add_alias(conn: sqlite3.Connection, entity_id: str, alias: str, now: str) -> None:
+    """Give an entity another name. A user edit, so updated_at moves; search is rewritten."""
+    with transaction(conn):
+        conn.execute(
+            "INSERT OR IGNORE INTO entity_aliases (entity_id, alias) VALUES (?, ?)",
+            (entity_id, alias),
+        )
+        conn.execute("UPDATE entities SET updated_at = ? WHERE id = ?", (now, entity_id))
+        entity = next(e for e in load_entities(conn) if e.id == entity_id)
+        _write_entity_fts(conn, entity)
+
+
 def insert_candidates(conn: sqlite3.Connection, candidates: Iterable[Entity]) -> None:
     for c in candidates:
         _insert_entity(conn, c)
