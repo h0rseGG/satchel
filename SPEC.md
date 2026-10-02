@@ -222,7 +222,8 @@ An adventurer's field journal: ink on aged paper, ruled lines, a red margin, spa
 
 **Type**
 - **Headings** (window/page titles, panel headings, app name): **IM Fell English**; panel headings in **IM Fell English SC** (small caps). SIL OFL 1.1; files and `OFL.txt` in `src/satchel/ui/fonts/`, loaded with `QFontDatabase.addApplicationFont`. Fallback: Georgia, serif.
-- **Body, notes, inputs, buttons:** **Segoe UI Variable** (Windows 11 system font).
+- **Body, notes, inputs, buttons:** **Segoe UI Variable** (Windows 11 system font). Qt family names (verified on the laptop 2026-10-02): use **`Segoe UI Variable Text`** for body, notes, inputs and buttons, and `Segoe UI Variable Small` for captions and small labels. The Display, Light, Semilight and Semibold families exist but aren't used without a reason.
+- Qt family names for the headings (verified): `IM FELL English` and `IM FELL English SC`.
 - **Numbers are never set in the serif** (its old-style figures make "11" read as "II"). Counts, dates and times in headings use the body font.
 - **Scale:** 12/13/14/16/20/26 px. Headings 20 px (panels, small caps) and 26 px (page titles).
 
@@ -392,3 +393,4 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | Search (4.5) on FTS5 without a fuzzy library: each typed word matches as a prefix OR any indexed word within the typo limit (plain Levenshtein, swap = 2). The indexed words come from a per-connection `temp` fts5vocab table (no migration). Pure rules in `core/search.py`; a length + letter-set filter (proved safe by a Hypothesis test against brute force) keeps it at ~7 ms for a 5000-note vocabulary |
 | 2026-10-02 | Note search text indexes a mention by its label and the entity's full name (v2), so "vane" finds a note that says "mira" |
 | 2026-10-02 | Windows check (Framework laptop, uv-managed Python 3.14): all tests pass; SQLite 3.53.1 with FTS5 and STRICT tables. Qt font loading still to confirm |
+| 2026-10-02 | Windows font check (`tools/check_qt_fonts.py`): Qt loads both TTF heading fonts (`IM FELL English`, `IM FELL English SC`); Segoe UI Variable present in Text/Small/Display optical sizes. Body uses `Segoe UI Variable Text`, small labels `Segoe UI Variable Small` (5.3). All P0 Windows [NV]s cleared |
