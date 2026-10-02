@@ -14,16 +14,26 @@ KIT_FORMAT = "satchel"
 MANIFEST_NAME = "manifest.json"
 DATABASE_NAME = "character.satchel"
 
+ERROR_CODES = (
+    "not_zip",
+    "no_manifest",
+    "bad_manifest",
+    "not_satchel",
+    "no_database",
+    "corrupt",
+    "too_new",
+    "mismatch",
+    "not_same_character",
+)
+
 
 class KitError(Exception):
-    """A kit (or a file in one) can't be used. `code` says why; the UI turns it into
-    words (strings.py), so messages stay in one place.
-
-    Codes: not_zip, no_manifest, bad_manifest, not_satchel, no_database, corrupt,
-    too_new, mismatch, not_same_character.
-    """
+    """A kit (or a file in one) can't be used. `code` (one of ERROR_CODES) says why;
+    the UI turns it into words (strings.py), so messages stay in one place."""
 
     def __init__(self, code: str, detail: str = ""):
+        if code not in ERROR_CODES:
+            raise ValueError(f"unknown kit error code: {code}")
         super().__init__(f"{code}: {detail}" if detail else code)
         self.code = code
 

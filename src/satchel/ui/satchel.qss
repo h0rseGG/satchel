@@ -1,0 +1,187 @@
+/* Satchel: the "field journal" stylesheet (SPEC 5.3).
+ *
+ * Colours are palette names with a leading at-sign (from palette.py), swapped in by theme.py; never write a hex
+ * colour here (a test checks). Sizes follow palette.SIZE / SPACE.
+ *
+ * Lesson 12: rules are scoped by a widget property (role / kind), never by
+ * file order, so two rules can't fight over the same widget.
+ */
+
+/* --- Base -------------------------------------------------------------------------- */
+
+QWidget {
+    color: @ink;
+    font-family: "Segoe UI Variable Text";
+    font-size: 14px;
+}
+
+QMainWindow, QDialog {
+    background: @paper;
+}
+
+QToolTip {
+    color: @ink;
+    background: @paper-alt;
+    border: 1px solid @rule;
+    padding: 4px;
+}
+
+/* --- Page and panels ------------------------------------------------------------------ */
+
+/* The page's content area: the red margin down the left. */
+QFrame[role="page"] {
+    background: @paper;
+    border: none;
+    border-left: 1px solid @red;
+}
+
+QFrame[role="panel"] {
+    background: @paper-alt;
+    border: 1px solid @rule;
+    border-radius: 3px;
+}
+
+/* --- Text -------------------------------------------------------------------------------- */
+
+QLabel[role="page-title"] {
+    font-family: "IM FELL English", Georgia, serif;
+    font-size: 26px;
+}
+
+QLabel[role="panel-heading"] {
+    font-family: "IM FELL English SC", Georgia, serif;
+    font-size: 20px;
+}
+
+QLabel[role="muted"] {
+    color: @ink-muted;
+}
+
+QLabel[role="caption"] {
+    color: @ink-muted;
+    font-family: "Segoe UI Variable Small";
+    font-size: 12px;
+}
+
+/* --- Buttons (SPEC 5.2.5): primary, secondary, quiet, danger ---------------------------
+ * Every state keeps the same border width plus padding, so focus never shifts layout:
+ * idle = 1px border + 1px extra padding, focus = 2px red border (the focus ring). */
+
+QPushButton {
+    border-radius: 3px;
+    padding: 5px 13px;
+    min-height: 20px;
+}
+
+QPushButton[kind="primary"] {
+    background: @ink;
+    color: @paper;
+    border: 1px solid @ink;
+}
+
+QPushButton[kind="secondary"] {
+    background: transparent;
+    color: @ink;
+    border: 1px solid @ink;
+}
+
+QPushButton[kind="quiet"] {
+    background: transparent;
+    color: @ink;
+    border: 1px solid transparent;
+}
+
+QPushButton[kind="quiet"]:hover {
+    text-decoration: underline;
+}
+
+QPushButton[kind="danger"] {
+    background: transparent;
+    color: @red;
+    border: 1px solid @red;
+}
+
+/* Inside the confirm dialog the danger button is filled (SPEC 5.3). */
+QDialog[role="confirm"] QPushButton[kind="danger"] {
+    background: @red;
+    color: @paper;
+    border: 1px solid @red;
+}
+
+QPushButton:focus {
+    border: 2px solid @red;
+    padding: 4px 12px;
+}
+
+QPushButton:disabled {
+    color: @ink-muted;
+    border-color: @rule;
+    background: transparent;
+}
+
+/* --- Text inputs ---------------------------------------------------------------------- */
+
+QLineEdit, QPlainTextEdit {
+    background: @paper;
+    border: 1px solid @rule;
+    border-radius: 3px;
+    padding: 5px;
+    selection-background-color: @highlight;
+    selection-color: @ink;
+}
+
+QLineEdit:focus, QPlainTextEdit:focus {
+    border: 2px solid @red;
+    padding: 4px;
+}
+
+/* --- Message bar (SPEC 5.2.7): washes with ink text, never ink-muted ------------------------- */
+
+QFrame[role="message"][tone="ok"] { background: @wash-ok; }
+QFrame[role="message"][tone="warn"] { background: @wash-warn; }
+QFrame[role="message"][tone="err"] { background: @wash-err; }
+
+/* --- Menus ----------------------------------------------------------------------------- */
+
+QMenuBar {
+    background: @paper-alt;
+    border-bottom: 1px solid @rule;
+}
+
+QMenuBar::item:selected, QMenu::item:selected {
+    background: @highlight;
+    color: @ink;
+}
+
+QMenu {
+    background: @paper-alt;
+    border: 1px solid @rule;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 4px 16px;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: @rule;
+    margin: 4px 8px;
+}
+
+/* --- Scroll bars: thin, quiet ----------------------------------------------------------- */
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+}
+
+QScrollBar::handle:vertical {
+    background: @rule;
+    border-radius: 3px;
+    min-height: 24px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}

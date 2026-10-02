@@ -7,6 +7,10 @@ dependencies = [
     "pyside6-essentials>=6.11.2",
 ]
 
+# A windowed app: no console window on Windows. For a console, `uv run python -m satchel`.
+[project.gui-scripts]
+satchel = "satchel.ui.app:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.1",
