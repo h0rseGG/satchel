@@ -5,19 +5,15 @@ v3 differences: stubs are candidates (is_candidate), deletes are real (a deleted
 entity is simply absent from the index), and there is no merge.
 """
 
+from satchel.core.autocomplete import active_token, apply_entity_pick, suggest_entities
+from satchel.core.display import display_label, plain_text, segments
 from satchel.core.mentions import (
     Pick,
-    active_token,
-    apply_entity_pick,
     build_name_index,
-    display_label,
     find_typed,
     mention_ids,
-    plain_text,
     resolve_typed,
-    segments,
     strip_tokens,
-    suggest_entities,
     to_typed_form,
 )
 from tests.helpers import T0, TYPES_BY_ID, candidate, ent

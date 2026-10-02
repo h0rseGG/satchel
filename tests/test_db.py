@@ -11,7 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from satchel.core.mentions import mention_ids, segments
+from satchel.core.display import segments
+from satchel.core.mentions import mention_ids
 from satchel.core.model import BUILTIN_TYPES, Entity
 from satchel.db import migrate as migrate_mod
 from satchel.db.connection import open_db, transaction

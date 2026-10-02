@@ -8,8 +8,9 @@ import re
 import sqlite3
 from collections.abc import Iterable
 
+from satchel.core.display import plain_text
 from satchel.core.matcher import ResolvedNote, resolve_note
-from satchel.core.mentions import NameIndex, Pick, plain_text, to_typed_form
+from satchel.core.mentions import NameIndex, Pick, to_typed_form
 from satchel.core.model import new_id
 from satchel.db.connection import transaction
 from satchel.db.entities import get_meta, insert_candidates, load_index

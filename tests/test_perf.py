@@ -9,8 +9,9 @@ import random
 import statistics
 import time
 
+from satchel.core.autocomplete import active_token, suggest_entities
 from satchel.core.matcher import find_names, named_entities, resolve_note
-from satchel.core.mentions import active_token, build_name_index, suggest_entities
+from satchel.core.mentions import build_name_index
 from satchel.core.model import BUILTIN_TYPES, Entity
 from satchel.core.tags import suggest_tags, tag_counts
 

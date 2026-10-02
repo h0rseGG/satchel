@@ -9,15 +9,14 @@ import re
 from hypothesis import given
 from hypothesis import strategies as st
 
+from satchel.core.autocomplete import active_token
+from satchel.core.display import plain_text, segments
 from satchel.core.matcher import find_names, resolve_note
 from satchel.core.mentions import (
-    active_token,
     build_name_index,
     find_stored,
     find_typed,
     mention_ids,
-    plain_text,
-    segments,
     strip_tokens,
     to_typed_form,
 )

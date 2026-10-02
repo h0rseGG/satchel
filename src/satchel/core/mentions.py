@@ -1,6 +1,7 @@
-"""@mentions: parsing, typed resolution, editing, display and autocomplete (SPEC 4.1, 4.2).
+"""@mentions: parsing, the name index, typed resolution and editing (SPEC 4.1).
 
-Auto-linking of plain names lives in matcher.py; it builds on this module.
+Display is in display.py, autocomplete in autocomplete.py, and auto-linking of plain
+names in matcher.py; they all build on this module.
 """
 
 import re
@@ -9,7 +10,7 @@ from dataclasses import dataclass, field
 
 from satchel.core.model import Entity, EntityType, new_id
 from satchel.core.shortnames import short_names
-from satchel.core.tags import STORED_RE, find_tags
+from satchel.core.tags import STORED_RE
 from satchel.core.text import (
     NOT_AFTER_WORD,
     TOKEN_BODY,
@@ -276,130 +277,3 @@ def to_typed_form(
                 picks.append(Pick(entity.name, entity.id))
     parts.append(stored_text[pos:])
     return "".join(parts), picks
-
-
-# --- Display -----------------------------------------------------------------
-
-
-def display_label(label: str, entity: Entity) -> str:
-    """What a mention shows: what was typed while it's still one of the entity's names
-    ("Grimbold" for Grimbold Ironhand, "The Fox" for Mira Vane), spelled the entity's
-    way; otherwise the current name, so a rename flows through."""
-    k = key(label)
-    if not k:
-        return entity.name
-    for n in (entity.name, *entity.aliases):
-        if key(n) == k:
-            return n
-    words = entity.name.split()
-    want = len(k.split(" "))
-    for i in range(len(words) - want + 1):
-        run = " ".join(words[i : i + want])
-        if key(run) == k:
-            return run
-    return entity.name
-
-
-@dataclass(frozen=True)
-class Segment:
-    """A piece of note text for rendering: kind is "text", "mention" or "tag"."""
-
-    kind: str
-    text: str
-    id: str | None = None  # mentions only
-    missing: bool = False  # mention whose entity is gone (dashed chip)
-    key: str | None = None  # tags only
-
-
-def segments(stored_text: str, by_id: dict[str, Entity]) -> list[Segment]:
-    marks: list[tuple[int, int, Segment]] = []
-    for s in find_stored(stored_text):
-        e = by_id.get(s.id)
-        label = display_label(s.label, e) if e else s.label
-        marks.append((s.start, s.end, Segment("mention", label, id=s.id, missing=e is None)))
-    for t in find_tags(stored_text):
-        marks.append((t.start, t.end, Segment("tag", stored_text[t.start : t.end], key=t.key)))
-    marks.sort(key=lambda m: m[0])
-    out: list[Segment] = []
-    pos = 0
-    for start, end, seg in marks:
-        if start < pos:
-            continue
-        if start > pos:
-            out.append(Segment("text", stored_text[pos:start]))
-        out.append(seg)
-        pos = end
-    if pos < len(stored_text):
-        out.append(Segment("text", stored_text[pos:]))
-    return out
-
-
-def plain_text(stored_text: str, by_id: dict[str, Entity]) -> str:
-    """Stored text with mentions as display labels: for search and plain display."""
-    return "".join(s.text for s in segments(stored_text, by_id))
-
-
-# --- Autocomplete ------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class ActiveToken:
-    kind: str  # "@" or "#"
-    start: int
-    end: int
-    query: str
-
-
-def _is_token_char(ch: str) -> bool:
-    return is_word_char(ch) or ch in "'’-"
-
-
-def active_token(text: str, caret: int) -> ActiveToken | None:
-    """The @ or # token the caret is in, if any."""
-    i = caret
-    while i > 0 and _is_token_char(text[i - 1]):
-        i -= 1
-    if i == 0 or text[i - 1] not in "@#":
-        return None
-    start = i - 1
-    if start > 0 and is_word_char(text[start - 1]):
-        return None  # "bob@inn"
-    if any(s.end == start for s in find_stored(text)):
-        return None  # straight after a stored token, which counts as a word
-    if in_spans(start, url_spans(text)):
-        return None
-    typed = text[i:caret]
-    if typed and not typed[0].isalpha():
-        return None
-    end = caret
-    while end < len(text) and _is_token_char(text[end]):
-        end += 1
-    return ActiveToken(text[start], start, end, typed_name(typed))
-
-
-def suggest_entities(query: str, index: NameIndex, limit: int = 5) -> list[Entity]:
-    """Prefix matches on name or alias first, then substring matches; newest first."""
-    q = key(query)
-    prefix, substring = [], []
-    for e in index.entities:
-        keys = index.name_keys[e.id]
-        if any(k.startswith(q) for k in keys):
-            prefix.append(e)
-        elif any(q in k for k in keys):
-            substring.append(e)
-    return (newest_first(prefix) + newest_first(substring))[:limit]
-
-
-def replace_token(text: str, token: ActiveToken, insert: str) -> tuple[str, int]:
-    """Replace the active token with `insert` and a trailing space. Returns (text, caret)."""
-    after = text[token.end :]
-    space = "" if after[:1].isspace() else " "
-    return text[: token.start] + insert + space + after, token.start + len(insert) + 1
-
-
-def apply_entity_pick(
-    text: str, token: ActiveToken, entity: Entity
-) -> tuple[str, int, Pick | None]:
-    shown, typed = mention_text(entity)
-    new_text, caret = replace_token(text, token, shown)
-    return new_text, caret, Pick(entity.name, entity.id) if typed else None

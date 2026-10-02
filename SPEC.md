@@ -295,7 +295,7 @@ Ending a session with changes since `last_packed_at` (any `updated_at` later tha
 ```
 pyproject.toml  .python-version  uv.lock  SPEC.md  CLAUDE.md
 src/satchel/
-  core/     pure logic: no Qt, no sqlite. text.py tags.py shortnames.py mentions.py matcher.py model.py
+  core/     pure logic: no Qt, no sqlite. text.py tags.py shortnames.py mentions.py display.py autocomplete.py matcher.py model.py
   db/       the only code that touches SQLite: connection.py migrate.py entities.py notes.py migrations/NNNN_*.sql
   ui/       (P1) Qt Widgets; palette.py strings.py satchel.qss fonts/
 tests/      unit tests per core module, db tests, property tests, perf tests; fixtures/demo.py
