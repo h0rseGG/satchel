@@ -9,7 +9,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QAction, QCloseEvent
-from PySide6.QtWidgets import QMainWindow, QMenu, QStackedWidget
+from PySide6.QtWidgets import QApplication, QMainWindow, QMenu, QStackedWidget
 
 from satchel.db.migrate import SchemaTooNewError
 from satchel.files.kits import list_characters
@@ -22,8 +22,14 @@ from satchel.ui.table import TableView
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, data_dir: Path, clock: Clock = system_clock):
+    def __init__(self, data_dir: Path, clock: Clock = system_clock, *, hide_on_close=False):
         super().__init__()
+        # The real app hides to the tray on close (so the hotkey keeps working) and
+        # quits from the menu; tests use a plain window that closes.
+        self.hide_on_close = hide_on_close
+        self._shut_down = False
+        self._told_about_tray = False
+        self.tray = None  # set by app.py
         self.data_dir = Path(data_dir)
         self.clock = clock
         self.state: LocalState = load_state(self.data_dir)
@@ -56,7 +62,7 @@ class MainWindow(QMainWindow):
         menu.addMenu(self.open_menu)
         menu.addSeparator()
         quit_action = QAction(strings.QUIT, self)
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(self.quit)
         menu.addAction(quit_action)
 
     def _fill_open_menu(self) -> None:
@@ -149,8 +155,30 @@ class MainWindow(QMainWindow):
             self.store.deleteLater()
             self.store = None
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def quit(self) -> None:
+        if self.hide_on_close:
+            QApplication.quit()  # app.py shuts the window down on aboutToQuit
+        else:
+            self.close()
+
+    def shutdown(self) -> None:
+        """Save window state and close the character file. Safe to call twice."""
+        if self._shut_down:
+            return
+        self._shut_down = True
         self.state.window_geometry = bytes(self.saveGeometry().toBase64().data()).decode()
         save_state(self.data_dir, self.state)
         self._close_store()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self.hide_on_close and not self._shut_down:
+            event.ignore()
+            self.hide()
+            if self.tray and not self._told_about_tray:
+                self._told_about_tray = True
+                self.tray.showMessage(
+                    strings.APP_NAME, strings.STILL_RUNNING.format(hotkey=self.state.hotkey)
+                )
+            return
+        self.shutdown()
         super().closeEvent(event)

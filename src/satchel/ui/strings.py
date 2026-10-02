@@ -56,6 +56,7 @@ BETWEEN_SESSIONS = "Between sessions"
 
 # --- Messages --------------------------------------------------------------------------------
 ALREADY_RUNNING = "Satchel is already open."
+STILL_RUNNING = "Satchel is still in the tray. Quick capture: {hotkey}."
 HOTKEY_TAKEN = "The quick capture key {hotkey} is used by another app. Quick capture is off."
 REPLACE_NEWER_WARNING = (
     "This computer's copy has changes made after the kit was packed. "

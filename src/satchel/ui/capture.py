@@ -56,10 +56,14 @@ class CaptureHighlighter(QSyntaxHighlighter):
 class CaptureBox(QPlainTextEdit):
     submitted = Signal(str, list)  # typed text, picks
     edit_cancelled = Signal()
+    escaped = Signal()  # Esc with nothing to close, when esc_clears is False
     recall_changed = Signal(list)  # entity ids for recall cards
 
-    def __init__(self, parent: QWidget | None = None):
+    def __init__(self, parent: QWidget | None = None, *, esc_clears: bool = True):
         super().__init__(parent)
+        # Table: a second Esc clears the box. Quick capture: Esc closes the window and
+        # the text stays for next time (a note is never thrown away by Esc there).
+        self.esc_clears = esc_clears
         self.setProperty("role", "capture")
         self.setPlaceholderText(strings.CAPTURE_PLACEHOLDER)
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
@@ -118,8 +122,10 @@ class CaptureBox(QPlainTextEdit):
             elif self.editing_note_id:
                 self.clear_box()
                 self.edit_cancelled.emit()
-            else:
+            elif self.esc_clears:
                 self.clear_box()
+            else:
+                self.escaped.emit()
             return
         super().keyPressEvent(event)
 
