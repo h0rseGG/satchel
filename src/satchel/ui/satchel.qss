@@ -42,6 +42,17 @@ QScrollArea[role="feed"] QWidget#qt_scrollarea_viewport {
     border: none;
 }
 
+/* One saved note in the feed: a ruled line under each row (SPEC 5.3). */
+QFrame[role="note-row"] {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid @rule;
+}
+
+QFrame[role="note-row"]:hover {
+    background: @paper-alt;
+}
+
 QFrame[role="panel"] {
     background: @paper-alt;
     border: 1px solid @rule;

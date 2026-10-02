@@ -11,6 +11,7 @@ from collections import Counter
 from satchel.core.mentions import build_name_index
 from satchel.ui import strings
 from satchel.ui.capture import CaptureBox
+from satchel.ui.feed import NotesFeed
 from satchel.ui.pages import TablePage
 from satchel.ui.store import CharacterStore
 
@@ -23,6 +24,9 @@ class TableView(TablePage):
         self.capture_slot.addWidget(self.capture)
         self.capture.submitted.connect(self._on_submitted)
         self.capture.edit_cancelled.connect(self.message_bar.clear)
+        self.notes = NotesFeed(self.feed)
+        self.feed.setWidget(self.notes)
+        self.notes.edit_requested.connect(self.begin_edit)
         self.last_save_ms: float | None = None
 
     def set_store(self, store: CharacterStore | None) -> None:
@@ -31,16 +35,18 @@ class TableView(TablePage):
         self.capture.clear_box()
         if store is None:
             self.capture.set_index(build_name_index([], {}), Counter(), [])
+            self.notes.set_notes([], {})
             return
-        store.entities_changed.connect(self._refresh_index)
-        store.notes_changed.connect(self._refresh_index)
-        self._refresh_index()
+        store.entities_changed.connect(self._refresh)
+        store.notes_changed.connect(self._refresh)
+        self._refresh()
         self.capture.setFocus()
 
-    def _refresh_index(self) -> None:
+    def _refresh(self) -> None:
         s = self.store
         if s is not None:
             self.capture.set_index(s.index, s.tag_counts, [s.pc_entity_id])
+            self.notes.set_notes(s.feed_notes(), s.index.by_id)
 
     def begin_edit(self, note_id: str) -> None:
         text, picks = self.store.edit_form(note_id)

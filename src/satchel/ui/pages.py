@@ -68,8 +68,6 @@ class TablePage(QWidget):
         self.feed.setWidgetResizable(True)
         self.feed.setFrameShape(QScrollArea.Shape.NoFrame)
         self.feed.setProperty("role", "feed")
-        self.empty_label = muted(strings.EMPTY_NOTES)
-        self.feed.setWidget(self.empty_label)
         left.addWidget(self.feed, 1)
 
         self.message_bar = MessageBar()

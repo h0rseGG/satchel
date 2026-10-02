@@ -15,10 +15,8 @@ from collections import Counter
 
 from PySide6.QtCore import QEvent, QPoint, Qt, Signal
 from PySide6.QtGui import (
-    QColor,
     QKeyEvent,
     QSyntaxHighlighter,
-    QTextCharFormat,
     QTextCursor,
 )
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QPlainTextEdit, QWidget
@@ -29,26 +27,16 @@ from satchel.core.autocomplete import (
     apply_entity_pick,
     suggest_entities,
 )
-from satchel.core.capture import AUTO, STORED, TAG, TYPED, apply_tag_pick, highlight_spans
+from satchel.core.capture import apply_tag_pick, highlight_spans
 from satchel.core.capture import recall_ids as core_recall_ids
 from satchel.core.mentions import NameIndex, Pick, build_name_index
 from satchel.core.tags import suggest_tags
 from satchel.ui import strings
-from satchel.ui.palette import COLOURS, SPACE
+from satchel.ui.note_text import char_formats
+from satchel.ui.palette import SPACE
 
 MAX_LINES = 4
 ENTITY_ROLE = Qt.ItemDataRole.UserRole  # item data: ("entity", id) or ("tag", key)
-
-
-def _formats() -> dict[str, QTextCharFormat]:
-    chip = QTextCharFormat()
-    chip.setBackground(QColor(COLOURS["highlight"]))
-    auto = QTextCharFormat()
-    auto.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SingleUnderline)
-    auto.setUnderlineColor(QColor(COLOURS["ink-muted"]))
-    tag = QTextCharFormat()
-    tag.setForeground(QColor(COLOURS["ink-muted"]))
-    return {TYPED: chip, STORED: chip, AUTO: auto, TAG: tag}
 
 
 class CaptureHighlighter(QSyntaxHighlighter):
@@ -57,7 +45,7 @@ class CaptureHighlighter(QSyntaxHighlighter):
     def __init__(self, box: CaptureBox):
         super().__init__(box.document())
         self.box = box
-        self.formats = _formats()
+        self.formats = char_formats()
 
     def highlightBlock(self, text: str) -> None:  # noqa: N802 - Qt's name
         for span in highlight_spans(text, self.box.index, never_auto=self.box.never_auto):

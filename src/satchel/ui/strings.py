@@ -42,6 +42,7 @@ CAPTURE_PLACEHOLDER = "Type a note and press Enter. @ for a new name, # for a ta
 NEW_CANDIDATE = "New name: {name}"
 CANDIDATE = "new name"
 EDITING_NOTE = "Editing a note. Enter saves, Esc cancels."
+CLICK_TO_EDIT = "Click to edit"
 SAVE_FAILED = "That note wasn't saved: {error}. It's still in the box."
 
 # --- Sessions -------------------------------------------------------------------------------
