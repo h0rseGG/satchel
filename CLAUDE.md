@@ -26,10 +26,10 @@ Owner: Jake. Electrician, Python-first. Personal project (not Cablewise work). H
 
 ## Run and test
 - Lint: `uv run ruff check`. Format: `uv run ruff format`.
-- Tests: `uv run pytest` (includes Hypothesis property tests and the perf check).
-- **Gate every commit** in one chain so a failure stops it: `uv run ruff check && uv run pytest && git commit -F msg.txt && git push`. Never chain with `;`.
+- Tests: `uv run pytest` (includes Hypothesis property tests and the perf checks). Deeper fuzzing: `HYPOTHESIS_PROFILE=deep uv run pytest tests/test_properties.py tests/test_search.py`.
+- **Gate every commit** in one chain so a failure stops it: `uv run ruff check && uv run pytest && git commit -F msg.txt && git push`. Never chain with `;`, and never pipe pytest (`| tail`) inside the chain: the pipe's exit code hides a failure.
 - Rebuild nothing by hand: the demo database is built by the test fixture (`tests/fixtures/demo.py`).
 
 ## Status
 - v1 at tag `v1-final`, v2 at tag `v2-final` (reference: `git show v2-final:<path>`).
-- v3: P0 (foundations) in progress.
+- v3: P0 (foundations) built and at gate G0, awaiting Jake's review (2026-10-02). P1 needs the Windows machine.
