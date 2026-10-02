@@ -35,6 +35,13 @@ QFrame[role="page"] {
     border-left: 1px solid @red;
 }
 
+/* The notes feed scrolls on the page's paper, not Qt's default white. */
+QScrollArea[role="feed"],
+QScrollArea[role="feed"] QWidget#qt_scrollarea_viewport {
+    background: @paper;
+    border: none;
+}
+
 QFrame[role="panel"] {
     background: @paper-alt;
     border: 1px solid @rule;

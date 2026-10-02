@@ -1,0 +1,142 @@
+"""CharacterStore: the UI's only door to a character file (SPEC 15, P1 plan).
+
+Views never hold a connection. They call the store, and the store calls satchel.db
+and then says what changed with a signal; every view refreshes from those signals.
+That's the one way the UI stays in step with the file.
+
+Times come from `clock` (a function returning an aware datetime) so tests can freeze it.
+"""
+
+from collections import Counter
+from collections.abc import Callable, Iterable
+from datetime import UTC, datetime
+from pathlib import Path
+
+from PySide6.QtCore import QObject, Signal
+
+from satchel import __version__
+from satchel.core.kit import slugify
+from satchel.core.mentions import NameIndex, Pick
+from satchel.core.model import NoteRow, Session, iso_now, new_id
+from satchel.db import notes as db_notes
+from satchel.db import sessions as db_sessions
+from satchel.db.connection import open_db
+from satchel.db.entities import create_character, get_meta, load_index
+from satchel.files.kits import free_path
+
+Clock = Callable[[], datetime]
+
+
+def system_clock() -> datetime:
+    return datetime.now(UTC)
+
+
+class CharacterStore(QObject):
+    notes_changed = Signal()
+    entities_changed = Signal()
+    session_changed = Signal()
+
+    def __init__(self, path: Path, clock: Clock = system_clock, parent: QObject | None = None):
+        super().__init__(parent)
+        self.path = Path(path)
+        self.clock = clock
+        self.conn = open_db(self.path)
+        self.character_id = get_meta(self.conn, "character_id") or ""
+        self.character_name = get_meta(self.conn, "character_name") or self.path.stem
+        self.index: NameIndex = load_index(self.conn)
+        self.tag_counts: Counter[str] = db_notes.note_tag_counts(self.conn)
+
+    # --- Time ---------------------------------------------------------------------------
+
+    def now(self) -> str:
+        """Now as stored: ISO 8601 UTC."""
+        return iso_now(self.clock())
+
+    def local_date(self) -> str:
+        """Today's date where Jake is (a session's `date`), YYYY-MM-DD."""
+        return self.clock().astimezone().date().isoformat()
+
+    # --- Sessions -----------------------------------------------------------------------
+
+    def current_session(self) -> Session | None:
+        return db_sessions.current_session(self.conn)
+
+    def start_session(self) -> Session:
+        db_sessions.start_session(self.conn, self.local_date(), self.now())
+        self.session_changed.emit()
+        self.notes_changed.emit()  # the feed now shows the new (empty) session
+        return self.current_session()
+
+    def end_session(self) -> None:
+        db_sessions.end_session(self.conn)
+        self.session_changed.emit()
+        self.notes_changed.emit()
+
+    def set_session_title(self, session_id: str, title: str) -> None:
+        if db_sessions.set_session_title(self.conn, session_id, title, self.now()):
+            self.session_changed.emit()
+
+    def feed_notes(self) -> list[NoteRow]:
+        """What the Table feed shows: the current session's notes, or between sessions
+        the notes typed since the last session started (so the feed isn't years long)."""
+        current = self.current_session()
+        if current:
+            return db_sessions.session_notes(self.conn, current.id)
+        sessions = db_sessions.list_sessions(self.conn)
+        since = sessions[0].created_at if sessions else None
+        return db_sessions.session_notes(self.conn, None, since=since)
+
+    # --- Notes --------------------------------------------------------------------------
+
+    def save_note(self, typed_text: str, picks: Iterable[Pick] = ()) -> str:
+        """Capture: durable when this returns (SPEC 1)."""
+        current = self.current_session()
+        note_id = db_notes.save_note(
+            self.conn,
+            typed_text,
+            now=self.now(),
+            picks=picks,
+            session_id=current.id if current else None,
+        )
+        self._after_note_write()
+        return note_id
+
+    def edit_form(self, note_id: str) -> tuple[str, list[Pick]]:
+        return db_notes.edit_form(self.conn, note_id)
+
+    def edit_note(self, note_id: str, typed_text: str, picks: Iterable[Pick] = ()) -> None:
+        db_notes.edit_note(self.conn, note_id, typed_text, now=self.now(), picks=picks)
+        self._after_note_write()
+
+    def _after_note_write(self) -> None:
+        # A save can create candidates and new tags; refresh what typing reads from.
+        before = len(self.index.by_id)
+        self.index = load_index(self.conn)
+        self.tag_counts = db_notes.note_tag_counts(self.conn)
+        self.notes_changed.emit()
+        if len(self.index.by_id) != before:
+            self.entities_changed.emit()
+
+    # --- Lifecycle ----------------------------------------------------------------------
+
+    def close(self) -> None:
+        self.conn.close()
+
+
+def create_character_file(folder: Path, name: str, clock: Clock = system_clock) -> Path:
+    """A new, empty character: <slug>.satchel (or -2, -3 ...) in `folder`."""
+    folder.mkdir(parents=True, exist_ok=True)
+    path = free_path(folder, slugify(name))
+    conn = open_db(path)
+    try:
+        create_character(
+            conn,
+            name,
+            character_id=new_id(),
+            pc_entity_id=new_id(),
+            now=iso_now(clock()),
+            app_version=__version__,
+        )
+    finally:
+        conn.close()
+    return path

@@ -3,7 +3,8 @@
 import re
 from importlib import resources
 
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication
 
 from satchel.ui.palette import COLOURS, FONT_FILES
@@ -40,7 +41,37 @@ def load_fonts() -> list[str]:
     return families
 
 
+def light_palette() -> QPalette:
+    """Qt's own colours for anything the stylesheet doesn't reach, from the SPEC
+    palette only. Without this, Windows dark mode leaks in (seen: a black feed)."""
+    c = {name: QColor(value) for name, value in COLOURS.items()}
+    p = QPalette()
+    roles = QPalette.ColorRole
+    for role, name in [
+        (roles.Window, "paper"),
+        (roles.Base, "paper"),
+        (roles.AlternateBase, "paper-alt"),
+        (roles.Button, "paper-alt"),
+        (roles.ToolTipBase, "paper-alt"),
+        (roles.WindowText, "ink"),
+        (roles.Text, "ink"),
+        (roles.ButtonText, "ink"),
+        (roles.ToolTipText, "ink"),
+        (roles.HighlightedText, "ink"),
+        (roles.Highlight, "highlight"),
+        (roles.PlaceholderText, "ink-muted"),
+        (roles.Mid, "rule"),
+        (roles.Light, "paper"),
+        (roles.Dark, "rule"),
+    ]:
+        p.setColor(role, c[name])
+    return p
+
+
 def apply_theme(app: QApplication) -> None:
     load_fonts()
+    # SPEC 5.3: no dark mode. Ask Qt for the light scheme whatever Windows is set to.
+    app.styleHints().setColorScheme(Qt.ColorScheme.Light)
     app.setStyle("Fusion")  # a neutral base, so the stylesheet looks the same everywhere
+    app.setPalette(light_palette())
     app.setStyleSheet(stylesheet())

@@ -15,7 +15,9 @@ CURRENT_KEY = "current_session_id"
 
 
 def _session(row: sqlite3.Row) -> Session:
-    return Session(row["id"], row["number"], row["date"], row["title"], row["recap"])
+    return Session(
+        row["id"], row["number"], row["date"], row["title"], row["recap"], row["created_at"]
+    )
 
 
 def start_session(

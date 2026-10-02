@@ -25,6 +25,18 @@ REVIEW_EMPTY = "Nothing loose. Every page is filed."
 EMPTY_FILES = "No maps or scraps yet."
 END_OF_SESSION_NUDGE = "Session over. Pack your kit before you go?"
 
+# --- Characters ------------------------------------------------------------------------------
+FILE_MENU = "&File"
+NEW_CHARACTER_TITLE = "New character"
+NEW_CHARACTER_LABEL = "Your character's name"
+CREATE = "Create"
+WELCOME = "One satchel per character. Start a new one, or unpack a kit from another computer."
+NO_CHARACTERS = "No characters yet"
+RECALL_HEADING = "Recall"
+OPEN_TOO_NEW = "{file_name} was made by a newer Satchel, so it wasn't opened."
+OPEN_FAILED = "{file_name} couldn't be opened."
+LAST_CHARACTER_MISSING = "{file_name} isn't in the Satchel folder any more."
+
 # --- Sessions -------------------------------------------------------------------------------
 SESSION_HEADING = "Session {number}"
 BETWEEN_SESSIONS = "Between sessions"

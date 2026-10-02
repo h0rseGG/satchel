@@ -104,9 +104,9 @@ def test_components_set_the_properties_the_stylesheet_matches(qtbot):
         assert f'[role="{role}"]' in raw_qss()
 
 
-def test_main_window_shows_with_the_theme(qapp, qtbot):
+def test_main_window_shows_with_the_theme(qapp, qtbot, tmp_path):
     apply_theme(qapp)
-    window = MainWindow()
+    window = MainWindow(tmp_path)
     qtbot.addWidget(window)
     window.show()
     qtbot.waitExposed(window)
@@ -141,3 +141,15 @@ def test_second_copy_asks_the_first_to_show(qtbot):
     for obj in (first, third, proc):
         obj.deleteLater()
     qtbot.wait(50)  # let the deleteLater calls run while Qt is still alive
+
+
+def test_qt_palette_uses_only_spec_colours(qapp):
+    """No dark mode (SPEC 5.3): every colour Qt falls back on comes from the palette."""
+    from PySide6.QtGui import QPalette
+
+    from satchel.ui.theme import light_palette
+
+    p = light_palette()
+    allowed = {v.upper() for v in COLOURS.values()}
+    for role in (QPalette.ColorRole.Window, QPalette.ColorRole.Base, QPalette.ColorRole.Text):
+        assert p.color(role).name().upper() in allowed

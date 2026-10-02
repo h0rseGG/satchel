@@ -138,7 +138,7 @@ def list_characters(folder: Path) -> list[FileIdentity]:
     return sorted(found, key=lambda i: ((i.character_name or "").lower(), i.path.name))
 
 
-def _free_path(folder: Path, stem: str) -> Path:
+def free_path(folder: Path, stem: str) -> Path:
     """folder/stem.satchel, or stem-2, stem-3 ... if taken."""
     path = folder / f"{stem}.satchel"
     n = 2
@@ -163,7 +163,7 @@ def add_as_new(unpacked: UnpackedKit, folder: Path, *, make_id: Callable[[], str
     here = {i.character_id for i in list_characters(folder)}
     if unpacked.manifest.character_id in here:
         set_character_id(unpacked.db_path, make_id())
-    dest = _free_path(folder, slugify(unpacked.manifest.character_name))
+    dest = free_path(folder, slugify(unpacked.manifest.character_name))
     _copy_in(unpacked.db_path, dest)
     return dest
 

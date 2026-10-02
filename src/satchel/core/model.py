@@ -76,6 +76,7 @@ class Session:
     date: str
     title: str = ""
     recap: str = ""
+    created_at: str = ""  # when Start session was pressed (ISO UTC)
 
 
 @dataclass(frozen=True)

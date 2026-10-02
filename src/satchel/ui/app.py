@@ -5,6 +5,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from satchel import __version__
+from satchel.files import data_dir
 from satchel.ui import strings
 from satchel.ui.main_window import MainWindow
 from satchel.ui.single_instance import SingleInstance
@@ -21,7 +22,7 @@ def main() -> int:
         return 0  # the running copy has been asked to show itself
 
     apply_theme(app)
-    window = MainWindow()
+    window = MainWindow(data_dir())
     instance.show_requested.connect(window.bring_to_front)
     window.show()
     code = app.exec()
