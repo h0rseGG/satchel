@@ -54,3 +54,7 @@ def test_counts_one_per_note_even_if_repeated():
 def test_suggestions_limit():
     counts = tag_counts([[f"t{i}"] for i in range(8)])
     assert len(suggest_tags("t", counts)) == 5
+
+
+def test_hash_touching_a_url_is_not_a_tag():
+    assert tag_keys("#https://x.com/a") == []

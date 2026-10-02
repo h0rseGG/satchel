@@ -5,14 +5,24 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from satchel.core.text import NOT_AFTER_WORD, TOKEN_BODY, in_spans, key, trim_token, url_spans
+from satchel.core.text import (
+    NOT_AFTER_WORD,
+    TOKEN_BODY,
+    in_spans,
+    key,
+    overlaps,
+    trim_token,
+    url_spans,
+)
 
 # Same start rule as @mentions. The first-letter check happens in find_tags.
 _TAG_RE = re.compile(NOT_AFTER_WORD + r"#(" + r"\w" + TOKEN_BODY + r")")
 
 # Stored mention tokens, "@[label](id)". Kept here (not in mentions.py) because tags
 # must skip them too, and mentions.py imports this module.
-STORED_RE = re.compile(r"@\[([^\]]*)\]\(([^)\s]+)\)")
+# Labels never contain square brackets (stored_token strips them), so the label part
+# refuses "[" too: in "@[@[Mira](id)" only the second "@[" starts the token.
+STORED_RE = re.compile(r"@\[([^\[\]]*)\]\(([^)\s]+)\)")
 
 
 @dataclass(frozen=True)
@@ -30,11 +40,19 @@ def tag_key(raw: str) -> str:
 
 def find_tags(text: str) -> list[TagSpan]:
     """Every #tag in the text, skipping URLs and stored mention tokens."""
-    skip = url_spans(text) + [m.span() for m in STORED_RE.finditer(text)]
+    stored = [m.span() for m in STORED_RE.finditer(text)]
+    urls = url_spans(text)
+    stored_ends = {end for _, end in stored}
     out = []
     for m in _TAG_RE.finditer(text):
         # Must start with a letter, so "#1" and "#3pm" stay text.
-        if not m.group(1)[0].isalpha() or in_spans(m.start(), skip):
+        if not m.group(1)[0].isalpha() or in_spans(m.start(), stored):
+            continue
+        # A tag touching a URL is part of it ("#https://..." isn't a tag).
+        if overlaps(m.start(), m.end(), urls):
+            continue
+        # A stored token counts as a word: "@[Mira](id)#x" was typed "Mira#x", not a tag.
+        if m.start() in stored_ends:
             continue
         raw = trim_token(m.group(1))
         if raw:

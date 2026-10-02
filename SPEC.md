@@ -167,6 +167,14 @@ Sections 4.1–4.5 above are v2's text, kept word for word as the reference. v3 
 7. **Editing.** Typed and confirmed links show in typed form (`@Lord_Aldric`), pinned to their entity with picks (4.1). Auto links show as their plain label and are re-matched on save. Tokens whose entity is gone stay in stored form (4.1).
 8. **Matcher speed.** Per keystroke: active-token suggestions + name matching on the capture text in **< 10 ms** with 5000 notes and 300 entities.
 9. **Recall cards, autocomplete and the capture box** are rebuilt in Qt in P1. The browser/phone parts of 4.2 and 4.5 (pointerdown, phone keyboard, `visualViewport`, bottom-up stacking for the keyboard) don't apply. "Tap" means click.
+10. **Refinements found while porting (2026-10-02, most by Hypothesis fuzzing):**
+    - A stored token counts as a word for the `@`/`#` start rule, so "grimbold@x" (no mention) can't turn into one once "grimbold" is auto-linked.
+    - A typed `@token` or `#tag` that touches a URL is part of the URL ("@https://x.com" isn't a mention of "https").
+    - A stored label never contains `[` or `]` (they were always stripped), and the stored pattern refuses them, so a stray "@[" before a token isn't swallowed.
+    - Auto-link: overlapping hits keep the earliest, then the longest ("mira vane street" with Mira Vane and Vane Street links Mira Vane). Names containing `[` or `]` aren't auto-linked.
+    - A candidate made by a typed `@token` is matchable in the rest of the same note ("@Pip sells info. pip is a kid" links both).
+    - Editing: an auto link whose label no longer names its entity (it was renamed) stays in stored form, so the link isn't lost. A token keeps its stored form when "@Name" wouldn't read back in its spot (straight after a word character or another token).
+    - Confirmed links stay confirmed through an edit. A stored token that passes through a save untouched keeps its previous kind.
 
 ---
 
@@ -367,3 +375,6 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | Auto links are stored tokens in the note text with `how = auto`, not derived at render: links survive renames and `note_links` can be rebuilt from the text (Jake approved) |
 | 2026-10-02 | Fonts ship as TTF converted from the v2 woff2 with fontTools; Qt's woff2 support on Windows is [NV] and can't be tested from Ubuntu (Jake approved) |
 | 2026-10-02 | Dev tools pinned as minimums in the `dev` dependency group: pytest 9.1, hypothesis 6.168, ruff 0.16, fonttools[woff] 4.60 (for the font conversion tool and font test). Build backend `uv_build` |
+| 2026-10-02 | Regex: stdlib `re`, no third-party `regex`. `\w` on `str` is v2's `[\p{L}\p{N}_]`; "starts with a letter" is `str.isalpha()` after matching |
+| 2026-10-02 | Typing-rule refinements found by porting and fuzzing are listed in 4.6.10 (stored token counts as a word; URL-touching tokens; bracket-free labels; auto-link overlaps; same-note candidates; edit fallbacks) |
+| 2026-10-02 | Core API: `resolve_note()` (matcher.py) is the single pure "what happens on save": typed tokens, candidates, auto-link, link kinds, tags. `satchel.db` calls it and writes the result |
