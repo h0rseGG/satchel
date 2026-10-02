@@ -64,3 +64,16 @@ def segments(stored_text: str, by_id: dict[str, Entity]) -> list[Segment]:
 def plain_text(stored_text: str, by_id: dict[str, Entity]) -> str:
     """Stored text with mentions as display labels: for search and plain display."""
     return "".join(s.text for s in segments(stored_text, by_id))
+
+
+def search_text(stored_text: str, by_id: dict[str, Entity]) -> str:
+    """Plain text for the search index. A mention is indexed as shown ("Mira") and by the
+    entity's full name ("Mira Vane"), so searching either finds the note (v2)."""
+    parts = []
+    for seg in segments(stored_text, by_id):
+        entity = by_id.get(seg.id) if seg.kind == "mention" else None
+        if entity and entity.name != seg.text:
+            parts.append(f"{seg.text} {entity.name}")
+        else:
+            parts.append(seg.text)
+    return "".join(parts)

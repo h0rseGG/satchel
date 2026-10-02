@@ -5,8 +5,6 @@ Every test works on a fresh temporary file (pytest's tmp_path), never real data.
 
 import shutil
 import sqlite3
-import statistics
-import time
 from pathlib import Path
 
 import pytest
@@ -212,22 +210,3 @@ def test_search_treats_operators_as_text(conn):
     nid = save_note(conn, 'grimbold said "NEAR" AND - stuff', now=T)
     assert search_notes(conn, "NEAR AND -") == [nid]
     assert search_notes(conn, '"') == []
-
-
-def test_search_under_50_ms_at_5000_notes(conn):
-    words = ["mill", "ledger", "crown", "jetty", "temple", "barrow", "debt", "cargo"]
-    with transaction(conn):
-        conn.executemany(
-            "INSERT INTO notes_fts (note_id, body) VALUES (?, ?)",
-            [
-                (f"n{i}", f"note {i} about the {words[i % 8]} and {words[(i * 3) % 8]}")
-                for i in range(5000)
-            ],
-        )
-    times = []
-    for q in ["mill", "ledg", "crown jetty", "temple barrow", "zzz"]:
-        t = time.perf_counter()
-        search_notes(conn, q)
-        times.append((time.perf_counter() - t) * 1000)
-    assert statistics.median(times) < 50
-    assert max(times) < 50

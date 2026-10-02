@@ -8,10 +8,11 @@ import re
 import sqlite3
 from collections.abc import Iterable
 
-from satchel.core.display import plain_text
+from satchel.core.display import search_text
 from satchel.core.matcher import ResolvedNote, resolve_note
 from satchel.core.mentions import NameIndex, Pick, to_typed_form
 from satchel.core.model import new_id
+from satchel.core.search import fuzzy_terms
 from satchel.db.connection import transaction
 from satchel.db.entities import get_meta, insert_candidates, load_index
 
@@ -55,7 +56,7 @@ def _write_derived(
     conn.execute("DELETE FROM notes_fts WHERE note_id = ?", (note_id,))
     conn.execute(
         "INSERT INTO notes_fts (note_id, body) VALUES (?, ?)",
-        (note_id, plain_text(resolved.text, index.by_id)),
+        (note_id, search_text(resolved.text, index.by_id)),
     )
 
 
@@ -184,18 +185,48 @@ def backlinks(conn: sqlite3.Connection, entity_id: str) -> list[str]:
 _WORD = re.compile(r"\w+")
 
 
-def search_notes(conn: sqlite3.Connection, query: str, limit: int = 50) -> list[str]:
-    """Note ids matching every word of the query as a prefix, best match first.
+def _vocabulary(conn: sqlite3.Connection, fts_table: str) -> list[str]:
+    """Every distinct word in an FTS table, via a per-connection temp fts5vocab table."""
+    vocab = f"{fts_table}_vocab"
+    conn.execute(
+        f"CREATE VIRTUAL TABLE IF NOT EXISTS temp.{vocab} USING fts5vocab(main, {fts_table}, row)"
+    )
+    return [r[0] for r in conn.execute(f"SELECT term FROM temp.{vocab}")]
 
-    Words are quoted, so FTS5 operators typed by the user (AND, NEAR, "-") are plain
-    text. Typo tolerance (SPEC 4.5) is a P1 job on top of this.
-    """
+
+def fts_query(conn: sqlite3.Connection, fts_table: str, query: str) -> str | None:
+    """Build an FTS5 MATCH string: every word must match, as a prefix or within the typo
+    limit (SPEC 4.5). Words are quoted, so FTS5 operators typed by the user are text."""
     words = _WORD.findall(query)
     if not words:
+        return None
+    vocabulary = _vocabulary(conn, fts_table)
+    groups = []
+    for w in words:
+        options = [f'"{w}"*', *(f'"{t}"' for t in fuzzy_terms(w, vocabulary))]
+        groups.append("(" + " OR ".join(options) + ")")
+    return " AND ".join(groups)
+
+
+def search_notes(conn: sqlite3.Connection, query: str, limit: int = 50) -> list[str]:
+    """Note ids matching the query, best match first."""
+    match = fts_query(conn, "notes_fts", query)
+    if match is None:
         return []
-    match = " ".join(f'"{w}"*' for w in words)
     rows = conn.execute(
         "SELECT note_id FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank LIMIT ?",
         (match, limit),
     )
     return [r["note_id"] for r in rows]
+
+
+def search_entities(conn: sqlite3.Connection, query: str, limit: int = 50) -> list[str]:
+    """Entity ids matching the query (name, aliases, tags, summary, body), best first."""
+    match = fts_query(conn, "entities_fts", query)
+    if match is None:
+        return []
+    rows = conn.execute(
+        "SELECT entity_id FROM entities_fts WHERE entities_fts MATCH ? ORDER BY rank LIMIT ?",
+        (match, limit),
+    )
+    return [r["entity_id"] for r in rows]
