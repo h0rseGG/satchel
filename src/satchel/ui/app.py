@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication
 
 from satchel import __version__
 from satchel.files import data_dir
+from satchel.files.log import setup_logging
 from satchel.ui import strings
 from satchel.ui.hotkey import GlobalHotkey
 from satchel.ui.icon import app_icon
@@ -25,6 +26,7 @@ def main() -> int:
     if not instance.is_primary:
         return 0  # the running copy has been asked to show itself
 
+    setup_logging(data_dir(), __version__)
     apply_theme(app)
     app.setWindowIcon(app_icon())
     # Closing the window keeps Satchel in the tray; only Quit ends it.

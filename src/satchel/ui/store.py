@@ -7,6 +7,8 @@ That's the one way the UI stays in step with the file.
 Times come from `clock` (a function returning an aware datetime) so tests can freeze it.
 """
 
+import logging
+import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
@@ -27,6 +29,8 @@ from satchel.db.entities import create_character, get_meta, load_index
 from satchel.files.kits import free_path
 
 Clock = Callable[[], datetime]
+log = logging.getLogger("satchel")
+SLOW_SAVE_MS = 50  # G1 target (SPEC 10)
 
 
 def system_clock() -> datetime:
@@ -48,6 +52,8 @@ class CharacterStore(QObject):
         # Never auto-linked or shown in recall (SPEC 4.5, 4.6.2).
         self.pc_entity_id = get_meta(self.conn, "pc_entity_id") or ""
         self.index: NameIndex = load_index(self.conn)
+        self.last_save_ms: float | None = None
+        log.info("opened %s", self.path.name)
         self.tag_counts: Counter[str] = db_notes.note_tag_counts(self.conn)
 
     # --- Time ---------------------------------------------------------------------------
@@ -97,15 +103,23 @@ class CharacterStore(QObject):
     # --- Notes --------------------------------------------------------------------------
 
     def save_note(self, typed_text: str, picks: Iterable[Pick] = ()) -> str:
-        """Capture: durable when this returns (SPEC 1)."""
-        current = self.current_session()
-        note_id = db_notes.save_note(
-            self.conn,
-            typed_text,
-            now=self.now(),
-            picks=picks,
-            session_id=current.id if current else None,
-        )
+        """Capture: durable when this returns (SPEC 1). The time to the durable commit
+        is logged for G1 (< 50 ms); a failure is logged and raised, the caller keeps
+        the text."""
+        started = time.perf_counter()
+        try:
+            current = self.current_session()
+            note_id = db_notes.save_note(
+                self.conn,
+                typed_text,
+                now=self.now(),
+                picks=picks,
+                session_id=current.id if current else None,
+            )
+        except Exception:
+            log.exception("save failed")
+            raise
+        self._log_save("save", note_id, started)
         self._after_note_write()
         return note_id
 
@@ -113,8 +127,20 @@ class CharacterStore(QObject):
         return db_notes.edit_form(self.conn, note_id)
 
     def edit_note(self, note_id: str, typed_text: str, picks: Iterable[Pick] = ()) -> None:
-        db_notes.edit_note(self.conn, note_id, typed_text, now=self.now(), picks=picks)
+        started = time.perf_counter()
+        try:
+            db_notes.edit_note(self.conn, note_id, typed_text, now=self.now(), picks=picks)
+        except Exception:
+            log.exception("edit failed")
+            raise
+        self._log_save("edit", note_id, started)
         self._after_note_write()
+
+    def _log_save(self, what: str, note_id: str, started: float) -> None:
+        # Ids and times only: note text never goes in the log.
+        self.last_save_ms = (time.perf_counter() - started) * 1000
+        level = logging.WARNING if self.last_save_ms >= SLOW_SAVE_MS else logging.INFO
+        log.log(level, "%s %s: %.1f ms", what, note_id, self.last_save_ms)
 
     def _after_note_write(self) -> None:
         # A save can create candidates and new tags; refresh what typing reads from.

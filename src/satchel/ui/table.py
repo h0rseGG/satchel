@@ -5,7 +5,6 @@ Saving never loses a note (G1): if a save fails, the text stays in the box and t
 message bar says why.
 """
 
-import time
 from collections import Counter
 
 from PySide6.QtCore import Signal
@@ -107,7 +106,6 @@ class TableView(TablePage):
     def _on_submitted(self, text: str, picks: list) -> None:
         if self.store is None:
             return
-        started = time.perf_counter()
         try:
             if self.capture.editing_note_id:
                 self.store.edit_note(self.capture.editing_note_id, text, picks)
@@ -116,7 +114,7 @@ class TableView(TablePage):
         except Exception as e:  # keep the text; never lose a note (G1)
             self.message_bar.show_message(strings.SAVE_FAILED.format(error=e), "err")
             return
-        self.last_save_ms = (time.perf_counter() - started) * 1000
+        self.last_save_ms = self.store.last_save_ms
         was_editing = self.capture.editing_note_id is not None
         self.capture.clear_box()
         if was_editing:
