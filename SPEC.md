@@ -163,7 +163,7 @@ Sections 4.1–4.5 above are v2's text, kept word for word as the reference. v3 
 3. **Candidates are matchable.** Once a candidate exists, later plain-text uses of its name auto-link to it.
 4. **Auto-link never creates anything.** Only a typed `@token` can create a candidate.
 5. **Stored labels.** A typed token's label is the name as typed (v2). An auto token's label is the exact matched text, so removing every token's markup gives back exactly what was typed.
-6. **`note_links`.** One row per (note, entity). `how` = `typed` if any token for that entity was typed with `@` (or picked), else `auto`; Review sets `confirmed`. The set of entity ids in `note_links` always equals the set of ids in the note's tokens (tested invariant).
+6. **`note_links`.** One row per (note, entity). `how` = `typed` if any token for that entity was typed with `@` (or picked), else `auto`; Review sets `confirmed`. The set of entity ids in `note_links` always equals the set of ids in the note's tokens whose entity still exists (tested invariant; a deleted entity's token stays in the text as a missing chip, with no link row).
 7. **Editing.** Typed and confirmed links show in typed form (`@Lord_Aldric`), pinned to their entity with picks (4.1). Auto links show as their plain label and are re-matched on save. Tokens whose entity is gone stay in stored form (4.1).
 8. **Matcher speed.** Per keystroke: active-token suggestions + name matching on the capture text in **< 10 ms** with 5000 notes and 300 entities.
 9. **Recall cards, autocomplete and the capture box** are rebuilt in Qt in P1. The browser/phone parts of 4.2 and 4.5 (pointerdown, phone keyboard, `visualViewport`, bottom-up stacking for the keyboard) don't apply. "Tap" means click.
@@ -296,10 +296,10 @@ Ending a session with changes since `last_packed_at` (any `updated_at` later tha
 pyproject.toml  .python-version  uv.lock  SPEC.md  CLAUDE.md
 src/satchel/
   core/     pure logic: no Qt, no sqlite. text.py tags.py shortnames.py mentions.py matcher.py model.py
-  db/       the only code that touches SQLite: connection.py migrate.py repo.py migrations/NNNN_*.sql
+  db/       the only code that touches SQLite: connection.py migrate.py entities.py notes.py migrations/NNNN_*.sql
   ui/       (P1) Qt Widgets; palette.py strings.py satchel.qss fonts/
 tests/      unit tests per core module, db tests, property tests, perf tests; fixtures/demo.py
-tools/      one-off scripts (font conversion)
+tools/      one-off scripts (font conversion, frozen schema fixtures)
 ```
 **Rules:** core is pure; only `satchel.db` touches the database; every write goes through `satchel.db` in a transaction; comments explain *why* at low-to-medium detail (Jake reads the code); a file over ~300 lines gets split.
 
@@ -378,3 +378,9 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | Regex: stdlib `re`, no third-party `regex`. `\w` on `str` is v2's `[\p{L}\p{N}_]`; "starts with a letter" is `str.isalpha()` after matching |
 | 2026-10-02 | Typing-rule refinements found by porting and fuzzing are listed in 4.6.10 (stored token counts as a word; URL-touching tokens; bracket-free labels; auto-link overlaps; same-note candidates; edit fallbacks) |
 | 2026-10-02 | Core API: `resolve_note()` (matcher.py) is the single pure "what happens on save": typed tokens, candidates, auto-link, link kinds, tags. `satchel.db` calls it and writes the result |
+| 2026-10-02 | Schema 0001: STRICT tables; CHECK constraints on enums and 0/1 flags; built-in types seeded by the migration (a test checks they match `core.model`); files `ON DELETE SET NULL` (a file outlives its entity), entity type `ON DELETE RESTRICT` |
+| 2026-10-02 | Connections: `sqlite3.connect(autocommit=True)` + our own `transaction()` (BEGIN IMMEDIATE/COMMIT/ROLLBACK), so Python's implicit transactions never surprise us. WAL + `synchronous=FULL` for durable saves. Newer files are checked through a read-only connection and refused before any write |
+| 2026-10-02 | FTS rows keyed by `note_id`/`entity_id`, not rowid: VACUUM (and so VACUUM INTO for kits) may renumber rowids of text-keyed tables. Note search body = plain text with display labels. [Open for P2: renaming an entity leaves note search rows with old labels until the note is re-saved] |
+| 2026-10-02 | `satchel.db` split into `entities.py` and `notes.py` instead of one `repo.py` (300-line rule) |
+| 2026-10-02 | Frozen fixtures: `tools/make_frozen_fixture.py` writes `tests/fixtures/schema_NNNN.satchel` once per schema version (refuses to overwrite); a test requires one per version and migrates a copy of each |
+| 2026-10-02 | `mark_reviewed` sets `reviewed_at` only; it doesn't confirm links or bump `updated_at` (lesson 5). Whether reviewing a note confirms its links is a P2 question |
