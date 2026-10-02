@@ -288,6 +288,8 @@ Ending a session with changes since `last_packed_at` (any `updated_at` later tha
 - **Expected counts (G0):** 47 notes; 23 entities, 4 of them candidates (Grimbol typo, Hollow King, Pip, Vex); 12 unreviewed notes. Also 9 types (7 built-in + Deity with a Domain field, Ship with a Captain link field), 9 relationships, 1 text file, 4 sessions, one edited note.
 - v2 "promoted" notes become **pins** on the entity; v2 in-session notes get the session of their date.
 - Stable ids from keys (`sha256("satchel-demo:" + key)` shaped as a UUID, as v2).
+- Built by replaying entity creations, session starts, notes and the one edit **in time order**, so a note only auto-links to entities that existed when it was typed (e.g. 6 Sept "the hollow" doesn't link Hollow King, first typed 12 Sept).
+- Built per test run by the `demo_path` fixture (`tests/conftest.py`); there is no committed demo file in P0. A test rebuilds it and checks every row is identical.
 
 ---
 
@@ -384,3 +386,5 @@ None open. Resolved 2026-10-02 (see section 15):
 | 2026-10-02 | `satchel.db` split into `entities.py` and `notes.py` instead of one `repo.py` (300-line rule) |
 | 2026-10-02 | Frozen fixtures: `tools/make_frozen_fixture.py` writes `tests/fixtures/schema_NNNN.satchel` once per schema version (refuses to overwrite); a test requires one per version and migrates a copy of each |
 | 2026-10-02 | `mark_reviewed` sets `reviewed_at` only; it doesn't confirm links or bump `updated_at` (lesson 5). Whether reviewing a note confirms its links is a P2 question |
+| 2026-10-02 | Demo: replayed in time order through the real save path; ids from stable keys (`candidate:<name key>` for candidates); four sessions, one per Friday, started at the first in-session note; v2 "out" notes have no session. v2's "committed kit is up to date" and "rebuild merges cleanly" tests become "rebuild gives identical rows" (no kit format or merge in P0) |
+| 2026-10-02 | Demo auto-link review: titles count as short names when only one person has them (v2 rule), so "my lord daddy" links Lord Aldric and "the King" links Hollow King. Left as is; raised with Jake (G0 report) |
