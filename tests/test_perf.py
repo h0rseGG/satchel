@@ -14,7 +14,11 @@ from satchel.core.matcher import find_names, named_entities, resolve_note
 from satchel.core.mentions import build_name_index
 from satchel.core.model import BUILTIN_TYPES, Entity
 from satchel.core.tags import suggest_tags, tag_counts
+from satchel.db.connection import open_db, transaction
+from satchel.db.entities import add_entity, create_character
+from satchel.db.notes import save_note
 
+T0 = "2026-09-01T10:00:00.000Z"
 TYPES_BY_ID = {t.id: t for t in BUILTIN_TYPES}
 SYLLABLES = [
     "al",
@@ -133,3 +137,39 @@ def test_save_resolution_is_fast():
     print(f"\nindex build + resolve_note: {ms:.1f} ms")
     assert len(r.candidates) == 1
     assert ms < 50
+
+
+def test_capture_save_under_50_ms_on_disk(tmp_path):
+    """G1 (SPEC 10): a real save_note, durable on disk (WAL + synchronous=FULL), into a
+    file with 5000 notes and 300 entities. Setup takes shortcuts (sync off, notes
+    inserted raw in one transaction) because only the timed saves need to be real."""
+    entities, notes = make_world()
+    conn = open_db(tmp_path / "big.satchel")
+    create_character(conn, "Wren Ashdown", character_id="c", pc_entity_id="pc", now=T0)
+    conn.execute("PRAGMA synchronous = OFF")
+    for e in entities:
+        add_entity(conn, e)
+    with transaction(conn):
+        for i, (text, tags) in enumerate(notes):
+            body = text + "".join(f" #{t.replace(' ', '_')}" for t in tags)
+            conn.execute(
+                "INSERT INTO notes (id, text, created_at, updated_at) VALUES (?, ?, ?, ?)",
+                (f"n{i}", body, T0, T0),
+            )
+            conn.execute("INSERT INTO notes_fts (note_id, body) VALUES (?, ?)", (f"n{i}", body))
+    conn.execute("PRAGMA synchronous = FULL")
+
+    times = []
+    for i in range(25):
+        text = (
+            f"@{entities[i].name.replace(' ', '_')} met {entities[i + 1].name.lower()}"
+            f" and @Stranger{i} #clue"
+        )
+        t = time.perf_counter()
+        save_note(conn, text, now=T0)
+        times.append((time.perf_counter() - t) * 1000)
+    conn.close()
+
+    median = statistics.median(times)
+    print(f"\nsave_note on disk: median {median:.1f} ms, max {max(times):.1f} ms")
+    assert median < 50, f"median {median:.1f} ms"

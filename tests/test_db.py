@@ -23,8 +23,8 @@ from satchel.db.notes import (
     note_links,
     save_note,
     search_notes,
-    start_session,
 )
+from satchel.db.sessions import start_session
 
 FIXTURES = Path(__file__).parent / "fixtures"
 T = "2026-09-05T11:40:00.000Z"

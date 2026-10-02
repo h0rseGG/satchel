@@ -14,7 +14,8 @@ from satchel.core.model import Entity
 from satchel.db.connection import open_db
 from satchel.db.entities import add_entity, create_character
 from satchel.db.migrate import latest_version
-from satchel.db.notes import save_note, start_session
+from satchel.db.notes import save_note
+from satchel.db.sessions import start_session
 
 T = "2026-10-02T10:00:00.000Z"
 

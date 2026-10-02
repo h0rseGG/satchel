@@ -27,7 +27,8 @@ from satchel.db.entities import (
     set_meta,
     set_profile,
 )
-from satchel.db.notes import edit_form, edit_note, mark_reviewed, pin_note, save_note, start_session
+from satchel.db.notes import edit_form, edit_note, mark_reviewed, pin_note, save_note
+from satchel.db.sessions import end_session, start_session
 
 PERTH = timezone(timedelta(hours=8))
 
@@ -259,6 +260,8 @@ def build_demo(path: Path) -> Path:
     events.sort(key=lambda ev: (ev[0], ev[1]))
     for _, _, action in events:
         action()
+    # Starting a session makes it current; the demo opens between sessions.
+    end_session(conn)
 
     # Afterwards: types' fields and values, pins, relationships, the song, review state.
     add_field(conn, "f-domain", DEITY.id, "Domain", "text")

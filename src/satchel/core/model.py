@@ -67,6 +67,53 @@ class Entity:
     thread_state: str | None = None
 
 
+@dataclass(frozen=True)
+class Session:
+    """A session record (SPEC 6). `date` is the local date, YYYY-MM-DD."""
+
+    id: str
+    number: int
+    date: str
+    title: str = ""
+    recap: str = ""
+
+
+@dataclass(frozen=True)
+class NoteRow:
+    """A saved note as the views need it: the stored text (tokens and all) plus how
+    each linked entity is linked, so auto links can be drawn differently (SPEC 5.3)."""
+
+    id: str
+    text: str
+    session_id: str | None
+    created_at: str
+    updated_at: str
+    reviewed_at: str | None = None
+    links: dict[str, str] = field(default_factory=dict)  # entity id -> how
+
+
+@dataclass(frozen=True)
+class Relation:
+    """One relationship seen from one entity. direction: "out" (this entity → other),
+    "in" (other → this entity) or "both" (undirected)."""
+
+    type: str
+    other_id: str
+    direction: str
+
+
+@dataclass(frozen=True)
+class RecallFacts:
+    """What a recall card needs from the database beyond the entity itself (SPEC 4.5).
+    The card decides what to show (e.g. "First mention" only past 3 mentions)."""
+
+    entity_id: str
+    mention_count: int
+    first_mention: NoteRow | None
+    last_mentions: list[NoteRow]  # newest first, up to 3
+    relations: list[Relation]  # most recently edited first, up to 3
+
+
 def is_person(entity: Entity, types_by_id: dict[str, EntityType]) -> bool:
     """People get short names. Candidates have no type yet and count as people:
     most are names overheard at the table."""

@@ -1,38 +1,22 @@
-"""Sessions, notes, links, tags, pins and note search (SPEC 3.1, 4.6, 6).
+"""Notes, links, tags, pins and note search (SPEC 3.1, 4.6). Sessions are in sessions.py.
 
 The rules live in satchel.core (resolve_note); this module loads what they need, calls
 them, and writes the result in one transaction.
 """
 
+import json
 import re
 import sqlite3
+from collections import Counter
 from collections.abc import Iterable
 
 from satchel.core.display import search_text
 from satchel.core.matcher import ResolvedNote, resolve_note
 from satchel.core.mentions import NameIndex, Pick, to_typed_form
-from satchel.core.model import new_id
+from satchel.core.model import NoteRow, new_id
 from satchel.core.search import fuzzy_terms
 from satchel.db.connection import transaction
 from satchel.db.entities import get_meta, insert_candidates, load_index
-
-# --- Sessions --------------------------------------------------------------------
-
-
-def start_session(
-    conn: sqlite3.Connection, date: str, now: str, *, title: str = "", session_id: str = ""
-) -> str:
-    """Create the next numbered session. Returns its id."""
-    session_id = session_id or new_id()
-    with transaction(conn):
-        number = conn.execute("SELECT COALESCE(MAX(number), 0) + 1 FROM sessions").fetchone()[0]
-        conn.execute(
-            "INSERT INTO sessions (id, number, date, title, created_at, updated_at)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (session_id, number, date, title, now, now),
-        )
-    return session_id
-
 
 # --- Notes -----------------------------------------------------------------------
 
@@ -168,6 +152,44 @@ def pin_note(conn: sqlite3.Connection, entity_id: str, note_id: str, now: str) -
             "INSERT OR IGNORE INTO pins (entity_id, note_id, created_at) VALUES (?, ?, ?)",
             (entity_id, note_id, now),
         )
+
+
+def notes_by_id(conn: sqlite3.Connection, ids: Iterable[str]) -> list[NoteRow]:
+    """Load notes for display, in the order given (so search ranking or a feed's order
+    survives). Unknown ids are skipped. The ids go in as one JSON array, which avoids
+    SQLite's limit on the number of `?` placeholders."""
+    ids = list(ids)
+    if not ids:
+        return []
+    id_list = json.dumps(ids)
+    links: dict[str, dict[str, str]] = {}
+    for r in conn.execute(
+        "SELECT note_id, entity_id, how FROM note_links"
+        " WHERE note_id IN (SELECT value FROM json_each(?))",
+        (id_list,),
+    ):
+        links.setdefault(r["note_id"], {})[r["entity_id"]] = r["how"]
+    rows = {
+        r["id"]: NoteRow(
+            id=r["id"],
+            text=r["text"],
+            session_id=r["session_id"],
+            created_at=r["created_at"],
+            updated_at=r["updated_at"],
+            reviewed_at=r["reviewed_at"],
+            links=links.get(r["id"], {}),
+        )
+        for r in conn.execute(
+            "SELECT * FROM notes WHERE id IN (SELECT value FROM json_each(?))", (id_list,)
+        )
+    }
+    return [rows[i] for i in ids if i in rows]
+
+
+def note_tag_counts(conn: sqlite3.Connection) -> Counter[str]:
+    """How many notes use each tag key: what core.tags.suggest_tags ranks by."""
+    rows = conn.execute("SELECT tag, COUNT(*) AS n FROM note_tags GROUP BY tag")
+    return Counter({r["tag"]: r["n"] for r in rows})
 
 
 def backlinks(conn: sqlite3.Connection, entity_id: str) -> list[str]:
