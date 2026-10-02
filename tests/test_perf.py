@@ -127,7 +127,8 @@ def test_matcher_under_10_ms_per_keystroke():
 
 
 def test_save_resolution_is_fast():
-    """Informational bound for P1's < 50 ms save: index build + resolve, not the DB."""
+    """Index build + resolve, not the DB. Save time has no target (SPEC 10); this only
+    catches a pathological regression."""
     entities, _ = make_world()
     text = f"@{entities[0].name.replace(' ', '_')} met {entities[1].name.lower()} and @Nobody"
     t = time.perf_counter()
@@ -136,11 +137,11 @@ def test_save_resolution_is_fast():
     ms = (time.perf_counter() - t) * 1000
     print(f"\nindex build + resolve_note: {ms:.1f} ms")
     assert len(r.candidates) == 1
-    assert ms < 50
+    assert ms < 500
 
 
-def test_capture_save_under_50_ms_on_disk(tmp_path):
-    """G1 (SPEC 10): a real save_note, durable on disk (WAL + synchronous=FULL), into a
+def test_capture_save_on_disk_is_not_pathological(tmp_path):
+    """A real save_note, durable on disk (WAL + synchronous=FULL), into a
     file with 5000 notes and 300 entities. Setup takes shortcuts (sync off, notes
     inserted raw in one transaction) because only the timed saves need to be real."""
     entities, notes = make_world()
@@ -172,4 +173,5 @@ def test_capture_save_under_50_ms_on_disk(tmp_path):
 
     median = statistics.median(times)
     print(f"\nsave_note on disk: median {median:.1f} ms, max {max(times):.1f} ms")
-    assert median < 50, f"median {median:.1f} ms"
+    # No save-time target (Jake, 2026-10-03): only catch something pathological.
+    assert median < 500, f"median {median:.1f} ms"

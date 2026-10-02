@@ -4,8 +4,8 @@ Written 2026-10-03, at the end of P1, for a **fresh Claude session**. Everything
 
 ## 0. Before starting
 
-- **G1 must have passed** (SPEC 12: one real session, no lost notes, save < 50 ms). Jake reports the result from `docs/G1-CHECKLIST.md`. Log it in SPEC 15 with the date.
-- **Fold in G1 findings first.** Anything Jake hit at the table (bugs, friction, slow saves, the Ctrl+Alt+N focus result) becomes task 0 of P2, ahead of new features. Check `%LOCALAPPDATA%\Satchel\satchel.log` with him for `WARNING` (slow save) and `ERROR` lines.
+- **G1 must have passed** (SPEC 12: one real session, no lost notes). Jake reports the result from `docs/G1-CHECKLIST.md`. Log it in SPEC 15 with the date.
+- **Fold in G1 findings first.** Anything Jake hit at the table (bugs, friction, slow saves, the Ctrl+Alt+N focus result) becomes task 0 of P2, ahead of new features. Check `%LOCALAPPDATA%\Satchel\satchel.log` with him for `ERROR` / `CRITICAL` lines.
 - Green start: `uv sync && uv run ruff check && uv run pytest` (320 tests at the end of P1).
 
 ## 1. Read first (in this order)
@@ -100,7 +100,7 @@ Run the app and screenshot each view on the laptop before committing it (that ca
 
 ## 6. Risks and watch items
 
-- **Save spikes**: one 108 ms UI-path save was seen under full-suite load in P1 (normal 4–15 ms) [NV cause]. Watch G1's log; if real, investigate before P2 adds work to the save path (dismissal lookups, FTS rewrites on rename).
+- **Save time** is not a target (Jake, 2026-10-03); it's logged for information only. The perf test still fails on a pathological regression (median ≥ 500 ms), e.g. if dismissal lookups or rename FTS rewrites go quadratic.
 - **Review speed** is the gate. Prototype task 5 against the demo early and time it; don't polish entity pages first.
 - **Merge** must keep the `note_links` invariant and stored labels (SPEC 4.6.5/4.6.6). Fuzz it.
 - **Qt specifics** found in P1: dark mode leaks unless the palette is set (done in `theme.py`); `deleteLater` needs a `hide()` first; native event filters see every message; word-wrapped labels in scroll areas overlap.

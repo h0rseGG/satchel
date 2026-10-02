@@ -1,6 +1,6 @@
 # G1 checklist (P1 gate)
 
-**Gate (SPEC 12):** one real session, no lost notes, save < 50 ms.
+**Gate (SPEC 12):** one real session, no lost notes.
 
 ## Before the session
 
@@ -28,13 +28,11 @@
 
 - [ ] **End session**. The nudge bar should offer **Pack kit**: pack to somewhere off the laptop (USB or OneDrive).
 - [ ] **No lost notes:** the feed's note count equals your tally.
-- [ ] **Save < 50 ms:** open `%LOCALAPPDATA%\Satchel\satchel.log`. Each `save … ms` line is one note.
-  - `WARNING` lines are saves of 50 ms or more.
-  - `ERROR` / `CRITICAL` lines are bugs: copy them to Claude.
+- [ ] **Errors:** open `%LOCALAPPDATA%\Satchel\satchel.log`. `ERROR` / `CRITICAL` lines are bugs: copy them to Claude. (Each `save … ms` line is one note and its save time, for information only.)
   - The log holds ids and times only, never note text.
 
 ## Report back
 
-Tally vs notes saved, the slowest save in the log, anything slow, confusing or wrong, and the focus result from the Ctrl+Alt+N check.
+Tally vs notes saved, any errors in the log, anything confusing or wrong, and the focus result from the Ctrl+Alt+N check.
 
 **Not in P1** (so not a G1 failure): deleting notes, entity pages, Review, moving notes between sessions. All P2.

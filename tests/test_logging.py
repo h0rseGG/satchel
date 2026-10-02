@@ -22,7 +22,7 @@ def test_saves_are_logged_with_time_but_never_text(store, caplog):
     [record] = [r for r in caplog.records if r.getMessage().startswith("save ")]
     assert note_id in record.getMessage() and record.getMessage().endswith(" ms")
     assert "barrow" not in caplog.text
-    assert store.last_save_ms is not None and store.last_save_ms < 50
+    assert store.last_save_ms is not None
 
 
 def test_a_failed_save_is_logged_and_raised(store, caplog, monkeypatch):

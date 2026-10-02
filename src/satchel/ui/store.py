@@ -30,7 +30,6 @@ from satchel.files.kits import free_path
 
 Clock = Callable[[], datetime]
 log = logging.getLogger("satchel")
-SLOW_SAVE_MS = 50  # G1 target (SPEC 10)
 
 
 def system_clock() -> datetime:
@@ -104,7 +103,7 @@ class CharacterStore(QObject):
 
     def save_note(self, typed_text: str, picks: Iterable[Pick] = ()) -> str:
         """Capture: durable when this returns (SPEC 1). The time to the durable commit
-        is logged for G1 (< 50 ms); a failure is logged and raised, the caller keeps
+        is logged for information (no target); a failure is logged and raised, the caller keeps
         the text."""
         started = time.perf_counter()
         try:
@@ -139,8 +138,7 @@ class CharacterStore(QObject):
     def _log_save(self, what: str, note_id: str, started: float) -> None:
         # Ids and times only: note text never goes in the log.
         self.last_save_ms = (time.perf_counter() - started) * 1000
-        level = logging.WARNING if self.last_save_ms >= SLOW_SAVE_MS else logging.INFO
-        log.log(level, "%s %s: %.1f ms", what, note_id, self.last_save_ms)
+        log.info("%s %s: %.1f ms", what, note_id, self.last_save_ms)
 
     def _after_note_write(self) -> None:
         # A save can create candidates and new tags; refresh what typing reads from.

@@ -22,7 +22,7 @@ The table side (phase P1) is built:
 
 Still to come (P2): a Review page for tidying a session's notes, pages for each person and place, relationships, files and maps.
 
-The P1 gate hasn't been run yet. It's one real session with no lost notes and every save under 50 ms.
+The P1 gate hasn't been run yet. It's one real session with no lost notes.
 
 ## Running it
 
