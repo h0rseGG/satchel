@@ -59,6 +59,18 @@ QFrame[role="panel"] {
     border-radius: 3px;
 }
 
+/* A recall card, on the recall panel. */
+QFrame[role="card"] {
+    background: @paper;
+    border: 1px solid @rule;
+    border-radius: 3px;
+}
+
+QLabel[role="card-title"] {
+    font-size: 16px;
+    font-weight: 600;
+}
+
 /* --- Text -------------------------------------------------------------------------------- */
 
 QLabel[role="page-title"] {

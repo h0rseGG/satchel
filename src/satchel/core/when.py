@@ -22,6 +22,12 @@ def time_label(iso: str, tz: tzinfo | None = None) -> str:
     return f"{hour}:{t.minute:02d} {'am' if t.hour < 12 else 'pm'}"
 
 
+def day_label(iso: str, tz: tzinfo | None = None) -> str:
+    """A stored time's local day, short: "5 Sept" (recall card mentions)."""
+    d = parse_utc(iso).astimezone(tz).date()
+    return f"{d.day} {_MONTHS[d.month - 1]}"
+
+
 def date_label(day: str) -> str:
     """A local date ("2026-09-05") as "Fri 5 Sept 2026"."""
     d = date.fromisoformat(day)

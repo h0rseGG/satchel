@@ -84,6 +84,5 @@ class TablePage(QWidget):
         recall.setContentsMargins(SPACE["l"], SPACE["l"], SPACE["l"], SPACE["l"])
         recall.addWidget(panel_heading(strings.RECALL_HEADING))
         self.recall_slot = QVBoxLayout()
-        recall.addLayout(self.recall_slot)
-        recall.addStretch()
+        recall.addLayout(self.recall_slot, 1)
         outer.addWidget(self.recall_panel)

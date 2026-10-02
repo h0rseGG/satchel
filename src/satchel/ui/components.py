@@ -6,7 +6,8 @@ and `role` for everything else. They're set once, before the widget is shown; Qt
 re-reads the stylesheet for a property change if the widget is re-polished.
 """
 
-from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QLabel, QPushButton, QSizePolicy, QWidget
 
 BUTTON_KINDS = ("primary", "secondary", "quiet", "danger")
 
@@ -49,3 +50,25 @@ def _label(text: str, role: str, parent: QWidget | None) -> QLabel:
     label = QLabel(text, parent)
     label.setProperty("role", role)
     return label
+
+
+class ElidedLabel(QLabel):
+    """One line that ends in "…" when it doesn't fit; the full text is the tooltip.
+    For lists in narrow panels, where wrapped labels would make cards jump in height."""
+
+    def __init__(self, text: str, role: str = "muted", parent: QWidget | None = None):
+        super().__init__(parent)
+        self.full_text = text
+        self.setText(text)  # until the first resize elides it
+        self.setProperty("role", role)
+        self.setToolTip(text)
+        self.setTextFormat(Qt.TextFormat.PlainText)
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setMinimumWidth(40)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 - Qt's name
+        width = self.contentsRect().width()
+        self.setText(
+            self.fontMetrics().elidedText(self.full_text, Qt.TextElideMode.ElideRight, width)
+        )
+        super().resizeEvent(event)

@@ -13,13 +13,13 @@ Lesson 9: every caret move happens in the same call as the edit, never on a time
 
 from collections import Counter
 
-from PySide6.QtCore import QEvent, QPoint, Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import (
     QKeyEvent,
     QSyntaxHighlighter,
     QTextCursor,
 )
-from PySide6.QtWidgets import QListWidget, QListWidgetItem, QPlainTextEdit, QWidget
+from PySide6.QtWidgets import QPlainTextEdit, QWidget
 
 from satchel.core.autocomplete import (
     ActiveToken,
@@ -29,14 +29,15 @@ from satchel.core.autocomplete import (
 )
 from satchel.core.capture import apply_tag_pick, highlight_spans
 from satchel.core.capture import recall_ids as core_recall_ids
+from satchel.core.matcher import link_occurrence, link_target
 from satchel.core.mentions import NameIndex, Pick, build_name_index
 from satchel.core.tags import suggest_tags
 from satchel.ui import strings
 from satchel.ui.note_text import char_formats
 from satchel.ui.palette import SPACE
+from satchel.ui.suggestions import SuggestionList
 
 MAX_LINES = 4
-ENTITY_ROLE = Qt.ItemDataRole.UserRole  # item data: ("entity", id) or ("tag", key)
 
 
 class CaptureHighlighter(QSyntaxHighlighter):
@@ -50,38 +51,6 @@ class CaptureHighlighter(QSyntaxHighlighter):
     def highlightBlock(self, text: str) -> None:  # noqa: N802 - Qt's name
         for span in highlight_spans(text, self.box.index, never_auto=self.box.never_auto):
             self.setFormat(span.start, span.end - span.start, self.formats[span.kind])
-
-
-class SuggestionList(QListWidget):
-    """The @/# suggestions. It floats over the window (not in any layout), so showing it
-    never moves anything (lesson 6), and it never takes focus from the box."""
-
-    def __init__(self, parent: QWidget):
-        super().__init__(parent)
-        self.setProperty("role", "suggestions")
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.hide()
-
-    def choice(self) -> tuple[str, str] | None:
-        item = self.currentItem()
-        return item.data(ENTITY_ROLE) if item and item.data(ENTITY_ROLE) else None
-
-    def _selectable(self) -> list[int]:
-        return [i for i in range(self.count()) if self.item(i).data(ENTITY_ROLE)]
-
-    def select_first(self) -> None:
-        rows = self._selectable()
-        self.setCurrentRow(rows[0] if rows else -1)
-
-    def step(self, by: int) -> None:
-        """Move the highlight by one (Up/Down), wrapping, skipping hint rows."""
-        rows = self._selectable()
-        if not rows:
-            return
-        row = self.currentRow()
-        pos = rows.index(row) if row in rows else 0
-        self.setCurrentRow(rows[(pos + by) % len(rows)])
 
 
 class CaptureBox(QPlainTextEdit):
@@ -192,15 +161,19 @@ class CaptureBox(QPlainTextEdit):
         self._hide_suggestions()
 
     def _replace_token(self, old: str, new: str, caret: int) -> None:
-        """Swap just the token (so Ctrl+Z undoes the pick), then place the caret, in
-        one go: nothing is left for later (lesson 9)."""
-        token = self.token
-        after = len(old) - token.end
+        after = len(old) - self.token.end
+        self._swap(
+            self.token.start, self.token.end, new[self.token.start : len(new) - after], caret
+        )
+
+    def _swap(self, start: int, end: int, insert: str, caret: int) -> None:
+        """Replace text[start:end] and place the caret in one edit block: Ctrl+Z undoes
+        it in one step, and nothing is left for later (lesson 9)."""
         cursor = self.textCursor()
         cursor.beginEditBlock()
-        cursor.setPosition(token.start)
-        cursor.setPosition(token.end, QTextCursor.MoveMode.KeepAnchor)
-        cursor.insertText(new[token.start : len(new) - after])
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        cursor.insertText(insert)
         cursor.setPosition(caret)
         cursor.endEditBlock()
         self.setTextCursor(cursor)
@@ -210,6 +183,31 @@ class CaptureBox(QPlainTextEdit):
         cursor = self.textCursor()
         cursor.setPosition(caret)
         self.setTextCursor(cursor)
+
+    # --- Link from a recall card (SPEC 4.3, 4.5) ------------------------------------------
+
+    def can_link(self, entity_id: str) -> bool:
+        """Is there a plain occurrence of this entity's name to turn into a mention?"""
+        return link_target(self.toPlainText(), entity_id, self.index) is not None
+
+    def link_entity(self, entity_id: str) -> None:
+        """Turn the plain name into a typed mention. The occurrence that ends last wins,
+        then the longest ("lord aldric" over "aldric"). The edit and the caret move are
+        one step (lesson 9)."""
+        text = self.toPlainText()
+        hit = link_target(text, entity_id, self.index)
+        if hit is None:
+            return
+        new_text, _, pick = link_occurrence(text, hit, self.index.by_id[entity_id])
+        insert = new_text[hit.start : len(new_text) - (len(text) - hit.end)]
+        # Keep Jake's caret where it was in his text (usually the end, mid-sentence).
+        caret = self.textCursor().position()
+        if caret >= hit.end:
+            caret += len(insert) - (hit.end - hit.start)
+        self._swap(hit.start, hit.end, insert, caret)
+        if pick:
+            self.picks.append(pick)
+        self.setFocus()
 
     # --- Suggestions and recall ----------------------------------------------------------
 
@@ -252,31 +250,7 @@ class CaptureBox(QPlainTextEdit):
         host = self.window()
         if self._suggestions is None or self._suggestions.parent() is not host:
             self._suggestions = SuggestionList(host)
-        lst = self._suggestions
-        lst.clear()
-        for label, data in items:
-            item = QListWidgetItem(label)
-            if data:
-                item.setData(ENTITY_ROLE, data)
-            else:
-                item.setFlags(Qt.ItemFlag.NoItemFlags)  # a hint, not a choice
-            lst.addItem(item)
-        lst.select_first()
-        self._place_suggestions()
-        lst.show()
-        lst.raise_()
-
-    def _place_suggestions(self) -> None:
-        """Just above the box, as wide as it; below it if there's no room above."""
-        lst = self._suggestions
-        host = self.window()
-        row_h = lst.sizeHintForRow(0) if lst.count() else 24
-        height = row_h * lst.count() + 2 * lst.frameWidth()
-        top_left = self.mapTo(host, QPoint(0, 0))
-        y = top_left.y() - height - SPACE["xs"]
-        if y < 0:
-            y = top_left.y() + self.height() + SPACE["xs"]
-        lst.setGeometry(top_left.x(), y, self.width(), height)
+        self._suggestions.show_items(items, self)
 
     def _hide_suggestions(self) -> None:
         if self._suggestions is not None:

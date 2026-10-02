@@ -17,8 +17,10 @@ from PySide6.QtCore import QObject, Signal
 from satchel import __version__
 from satchel.core.kit import slugify
 from satchel.core.mentions import NameIndex, Pick
-from satchel.core.model import NoteRow, Session, iso_now, new_id
+from satchel.core.model import NoteRow, RecallFacts, Session, iso_now, new_id
+from satchel.db import entities as db_entities
 from satchel.db import notes as db_notes
+from satchel.db import recall as db_recall
 from satchel.db import sessions as db_sessions
 from satchel.db.connection import open_db
 from satchel.db.entities import create_character, get_meta, load_index
@@ -118,6 +120,26 @@ class CharacterStore(QObject):
         self.notes_changed.emit()
         if len(self.index.by_id) != before:
             self.entities_changed.emit()
+
+    # --- Recall and search ----------------------------------------------------------------
+
+    def recall_facts(self, entity_id: str) -> RecallFacts:
+        return db_recall.recall_facts(self.conn, entity_id)
+
+    def set_entity_type(self, entity_id: str, type_id: str) -> None:
+        """Quick type from a recall card: a person type also gives short names, so the
+        index is rebuilt."""
+        db_entities.set_entity_type(self.conn, entity_id, type_id, self.now())
+        self.index = load_index(self.conn)
+        self.entities_changed.emit()
+
+    def search(self, text: str, limit: int = 5) -> tuple[list[str], list[NoteRow]]:
+        """Search alongside recall (SPEC 4.5): entity ids and notes, best first."""
+        entity_ids = [
+            i for i in db_notes.search_entities(self.conn, text, limit) if i in self.index.by_id
+        ]
+        notes = db_notes.notes_by_id(self.conn, db_notes.search_notes(self.conn, text, limit))
+        return entity_ids, notes
 
     # --- Lifecycle ----------------------------------------------------------------------
 

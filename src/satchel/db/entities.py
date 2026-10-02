@@ -174,6 +174,17 @@ def add_alias(conn: sqlite3.Connection, entity_id: str, alias: str, now: str) ->
         _write_entity_fts(conn, entity)
 
 
+def set_entity_type(conn: sqlite3.Connection, entity_id: str, type_id: str, now: str) -> None:
+    """Give an entity a type. For a candidate this is the quick type from its recall card
+    (SPEC 4.5): typing it accepts it, so it stops being a candidate. A user edit, so
+    updated_at moves."""
+    with transaction(conn):
+        conn.execute(
+            "UPDATE entities SET type_id = ?, is_candidate = 0, updated_at = ? WHERE id = ?",
+            (type_id, now, entity_id),
+        )
+
+
 def insert_candidates(conn: sqlite3.Connection, candidates: Iterable[Entity]) -> None:
     for c in candidates:
         _insert_entity(conn, c)
