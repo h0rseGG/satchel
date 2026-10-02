@@ -14,6 +14,7 @@ from satchel.ui.capture import CaptureBox
 from satchel.ui.feed import NotesFeed
 from satchel.ui.pages import TablePage
 from satchel.ui.recall import RecallPanel
+from satchel.ui.session_strip import SessionStrip
 from satchel.ui.store import CharacterStore
 
 
@@ -21,6 +22,11 @@ class TableView(TablePage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.store: CharacterStore | None = None
+        self.strip = SessionStrip()
+        self.session_slot.addWidget(self.strip)
+        self.strip.start_requested.connect(self._start_session)
+        self.strip.end_requested.connect(self._end_session)
+        self.strip.title_changed.connect(lambda sid, t: self.store.set_session_title(sid, t))
         self.capture = CaptureBox()
         self.capture_slot.addWidget(self.capture)
         self.capture.submitted.connect(self._on_submitted)
@@ -47,10 +53,13 @@ class TableView(TablePage):
             self.capture.set_index(build_name_index([], {}), Counter(), [])
             self.notes.set_notes([], {})
             self.recall.show_for([], "", None, self.capture.can_link)
+            self.strip.show_session(None)
             return
         store.entities_changed.connect(self._refresh)
         store.notes_changed.connect(self._refresh)
+        store.session_changed.connect(self._refresh_session)
         self._refresh()
+        self._refresh_session()
         self.capture.setFocus()
 
     def _refresh(self) -> None:
@@ -59,6 +68,18 @@ class TableView(TablePage):
             self.capture.set_index(s.index, s.tag_counts, [s.pc_entity_id])
             self.notes.set_notes(s.feed_notes(), s.index.by_id)
             self._update_recall()
+
+    def _refresh_session(self) -> None:
+        if self.store is not None:
+            self.strip.show_session(self.store.current_session())
+
+    def _start_session(self) -> None:
+        self.store.start_session()
+        self.capture.setFocus()
+
+    def _end_session(self) -> None:
+        self.store.end_session()
+        self.capture.setFocus()
 
     def _on_recall_ids(self, ids: list[str]) -> None:
         self._recall_ids = ids

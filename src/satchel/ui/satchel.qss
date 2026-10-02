@@ -83,6 +83,11 @@ QLabel[role="panel-heading"] {
     font-size: 20px;
 }
 
+/* A number beside a serif heading ("Session 5"): body font, heading size. */
+QLabel[role="heading-number"] {
+    font-size: 20px;
+}
+
 QLabel[role="muted"] {
     color: @ink-muted;
 }

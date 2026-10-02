@@ -50,7 +50,8 @@ CLICK_TO_EDIT = "Click to edit"
 SAVE_FAILED = "That note wasn't saved: {error}. It's still in the box."
 
 # --- Sessions -------------------------------------------------------------------------------
-SESSION_HEADING = "Session {number}"
+SESSION_WORD = "Session"
+SESSION_TITLE_PLACEHOLDER = "Add a title"
 BETWEEN_SESSIONS = "Between sessions"
 
 # --- Messages --------------------------------------------------------------------------------
