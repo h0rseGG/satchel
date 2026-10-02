@@ -16,6 +16,7 @@ from satchel.files.kits import list_characters
 from satchel.files.local_state import LocalState, load_state, save_state
 from satchel.ui import strings
 from satchel.ui.dialogs import NameDialog
+from satchel.ui.kits_ui import KitActions
 from satchel.ui.pages import WelcomePage
 from satchel.ui.store import CharacterStore, Clock, create_character_file, system_clock
 from satchel.ui.table import TableView
@@ -42,6 +43,9 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.welcome)
         self.pages.addWidget(self.table)
         self.setCentralWidget(self.pages)
+        self.kits = KitActions(self)
+        self.welcome.unpack.connect(self.unpack_kit)
+        self.table.session_ended.connect(self.kits.nudge_if_unpacked)
         self._build_menu()
 
         self.resize(1100, 720)
@@ -60,6 +64,13 @@ class MainWindow(QMainWindow):
         # Rebuilt each time it opens, so a file added or unpacked meanwhile shows up.
         self.open_menu.aboutToShow.connect(self._fill_open_menu)
         menu.addMenu(self.open_menu)
+        menu.addSeparator()
+        self.pack_action = QAction(strings.PACK_KIT + "…", self)
+        self.pack_action.triggered.connect(self.pack_kit)
+        menu.addAction(self.pack_action)
+        unpack = QAction(strings.UNPACK_KIT + "…", self)
+        unpack.triggered.connect(self.unpack_kit)
+        menu.addAction(unpack)
         menu.addSeparator()
         quit_action = QAction(strings.QUIT, self)
         quit_action.triggered.connect(self.quit)
@@ -113,6 +124,21 @@ class MainWindow(QMainWindow):
         self.messages().clear()
         self.table.capture.setFocus()
         return True
+
+    def close_character(self) -> None:
+        """Close the open file (Replace needs it closed) and show Welcome."""
+        self._close_store()
+        self._show_welcome()
+
+    def pack_kit(self) -> None:
+        if self.store is None:
+            self.bring_to_front()  # nothing to pack: the Welcome page explains
+            return
+        self.kits.pack()
+
+    def unpack_kit(self) -> None:
+        self.bring_to_front()
+        self.kits.unpack()
 
     def _open_failed(self, message: str) -> bool:
         self.store = None

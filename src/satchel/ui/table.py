@@ -8,6 +8,8 @@ message bar says why.
 import time
 from collections import Counter
 
+from PySide6.QtCore import Signal
+
 from satchel.core.mentions import build_name_index
 from satchel.ui import strings
 from satchel.ui.capture import CaptureBox
@@ -19,6 +21,8 @@ from satchel.ui.store import CharacterStore
 
 
 class TableView(TablePage):
+    session_ended = Signal()  # the main window may nudge to pack (SPEC 7.3)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.store: CharacterStore | None = None
@@ -80,6 +84,7 @@ class TableView(TablePage):
     def _end_session(self) -> None:
         self.store.end_session()
         self.capture.setFocus()
+        self.session_ended.emit()
 
     def _on_recall_ids(self, ids: list[str]) -> None:
         self._recall_ids = ids

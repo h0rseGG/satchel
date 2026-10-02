@@ -80,6 +80,10 @@ class CharacterStore(QObject):
         if db_sessions.set_session_title(self.conn, session_id, title, self.now()):
             self.session_changed.emit()
 
+    def latest_change_at(self) -> str | None:
+        """For the end-of-session nudge (SPEC 7.3)."""
+        return db_sessions.latest_change_at(self.conn)
+
     def feed_notes(self) -> list[NoteRow]:
         """What the Table feed shows: the current session's notes, or between sessions
         the notes typed since the last session started (so the feed isn't years long)."""

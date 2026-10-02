@@ -19,9 +19,10 @@ RECALL_WIDTH = 340
 
 
 class WelcomePage(QWidget):
-    """First run, or nothing open: New character. (Unpack kit joins it in task 11.)"""
+    """First run, or nothing open: New character or Unpack kit."""
 
     new_character = Signal()
+    unpack = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,7 +38,9 @@ class WelcomePage(QWidget):
         self.new_button = button(strings.NEW_CHARACTER, "primary")
         self.new_button.clicked.connect(self.new_character)
         row.addWidget(self.new_button)
-        self.actions_row = row  # task 11 adds Unpack kit here
+        self.unpack_button = button(strings.UNPACK_KIT, "secondary")
+        self.unpack_button.clicked.connect(self.unpack)
+        row.addWidget(self.unpack_button)
         row.addStretch()
         layout.addLayout(row)
         self.message_bar = MessageBar()  # e.g. why the last character didn't open

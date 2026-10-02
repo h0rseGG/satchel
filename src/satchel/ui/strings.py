@@ -63,6 +63,22 @@ REPLACE_NEWER_WARNING = (
     "Replace keeps it in the replaced folder, but you'll be working from the kit."
 )
 
+# --- Kits ----------------------------------------------------------------------------------
+KIT_FILTER = "Satchel kit (*.kit)"
+PACK_TITLE = "Pack kit"
+PACK_FAILED = "The kit wasn't packed: {error}"
+UNPACK_TITLE = "Unpack kit"
+UNPACK_BODY = "{name}, packed {when}."
+UNPACK_BODY_HERE = "{name}, packed {when}. This character is already on this computer."
+REPLACE_TITLE = "Replace {name}?"
+REPLACE_BODY = (
+    "This computer's {name} will be swapped for the kit. "
+    "The current copy is kept in the replaced folder."
+)
+UNPACKED_NEW = "Unpacked {name} as a new character."
+UNPACKED_REPLACED = "Unpacked. The old copy is kept as replaced\\{file_name}."
+UNPACK_FAILED = "The kit wasn't unpacked: {error}"
+
 # Why a kit can't be unpacked, by KitError.code (core/kit.py). A test checks every code
 # has words here.
 KIT_ERRORS = {

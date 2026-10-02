@@ -127,7 +127,7 @@ def test_close_hides_to_the_tray_and_keeps_the_file_open(qtbot, tmp_path):
 
 def test_tray_menu_and_icon(window, quick):
     tray = Tray(window, quick)
-    assert list(tray.actions_by_name) == ["open", "quick", "quit"]
+    assert list(tray.actions_by_name) == ["open", "quick", "pack", "quit"]
     tray.actions_by_name["open"].trigger()
     assert window.isVisible()
     assert not app_icon().pixmap(32, 32).isNull()

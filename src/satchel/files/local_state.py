@@ -21,6 +21,7 @@ class LocalState:
     last_character: str | None = None  # file name of the character opened last
     window_geometry: str | None = None  # Qt saveGeometry() as base64
     hotkey: str = DEFAULT_HOTKEY
+    last_kit_folder: str | None = None  # where Pack/Unpack last looked
 
 
 def load_state(folder: Path) -> LocalState:
@@ -34,6 +35,7 @@ def load_state(folder: Path) -> LocalState:
             last_character=data.get("last_character"),
             window_geometry=data.get("window_geometry"),
             hotkey=data.get("hotkey") or DEFAULT_HOTKEY,
+            last_kit_folder=data.get("last_kit_folder"),
         )
         if not all(isinstance(v, str) for v in state.last_packed_at.values()):
             raise ValueError("last_packed_at values must be strings")

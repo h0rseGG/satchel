@@ -49,6 +49,32 @@ class NameDialog(QDialog):
         return self.field.text().strip()
 
 
+def choice_dialog(
+    parent: QWidget | None, title: str, body: str, choices: list[tuple[str, str, str]]
+) -> QDialog:
+    """A few labelled ways forward, e.g. Unpack's Add as new / Replace. `choices` are
+    (key, label, button kind); Cancel is always added. After exec(), `chosen` holds the
+    key, or None for Cancel. Not a confirm: a destructive choice still confirms."""
+    dialog = QDialog(parent)
+    layout = _frame(dialog, title)
+    text = QLabel(body)
+    text.setWordWrap(True)
+    layout.addWidget(text)
+    dialog.chosen = None
+    dialog.buttons = {}
+    cancel = button(strings.CANCEL, "quiet")
+    cancel.clicked.connect(dialog.reject)
+    row = []
+    for key, label, kind in choices:
+        b = button(label, kind)
+        b.setAutoDefault(False)
+        b.clicked.connect(lambda _=False, k=key: (setattr(dialog, "chosen", k), dialog.accept()))
+        dialog.buttons[key] = b
+        row.append(b)
+    _button_row(layout, cancel, *row)
+    return dialog
+
+
 def confirm_dialog(parent: QWidget | None, title: str, body: str, action: str) -> QDialog:
     """Build the confirm dialog (tests drive it directly). The destructive button is
     red-filled here and only here (SPEC 5.3); Cancel has the focus, so a stray Enter

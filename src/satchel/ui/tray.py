@@ -1,4 +1,4 @@
-"""The tray icon (SPEC 5.1): open, quick capture, quit (Pack kit joins in task 11).
+"""The tray icon (SPEC 5.1): open, quick capture, pack kit, quit.
 Clicking the icon opens the main window. Closing the main window only hides it, so
 the hotkey keeps working; Quit is here and in the File menu."""
 
@@ -20,13 +20,14 @@ class Tray(QSystemTrayIcon):
         for name, label, slot in [
             ("open", strings.OPEN_SATCHEL, main_window.bring_to_front),
             ("quick", strings.QUICK_CAPTURE, quick_capture.open),
+            ("pack", strings.PACK_KIT + "…", main_window.pack_kit),
             ("quit", strings.QUIT, QApplication.quit),
         ]:
             action = QAction(label, menu)
             action.triggered.connect(slot)
             menu.addAction(action)
             self.actions_by_name[name] = action
-            if name == "quick":
+            if name == "pack":
                 menu.addSeparator()
         self.setContextMenu(menu)
         self.activated.connect(self._on_activated)

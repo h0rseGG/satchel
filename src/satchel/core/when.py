@@ -28,6 +28,11 @@ def day_label(iso: str, tz: tzinfo | None = None) -> str:
     return f"{d.day} {_MONTHS[d.month - 1]}"
 
 
+def local_day(iso: str, tz: tzinfo | None = None) -> str:
+    """A stored time's local date, YYYY-MM-DD (for date_label)."""
+    return parse_utc(iso).astimezone(tz).date().isoformat()
+
+
 def date_label(day: str) -> str:
     """A local date ("2026-09-05") as "Fri 5 Sept 2026"."""
     d = date.fromisoformat(day)
