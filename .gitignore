@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+dist/
+# Real character data never goes in the repo; frozen test fixtures are the exception.
+*.satchel
+!tests/fixtures/*.satchel
+*.kit
