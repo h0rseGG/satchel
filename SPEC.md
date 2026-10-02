@@ -553,3 +553,4 @@ Each milestone ends with its tests passing, a screenshot review (UI milestones) 
 | 2026-10-02 | M10: anything uncaught shows "Something went wrong. Your data is safe; try again." (window error and unhandled rejection handlers, same-origin only) |
 | 2026-10-02 | M10: an accessibility and phone-width audit runs over every screen and open state at 1280 and 412 px with the demo loaded: every visible control has an accessible name, images have alt text, dialogs are named, one h1 per screen (the session screen got a visually hidden one), `lang="en-AU"`, no sideways scroll. A unit test keeps HTML-injection sinks out of app code |
 | 2026-10-02 | M10: the release is **v2.12** (Jake's `2.N` scheme; no separate "1.0.0"). README written for players first, developers second |
+| 2026-10-02 | Jake: v2.12 is the finished concept. Not yet his official record, but from here on changes must protect existing data on devices (database upgrades, kit migrations, merges) |

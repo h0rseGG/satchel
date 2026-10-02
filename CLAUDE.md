@@ -12,7 +12,7 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 - Explain key choices briefly. Make reasonable assumptions and say so inline.
 - When he says "keep going" / is away: build approved scope milestone by milestone, decide details, log them, test, push each finished step. Don't expand scope; leave design-changing questions for his return.
 - Authorised: push to `origin main` after each finished, **tested** step (it updates the live site).
-- Testing uses the demo character only until he says the app is finished. Still treat data safety as if it were real.
+- **Finished concept (Jake, 2026-10-02).** Not yet his official record, but treat any data on his devices as real: a change must never risk existing data (database upgrades, kit schema, merges, imports). Database changes go through new Dexie versions with upgrades; a kit schema change gets a migration and a new frozen fixture. Tests still use the demo and fixtures, never his data.
 - `tools/screens.mjs` seeds its own data per screen; extend its SCREENS list when adding a screen.
 
 ## Environment (Ubuntu build machine; the app targets Firefox on Windows and Android)
@@ -41,4 +41,4 @@ Owner: Jake. Electrician, Python-first, new to web. Personal project (not Cablew
 
 ## Status
 - v1 is preserved at git tag `v1-final` (reference only; v2 is a fresh build).
-- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). M4 done (World: types, fields, type lists, entity page, merge, delete). M5 done (Notes, Inbox and every sort action). M6 done (character page, portraits, D&D Beyond link). M7 done (relationships, diagram). M8 done (files grid, viewer, attach, pictures). M9 done (kits: pack, unpack New/Merge/Replace, nudge, persistence, first run with demo, Help, Settings). M10 done: released as v2.12 (speed at 5000 notes, error toasts, accessibility audit, README). Further work is Jake's call.
+- v2: M0–M3 done (… plus the session screen: capture, autocomplete, recall, tap-to-link, quick type, overview, auto-end). M4 done (World: types, fields, type lists, entity page, merge, delete). M5 done (Notes, Inbox and every sort action). M6 done (character page, portraits, D&D Beyond link). M7 done (relationships, diagram). M8 done (files grid, viewer, attach, pictures). M9 done (kits: pack, unpack New/Merge/Replace, nudge, persistence, first run with demo, Help, Settings). M10 done: released as v2.12 (speed at 5000 notes, error toasts, accessibility audit, README). Further work is Jake's call; he's using it at the table to find friction.
